@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: supernanny_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: supernanny
+      POSTGRES_PASSWORD: supernanny_secret
+      POSTGRES_DB: supernanny_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supernanny -d supernanny_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supernanny_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: "postgresql://supernanny:supernanny_secret@postgres:5432/supernanny_db?schema=public"
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_THIS_IN_PRODUCTION_USE_32_CHARS_MIN}
+      JWT_EXPIRES_IN: 14d
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ENABLE_PAYMENTS: ${ENABLE_PAYMENTS:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local

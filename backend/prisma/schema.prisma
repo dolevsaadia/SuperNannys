@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum Role {
+  PARENT
+  NANNY
+  ADMIN
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  FACEBOOK
+}
+
+enum BookingStatus {
+  REQUESTED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum DocumentType {
+  ID_CARD
+  POLICE_CHECK
+  FIRST_AID_CERT
+  CHILDCARE_CERT
+  OTHER
+}
+
+enum Badge {
+  VERIFIED
+  FIRST_AID
+  EXPERIENCE_5_PLUS
+  TOP_RATED
+  FAST_RESPONDER
+  BACKGROUND_CHECKED
+}
+
+// ─── Models ───────────────────────────────────────────────
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String?
+  fullName     String
+  phone        String?
+  avatarUrl    String?
+  role         Role         @default(PARENT)
+  authProvider AuthProvider @default(LOCAL)
+  googleSub    String?      @unique
+  isActive     Boolean      @default(true)
+  isVerified   Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  nannyProfile    NannyProfile?
+  parentBookings  Booking[]       @relation("ParentBookings")
+  nannyBookings   Booking[]       @relation("NannyBookings")
+  sentMessages    Message[]       @relation("SentMessages")
+  givenReviews    Review[]        @relation("GivenReviews")
+  receivedReviews Review[]        @relation("ReceivedReviews")
+  devices         Device[]
+  paymentMethods  PaymentMethod[]
+  earnings        Earning[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+model NannyProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline        String   @default("")
+  bio             String   @default("")
+  hourlyRateNis   Int      @default(50)
+  yearsExperience Int      @default(0)
+  languages       String[] @default(["Hebrew"])
+  skills          String[] @default([])
+  badges          Badge[]  @default([])
+  isVerified      Boolean  @default(false)
+  isAvailable     Boolean  @default(true)
+  latitude        Float?
+  longitude       Float?
+  city            String   @default("")
+  address         String   @default("")
+  rating          Float    @default(0)
+  reviewsCount    Int      @default(0)
+  totalEarnings   Int      @default(0)
+  completedJobs   Int      @default(0)
+  responseTimeMin Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  availability Availability[]
+  documents    Document[]
+
+  @@map("nanny_profiles")
+}
+
+model Availability {
+  id             String       @id @default(cuid())
+  nannyProfileId String
+  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int          // 0=Sunday … 6=Saturday
+  fromTime       String       // "08:00"
+  toTime         String       // "22:00"
+  isAvailable    Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  @@unique([nannyProfileId, dayOfWeek])
+  @@map("availabilities")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  parentUserId    String
+  parent          User          @relation("ParentBookings", fields: [parentUserId], references: [id])
+  nannyUserId     String
+  nanny           User          @relation("NannyBookings", fields: [nannyUserId], references: [id])
+  startTime       DateTime
+  endTime         DateTime
+  notes           String?
+  status          BookingStatus @default(REQUESTED)
+  hourlyRateNis   Int
+  totalAmountNis  Int
+  isPaid          Boolean       @default(false)
+  paymentIntentId String?
+  childrenCount   Int           @default(1)
+  childrenAges    String[]      @default([])
+  address         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  messages Message[]
+  review   Review?
+  earning  Earning?
+
+  @@map("bookings")
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fromUserId String
+  from       User     @relation("SentMessages", fields: [fromUserId], references: [id])
+  text       String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Review {
+  id             String   @id @default(cuid())
+  bookingId      String   @unique
+  booking        Booking  @relation(fields: [bookingId], references: [id])
+  reviewerUserId String
+  reviewer       User     @relation("GivenReviews", fields: [reviewerUserId], references: [id])
+  revieweeUserId String
+  reviewee       User     @relation("ReceivedReviews", fields: [revieweeUserId], references: [id])
+  rating         Int      // 1–5
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  @@map("reviews")
+}
+
+model PaymentMethod {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripePaymentMethodId String?
+  last4                 String?
+  brand                 String?
+  expiryMonth           Int?
+  expiryYear            Int?
+  isDefault             Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  @@map("payment_methods")
+}
+
+model Earning {
+  id           String   @id @default(cuid())
+  nannyUserId  String
+  nanny        User     @relation(fields: [nannyUserId], references: [id])
+  bookingId    String   @unique
+  booking      Booking  @relation(fields: [bookingId], references: [id])
+  amountNis    Int
+  platformFee  Int      @default(0)
+  netAmountNis Int
+  isPaid       Boolean  @default(false)
+  paidAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@map("earnings")
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fcmToken  String   @unique
+  platform  String   // "ios" | "android"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("devices")
+}
+
+model Document {
+  id             String       @id @default(cuid())
+  nannyProfileId String
+  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
+  type           DocumentType
+  url            String
+  verifiedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@map("documents")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
