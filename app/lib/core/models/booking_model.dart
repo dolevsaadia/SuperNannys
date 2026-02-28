@@ -73,15 +73,24 @@ class BookingUser {
   final String fullName;
   final String? avatarUrl;
   final String? phone;
+  final double? latitude;
+  final double? longitude;
+  final String? city;
 
-  const BookingUser({required this.id, required this.fullName, this.avatarUrl, this.phone});
+  const BookingUser({required this.id, required this.fullName, this.avatarUrl, this.phone, this.latitude, this.longitude, this.city});
 
-  factory BookingUser.fromJson(Map<String, dynamic> json) => BookingUser(
-        id: json['id'] as String,
-        fullName: json['fullName'] as String,
-        avatarUrl: json['avatarUrl'] as String?,
-        phone: json['phone'] as String?,
-      );
+  factory BookingUser.fromJson(Map<String, dynamic> json) {
+    final profile = json['nannyProfile'] as Map<String, dynamic>?;
+    return BookingUser(
+      id: json['id'] as String,
+      fullName: json['fullName'] as String,
+      avatarUrl: json['avatarUrl'] as String?,
+      phone: json['phone'] as String?,
+      latitude: (profile?['latitude'] as num?)?.toDouble(),
+      longitude: (profile?['longitude'] as num?)?.toDouble(),
+      city: profile?['city'] as String?,
+    );
+  }
 }
 
 class BookingReview {
