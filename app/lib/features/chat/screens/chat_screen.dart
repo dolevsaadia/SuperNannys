@@ -6,6 +6,7 @@ import '../../../core/models/message_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import 'package:intl/intl.dart';
@@ -133,6 +134,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         titleSpacing: 0,
         title: Row(
           children: [
@@ -142,14 +145,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.otherUserName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                if (_otherTyping)
-                  const Text('typing...', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _otherTyping
+                      ? const Text('typing...', key: ValueKey('typing'), style: TextStyle(fontSize: 11, color: AppColors.accent, fontWeight: FontWeight.w500))
+                      : const Text('Online', key: ValueKey('online'), style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w500)),
+                ),
               ],
             ),
           ],
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.phone_outlined), onPressed: () {}),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.primary),
+              onPressed: () {},
+            ),
+          ),
         ],
       ),
       body: Column(
@@ -157,20 +176,78 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: LoadingIndicator())
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (_, i) => _MessageBubble(
-                      message: _messages[i],
-                      isMe: _messages[i].fromUserId == _currentUserId,
-                    ),
-                  ),
+                : _messages.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.chat_bubble_outline_rounded, size: 28, color: AppColors.primary),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text('Start the conversation!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        itemCount: _messages.length,
+                        itemBuilder: (_, i) {
+                          final msg = _messages[i];
+                          final isMe = msg.fromUserId == _currentUserId;
+
+                          // Date separator
+                          Widget? dateSeparator;
+                          if (i == 0 || !_isSameDay(_messages[i - 1].createdAt, msg.createdAt)) {
+                            dateSeparator = _DateSeparator(date: msg.createdAt);
+                          }
+
+                          return Column(
+                            children: [
+                              if (dateSeparator != null) dateSeparator,
+                              _MessageBubble(message: msg, isMe: isMe),
+                            ],
+                          );
+                        },
+                      ),
           ),
-          // Input bar
+
+          // ── Typing indicator ──────────────────
+          if (_otherTyping)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: AppShadows.sm,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(3, (i) => Padding(
+                    padding: EdgeInsets.only(left: i > 0 ? 4 : 0),
+                    child: _TypingDot(delay: i * 150),
+                  )),
+                ),
+              ),
+            ),
+
+          // ── Input bar ──────────────────
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: AppShadows.top,
+            ),
+            padding: EdgeInsets.fromLTRB(12, 10, 12, MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 10),
             child: Row(
               children: [
                 Expanded(
@@ -179,7 +256,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.bg,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.border),
                     ),
                     child: TextField(
                       controller: _msgController,
@@ -187,8 +263,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       maxLines: null,
                       decoration: const InputDecoration(
                         hintText: 'Type a message...',
+                        hintStyle: TextStyle(color: AppColors.textHint, fontSize: 14),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                         isDense: true,
                       ),
                     ),
@@ -198,26 +275,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 GestureDetector(
                   onTap: _sendMessage,
                   child: Container(
-                    width: 44, height: 44,
-                    decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: AppColors.gradientPrimary),
+                      shape: BoxShape.circle,
+                      boxShadow: AppShadows.primaryGlow(0.2),
+                    ),
                     child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                   ),
                 ),
               ],
             ),
           ),
-          // Bottom safe area
-          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+        ],
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+// ── Date Separator ──────────────────
+class _DateSeparator extends StatelessWidget {
+  final DateTime date;
+  const _DateSeparator({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    final isYesterday = date.year == now.year && date.month == now.month && date.day == now.day - 1;
+
+    final label = isToday
+        ? 'Today'
+        : isYesterday
+            ? 'Yesterday'
+            : DateFormat('MMM d, yyyy').format(date);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppColors.divider.withValues(alpha: 0.5))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textHint),
+            ),
+          ),
+          Expanded(child: Divider(color: AppColors.divider.withValues(alpha: 0.5))),
         ],
       ),
     );
   }
 }
 
+// ── Message Bubble ──────────────────
 class _MessageBubble extends StatelessWidget {
   final MessageModel message;
   final bool isMe;
-
   const _MessageBubble({required this.message, required this.isMe});
 
   @override
@@ -227,19 +346,24 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 6),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isMe ? AppColors.primary : Colors.white,
+          gradient: isMe ? const LinearGradient(colors: AppColors.gradientPrimary) : null,
+          color: isMe ? null : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: isMe ? const Radius.circular(18) : const Radius.circular(4),
-            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(18),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
+            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
           ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4, offset: const Offset(0, 1)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isMe ? 0.08 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -247,18 +371,25 @@ class _MessageBubble extends StatelessWidget {
           children: [
             Text(
               message.text,
-              style: TextStyle(color: isMe ? Colors.white : AppColors.textPrimary, fontSize: 14, height: 1.4),
+              style: TextStyle(color: isMe ? Colors.white : AppColors.textPrimary, fontSize: 14, height: 1.45),
             ),
             const SizedBox(height: 3),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(time, style: TextStyle(fontSize: 10, color: isMe ? Colors.white60 : AppColors.textHint)),
+                Text(
+                  time,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isMe ? Colors.white.withValues(alpha: 0.6) : AppColors.textHint,
+                  ),
+                ),
                 if (isMe) ...[
                   const SizedBox(width: 3),
                   Icon(
                     message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
-                    size: 12, color: message.isRead ? Colors.white : Colors.white60,
+                    size: 14,
+                    color: message.isRead ? Colors.white : Colors.white.withValues(alpha: 0.6),
                   ),
                 ],
               ],
@@ -268,4 +399,46 @@ class _MessageBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Typing Dot ──────────────────
+class _TypingDot extends StatefulWidget {
+  final int delay;
+  const _TypingDot({required this.delay});
+
+  @override
+  State<_TypingDot> createState() => _TypingDotState();
+}
+
+class _TypingDotState extends State<_TypingDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))
+      ..repeat(reverse: true);
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _ctrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) => Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: AppColors.textHint.withValues(alpha: 0.3 + _ctrl.value * 0.5),
+            shape: BoxShape.circle,
+          ),
+        ),
+      );
 }
