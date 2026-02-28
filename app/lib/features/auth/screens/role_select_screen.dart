@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 
 class RoleSelectScreen extends StatefulWidget {
@@ -26,7 +27,7 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               const SizedBox(height: 24),
               const Text(
                 'I am a...',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -37,7 +38,7 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               _RoleCard(
                 title: 'Parent',
                 subtitle: 'I want to find and hire a babysitter for my children',
-                icon: Icons.family_restroom_rounded,
+                emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67',
                 color: AppColors.primary,
                 selected: _selected == 'PARENT',
                 onTap: () => setState(() => _selected = 'PARENT'),
@@ -46,7 +47,7 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               _RoleCard(
                 title: 'Nanny / Babysitter',
                 subtitle: 'I want to offer childcare services and find families',
-                icon: Icons.child_care_rounded,
+                emoji: '\uD83D\uDC76',
                 color: AppColors.accent,
                 selected: _selected == 'NANNY',
                 onTap: () => setState(() => _selected = 'NANNY'),
@@ -62,7 +63,15 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => context.go('/login'),
-                  child: const Text('Already have an account? Sign in'),
+                  child: RichText(
+                    text: const TextSpan(
+                      text: 'Already have an account? ',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      children: [
+                        TextSpan(text: 'Sign in', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -76,14 +85,18 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
 class _RoleCard extends StatelessWidget {
   final String title;
   final String subtitle;
-  final IconData icon;
+  final String emoji;
   final Color color;
   final bool selected;
   final VoidCallback onTap;
 
   const _RoleCard({
-    required this.title, required this.subtitle, required this.icon,
-    required this.color, required this.selected, required this.onTap,
+    required this.title,
+    required this.subtitle,
+    required this.emoji,
+    required this.color,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
@@ -93,41 +106,53 @@ class _RoleCard extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.08) : Colors.white,
+            color: selected ? color.withValues(alpha: 0.06) : Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: selected ? color : AppColors.border,
-              width: selected ? 2 : 1,
-            ),
-            boxShadow: selected
-                ? [BoxShadow(color: color.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))]
-                : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+            border: Border.all(color: selected ? color : AppColors.divider, width: selected ? 2 : 1),
+            boxShadow: selected ? AppShadows.md : AppShadows.sm,
           ),
           child: Row(
             children: [
               Container(
-                width: 56, height: 56,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
-                  color: selected ? color.withOpacity(0.15) : AppColors.bg,
-                  borderRadius: BorderRadius.circular(16),
+                  color: selected ? color.withValues(alpha: 0.12) : AppColors.bg,
+                  borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(icon, size: 28, color: selected ? color : AppColors.textHint),
+                child: Center(child: Text(emoji, style: const TextStyle(fontSize: 28))),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: selected ? color : AppColors.textPrimary)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? color : AppColors.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(subtitle, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4)),
                   ],
                 ),
               ),
-              if (selected)
-                Icon(Icons.check_circle_rounded, color: color, size: 24)
-              else
-                const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.border, size: 24),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? color : Colors.transparent,
+                  border: Border.all(color: selected ? color : AppColors.border, width: 2),
+                ),
+                child: selected
+                    ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                    : null,
+              ),
             ],
           ),
         ),
