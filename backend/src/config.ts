@@ -13,6 +13,10 @@ export const config = {
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
+    get isConfigured(): boolean {
+      const id = process.env.GOOGLE_CLIENT_ID || ''
+      return id !== '' && id !== 'your-google-client-id'
+    },
   },
 
   firebase: {
@@ -39,4 +43,4 @@ export const config = {
   },
 
   platformFeePercent: 15,
-} as const
+}
