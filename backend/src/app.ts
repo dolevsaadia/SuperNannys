@@ -8,18 +8,19 @@ import rateLimit from 'express-rate-limit'
 import { Server as SocketIOServer } from 'socket.io'
 
 import { config } from './config'
-import { logger } from './utils/logger'
-import { errorHandler, notFoundMiddleware } from './middlewares/error.middleware'
+import { logger } from './shared/utils/logger'
+import { errorHandler, notFoundMiddleware } from './shared/middlewares/error.middleware'
 import { initSocketIO } from './socket'
 
-import authRoutes from './routes/auth.routes'
-import nannyRoutes from './routes/nannies.routes'
-import bookingRoutes from './routes/bookings.routes'
-import messageRoutes from './routes/messages.routes'
-import reviewRoutes from './routes/reviews.routes'
-import userRoutes from './routes/users.routes'
-import adminRoutes from './routes/admin.routes'
-import paymentRoutes from './routes/payments.routes'
+// ── Module Routes ───────────────────────────────────────────
+import authRoutes    from './modules/auth/auth.routes'
+import userRoutes    from './modules/users/users.routes'
+import nannyRoutes   from './modules/nannies/nannies.routes'
+import bookingRoutes from './modules/bookings/bookings.routes'
+import messageRoutes from './modules/messages/messages.routes'
+import reviewRoutes  from './modules/reviews/reviews.routes'
+import paymentRoutes from './modules/payments/payments.routes'
+import adminRoutes   from './modules/admin/admin.routes'
 
 export function createApp() {
   const app = express()
@@ -49,18 +50,18 @@ export function createApp() {
 
   // ── Health ─────────────────────────────────────────────
   app.get('/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.0.0', payments: config.payments.enabled, ts: new Date().toISOString() })
+    res.json({ status: 'ok', version: '1.2.0', payments: config.payments.enabled, ts: new Date().toISOString() })
   )
 
   // ── API Routes ─────────────────────────────────────────
-  app.use('/api/auth', authRoutes)
-  app.use('/api/nannies', nannyRoutes)
+  app.use('/api/auth',     authRoutes)
+  app.use('/api/users',    userRoutes)
+  app.use('/api/nannies',  nannyRoutes)
   app.use('/api/bookings', bookingRoutes)
   app.use('/api/messages', messageRoutes)
-  app.use('/api/reviews', reviewRoutes)
-  app.use('/api/users', userRoutes)
-  app.use('/api/admin', adminRoutes)
+  app.use('/api/reviews',  reviewRoutes)
   app.use('/api/payments', paymentRoutes)
+  app.use('/api/admin',    adminRoutes)
 
   // ── Socket.IO ──────────────────────────────────────────
   initSocketIO(io)

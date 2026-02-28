@@ -3,7 +3,7 @@ import fs from 'fs'
 import { createApp } from './app'
 import { connectDB, disconnectDB } from './db'
 import { config } from './config'
-import { logger } from './utils/logger'
+import { logger } from './shared/utils/logger'
 
 async function main() {
   // Ensure upload directory exists
