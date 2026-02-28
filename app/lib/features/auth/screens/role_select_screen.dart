@@ -1,18 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 
-class RoleSelectScreen extends StatefulWidget {
+class RoleSelectScreen extends ConsumerStatefulWidget {
   const RoleSelectScreen({super.key});
 
   @override
-  State<RoleSelectScreen> createState() => _RoleSelectScreenState();
+  ConsumerState<RoleSelectScreen> createState() => _RoleSelectScreenState();
 }
 
-class _RoleSelectScreenState extends State<RoleSelectScreen> {
+class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
   String? _selected;
+  bool _isLoading = false;
+
+  /// If coming from Google Sign-In, this will contain the idToken
+  String? get _googleIdToken {
+    final extra = GoRouterState.of(context).extra;
+    if (extra is Map<String, dynamic>) return extra['googleIdToken'] as String?;
+    return null;
+  }
+
+  bool get _isGoogleFlow => _googleIdToken != null;
+
+  Future<void> _continue() async {
+    if (_selected == null) return;
+
+    final googleToken = _googleIdToken;
+    if (googleToken != null) {
+      // Google Sign-In flow — re-login with role
+      setState(() => _isLoading = true);
+      final result = await ref.read(authProvider.notifier).loginWithGoogle(googleToken, role: _selected);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (result.success) {
+        context.go('/home');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error ?? 'Failed to set role'), backgroundColor: AppColors.error),
+        );
+      }
+    } else {
+      // Normal registration flow
+      context.go('/register', extra: {'role': _selected});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,14 +60,16 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 24),
-              const Text(
-                'I am a...',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
+              Text(
+                _isGoogleFlow ? 'One more step!' : 'I am a...',
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Choose your role to get started',
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              Text(
+                _isGoogleFlow
+                    ? 'Choose your role to complete sign-up'
+                    : 'Choose your role to get started',
+                style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 48),
               _RoleCard(
@@ -54,10 +91,9 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               ),
               const Spacer(),
               AppButton(
-                label: 'Continue',
-                onTap: _selected == null
-                    ? null
-                    : () => context.go('/register', extra: {'role': _selected}),
+                label: _isGoogleFlow ? 'Complete Sign-Up' : 'Continue',
+                onTap: _selected == null ? null : _continue,
+                isLoading: _isLoading,
               ),
               const SizedBox(height: 12),
               Center(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -30,9 +31,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _googleSignIn() async {
     try {
-      final googleUser = await GoogleSignIn(
+      final googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
-      ).signIn();
+        serverClientId: AppConstants.googleServerClientId.isNotEmpty
+            ? AppConstants.googleServerClientId
+            : null,
+      );
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
@@ -44,14 +49,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
         return;
       }
-      final success = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
+      final result = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
       if (!mounted) return;
-      if (success) {
-        context.go('/home');
+      if (result.success) {
+        if (result.isNewUser) {
+          // New user from Google — redirect to role selection
+          context.go('/role-select', extra: {'googleIdToken': idToken});
+        } else {
+          context.go('/home');
+        }
       } else {
-        final err = ref.read(authProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err ?? 'Google login failed'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(result.error ?? 'Google login failed'), backgroundColor: AppColors.error),
         );
       }
     } catch (e) {

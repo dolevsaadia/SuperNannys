@@ -23,6 +23,14 @@ class AuthState {
   AuthState logout() => const AuthState();
 }
 
+class GoogleLoginResult {
+  final bool success;
+  final bool isNewUser;
+  final String? error;
+
+  const GoogleLoginResult({required this.success, this.isNewUser = false, this.error});
+}
+
 class AuthNotifier extends StateNotifier<AuthState> {
   final FlutterSecureStorage _storage;
 
@@ -73,16 +81,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> loginWithGoogle(String idToken, {String role = 'PARENT'}) async {
+  Future<GoogleLoginResult> loginWithGoogle(String idToken, {String? role}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final resp = await apiClient.dio.post('/auth/google', data: {'idToken': idToken, 'role': role});
+      final body = <String, dynamic>{'idToken': idToken};
+      if (role != null) body['role'] = role;
+      final resp = await apiClient.dio.post('/auth/google', data: body);
       final data = resp.data['data'] as Map<String, dynamic>;
+      final isNewUser = data['isNewUser'] == true;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
-      return true;
+      return GoogleLoginResult(success: true, isNewUser: isNewUser);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _extractError(e));
-      return false;
+      final err = _extractError(e);
+      state = state.copyWith(isLoading: false, error: err);
+      return GoogleLoginResult(success: false, error: err);
     }
   }
 
