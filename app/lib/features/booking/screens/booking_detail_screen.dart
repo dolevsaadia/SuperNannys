@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/geo_utils.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../core/services/booking_reminder_service.dart';
+import 'booking_map_screen.dart';
 
 final _bookingDetailProvider = FutureProvider.autoDispose.family<BookingModel, String>((ref, id) async {
   final resp = await apiClient.dio.get('/bookings/$id');
@@ -104,6 +109,21 @@ class _BookingDetailBody extends ConsumerWidget {
                     ],
                   ),
                 ),
+                if (booking.nanny?.latitude != null && booking.nanny?.longitude != null)
+                  IconButton(
+                    icon: const Icon(Icons.map_rounded, color: AppColors.accent),
+                    tooltip: 'Show on map',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookingMapScreen(
+                          nannyName: booking.nanny!.fullName,
+                          nannyLat: booking.nanny!.latitude!,
+                          nannyLng: booking.nanny!.longitude!,
+                        ),
+                      ),
+                    ),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary),
                   onPressed: () => context.go('/chat/${booking.id}', extra: {
@@ -114,6 +134,78 @@ class _BookingDetailBody extends ConsumerWidget {
               ],
             ),
           ),
+          // Mini Map section
+          if (booking.nanny?.latitude != null && booking.nanny?.longitude != null) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BookingMapScreen(
+                    nannyName: booking.nanny!.fullName,
+                    nannyLat: booking.nanny!.latitude!,
+                    nannyLng: booking.nanny!.longitude!,
+                  ),
+                ),
+              ),
+              child: _InfoCard(
+                title: 'Location',
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        height: 160,
+                        child: IgnorePointer(
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: LatLng(booking.nanny!.latitude!, booking.nanny!.longitude!),
+                              initialZoom: 14,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.supernanny.app',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: LatLng(booking.nanny!.latitude!, booking.nanny!.longitude!),
+                                    width: 36,
+                                    height: 36,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                      ),
+                                      child: const Icon(Icons.child_care_rounded, color: Colors.white, size: 18),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.place_rounded, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(booking.nanny?.city ?? 'See on map', style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        const Text('Tap to expand', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+                        const Icon(Icons.open_in_full_rounded, size: 14, color: AppColors.textHint),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 12),
 
           // Time card
@@ -212,6 +304,12 @@ class _BookingDetailBody extends ConsumerWidget {
   Future<void> _updateStatus(BuildContext context, String status) async {
     try {
       await apiClient.dio.patch('/bookings/${booking.id}/status', data: {'status': status});
+
+      // Cancel reminders if booking is cancelled or declined
+      if (status == 'CANCELLED' || status == 'DECLINED') {
+        await BookingReminderService.instance.cancelReminders(booking.id);
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking $status')));
         context.pop();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/booking_reminder_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -115,6 +116,14 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       });
 
       final booking = resp.data['data'] as Map<String, dynamic>;
+
+      // Schedule push notifications
+      await BookingReminderService.instance.scheduleReminders(
+        bookingId: booking['id'] as String,
+        nannyName: _nannyName ?? 'your nanny',
+        startTime: startDt,
+      );
+
       if (mounted) {
         context.go('/home/nanny/${widget.nannyId}/book/success', extra: {'bookingId': booking['id']});
       }

@@ -58,6 +58,7 @@ dependencies:
 
   # Notifications
   flutter_local_notifications: ^17.1.2
+  timezone: ^0.9.4
 
   # Misc
   url_launcher: ^6.3.0
@@ -89,6 +90,7 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/brand/app_icon.png"
   min_sdk_android: 21
+  remove_alpha_ios: true
   web:
     generate: false
 

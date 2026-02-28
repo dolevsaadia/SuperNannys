@@ -106,7 +106,7 @@ router.get('/:id', requireAuth, async (req: Request, res: Response): Promise<voi
       nanny: {
         select: {
           id: true, fullName: true, avatarUrl: true, phone: true,
-          nannyProfile: { select: { hourlyRateNis: true, city: true, rating: true, badges: true } },
+          nannyProfile: { select: { hourlyRateNis: true, city: true, rating: true, badges: true, latitude: true, longitude: true } },
         },
       },
       review: true,

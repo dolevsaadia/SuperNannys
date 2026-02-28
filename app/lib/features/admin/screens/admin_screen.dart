@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_indicator.dart';
@@ -91,19 +92,19 @@ class AdminScreen extends ConsumerWidget {
                   icon: Icons.people_rounded,
                   title: 'Manage Users',
                   subtitle: 'View, activate, or deactivate accounts',
-                  onTap: () {},
+                  onTap: () => context.push('/admin/users'),
                 ),
                 _MenuTile(
                   icon: Icons.calendar_today_rounded,
                   title: 'Review Bookings',
                   subtitle: 'Monitor and manage all bookings',
-                  onTap: () {},
+                  onTap: () => context.push('/admin/bookings'),
                 ),
                 _MenuTile(
                   icon: Icons.verified_user_rounded,
                   title: 'Verify Nannies',
                   subtitle: 'Review and approve nanny applications',
-                  onTap: () {},
+                  onTap: () => context.push('/admin/verify-nannies'),
                 ),
               ],
             ),

@@ -2,22 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/bubble_overlay_service.dart';
 import '../../../core/theme/app_colors.dart';
 
-class HomeShell extends ConsumerWidget {
+class HomeShell extends ConsumerStatefulWidget {
   final Widget child;
   const HomeShell({super.key, required this.child});
 
+  @override
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> {
+  bool _bubbleStarted = false;
+
   static final _routes = ['/home', '/bookings', '/chat', '/profile'];
-  static const _navItems = [
-    NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search_rounded), label: 'Find'),
-    NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today_rounded), label: 'Bookings'),
-    NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded), selectedIcon: Icon(Icons.chat_bubble_rounded), label: 'Chat'),
-    NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
-  ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Start bubble monitoring once the shell is built
+    if (!_bubbleStarted) {
+      _bubbleStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          BubbleOverlayService.instance.startMonitoring(context);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    BubbleOverlayService.instance.stopMonitoring();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final location = GoRouterState.of(context).matchedLocation;
 
@@ -31,8 +53,8 @@ class HomeShell extends ConsumerWidget {
     final routes = isNanny
         ? ['/dashboard', '/bookings', '/chat', '/profile']
         : isAdmin
-            ? ['/home', '/bookings', '/admin', '/profile']
-            : _routes;
+            ? ['/home', '/bookings', '/map', '/admin', '/profile']
+            : ['/home', '/bookings', '/map', '/chat', '/profile'];
 
     final navItems = isNanny
         ? const [
@@ -45,13 +67,20 @@ class HomeShell extends ConsumerWidget {
             ? const [
                 NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search_rounded), label: 'Find'),
                 NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today_rounded), label: 'Bookings'),
+                NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
                 NavigationDestination(icon: Icon(Icons.admin_panel_settings_outlined), selectedIcon: Icon(Icons.admin_panel_settings_rounded), label: 'Admin'),
                 NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
               ]
-            : _navItems;
+            : const [
+                NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search_rounded), label: 'Find'),
+                NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today_rounded), label: 'Bookings'),
+                NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map_rounded), label: 'Map'),
+                NavigationDestination(icon: Icon(Icons.chat_bubble_outline_rounded), selectedIcon: Icon(Icons.chat_bubble_rounded), label: 'Chat'),
+                NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+              ];
 
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex < 0 ? 0 : currentIndex,
         onDestinationSelected: (i) => context.go(routes[i]),
