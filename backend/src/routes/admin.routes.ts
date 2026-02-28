@@ -81,6 +81,38 @@ router.patch('/users/:id', async (req: Request, res: Response): Promise<void> =>
   ok(res, user)
 })
 
+// GET /api/admin/nannies/pending-verification
+router.get('/nannies/pending-verification', async (req: Request, res: Response): Promise<void> => {
+  const { page = '1', limit = '20' } = req.query as Record<string, string>
+  const pageNum = Math.max(1, parseInt(page))
+  const limitNum = Math.min(100, parseInt(limit))
+
+  const where = { role: 'NANNY' as const, isVerified: false, isActive: true }
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (pageNum - 1) * limitNum,
+      take: limitNum,
+      select: {
+        id: true, email: true, fullName: true, phone: true,
+        isVerified: true, createdAt: true, avatarUrl: true,
+        nannyProfile: {
+          select: {
+            headline: true, hourlyRateNis: true, city: true,
+            yearsExperience: true, languages: true, skills: true,
+            completedJobs: true, rating: true, reviewsCount: true,
+          },
+        },
+      },
+    }),
+    prisma.user.count({ where }),
+  ])
+
+  ok(res, { nannies: users, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } })
+})
+
 // GET /api/admin/bookings
 router.get('/bookings', async (req: Request, res: Response): Promise<void> => {
   const { status, page = '1', limit = '20' } = req.query as Record<string, string>
