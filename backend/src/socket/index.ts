@@ -1,7 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io'
-import { verifyToken } from '../utils/jwt'
-import { prisma } from '../db'
-import { logger } from '../utils/logger'
+import { verifyToken } from '../shared/utils/jwt'
+import { logger } from '../shared/utils/logger'
+import { messagesDal } from '../modules/messages/messages.dal'
 
 interface AuthSocket extends Socket {
   userId?: string
@@ -37,14 +37,12 @@ export function initSocketIO(io: SocketIOServer): void {
     socket.on('message:send', async (payload: { bookingId: string; text: string }) => {
       try {
         if (!payload.bookingId || !payload.text?.trim()) return
-        const booking = await prisma.booking.findUnique({ where: { id: payload.bookingId } })
+
+        const booking = await messagesDal.findBookingById(payload.bookingId)
         if (!booking) return
         if (booking.parentUserId !== userId && booking.nannyUserId !== userId) return
 
-        const msg = await prisma.message.create({
-          data: { bookingId: payload.bookingId, fromUserId: userId, text: payload.text.trim() },
-          include: { from: { select: { id: true, fullName: true, avatarUrl: true } } },
-        })
+        const msg = await messagesDal.createMessage(payload.bookingId, userId, payload.text.trim())
 
         io.to(`booking:${payload.bookingId}`).emit('message:new', msg)
 
