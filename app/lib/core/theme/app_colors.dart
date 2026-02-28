@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// SuperNanny brand color system
+/// SuperNanny brand color system — Wolt-inspired premium palette
 class AppColors {
   AppColors._();
 
@@ -8,6 +8,7 @@ class AppColors {
   static const Color primary = Color(0xFF7C3AED);       // violet-600
   static const Color primaryLight = Color(0xFFEDE9FE);  // violet-100
   static const Color primaryDark = Color(0xFF5B21B6);   // violet-700
+  static const Color primarySoft = Color(0xFFF5F3FF);   // violet-50
   static const Color accent = Color(0xFF06B6D4);        // cyan-500
   static const Color accentLight = Color(0xFFCFFAFE);   // cyan-100
 
@@ -28,6 +29,7 @@ class AppColors {
   static const Color cardBg = Color(0xFFFFFFFF);
   static const Color divider = Color(0xFFE5E7EB);       // gray-200
   static const Color border = Color(0xFFD1D5DB);        // gray-300
+  static const Color borderLight = Color(0xFFF3F4F6);   // gray-100
 
   // ── Text ──────────────────────────────────────────────
   static const Color textPrimary = Color(0xFF111827);   // gray-900
@@ -52,4 +54,30 @@ class AppColors {
 
   // ── Rating ────────────────────────────────────────────
   static const Color star = Color(0xFFF59E0B);
+
+  // ── Category Backgrounds (Wolt-style circular icons) ──
+  static const Color catInfant = Color(0xFFFCE7F3);     // pink-100
+  static const Color catToddler = Color(0xFFDDD6FE);    // violet-200
+  static const Color catSchool = Color(0xFFBFDBFE);     // blue-200
+  static const Color catSpecial = Color(0xFFFED7AA);    // orange-200
+  static const Color catNight = Color(0xFFC7D2FE);      // indigo-200
+  static const Color catWeekend = Color(0xFFA7F3D0);    // green-200
+  static const Color catAll = Color(0xFFEDE9FE);        // violet-100
+
+  // ── Gradient Presets ──────────────────────────────────
+  static const List<Color> gradientPrimary = [Color(0xFF7C3AED), Color(0xFF9D5CF8)];
+  static const List<Color> gradientAccent = [Color(0xFF06B6D4), Color(0xFF0EA5E9)];
+  static const List<Color> gradientSuccess = [Color(0xFF10B981), Color(0xFF059669)];
+  static const List<Color> gradientWarm = [Color(0xFFF59E0B), Color(0xFFEF4444)];
+  static const List<Color> gradientDark = [Color(0xFF1E1B4B), Color(0xFF312E81)];
+
+  // ── Overlay & Shimmer ─────────────────────────────────
+  static const Color overlay = Color(0x80000000);
+  static const Color overlayLight = Color(0x33000000);
+  static const Color shimmerBase = Color(0xFFE5E7EB);
+  static const Color shimmerHighlight = Color(0xFFF9FAFB);
+
+  // ── Card Hover / Press ────────────────────────────────
+  static const Color cardHover = Color(0xFFF9FAFB);
+  static const Color cardPressed = Color(0xFFF3F4F6);
 }

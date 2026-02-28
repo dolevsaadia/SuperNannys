@@ -20,11 +20,13 @@ class AppTheme {
           error: AppColors.error,
         ),
         scaffoldBackgroundColor: AppColors.bg,
+
+        // ── AppBar ──────────────────────────────────
         appBarTheme: AppBarTheme(
           backgroundColor: AppColors.white,
           foregroundColor: AppColors.textPrimary,
           elevation: 0,
-          scrolledUnderElevation: 1,
+          scrolledUnderElevation: 0.5,
           shadowColor: const Color(0x1A000000),
           centerTitle: false,
           systemOverlayStyle: SystemUiOverlayStyle.dark,
@@ -35,49 +37,54 @@ class AppTheme {
             color: AppColors.textPrimary,
           ),
         ),
+
+        // ── Cards — shadow-only, no border (Wolt-style) ──
         cardTheme: CardThemeData(
           color: AppColors.cardBg,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.divider, width: 1),
           ),
           margin: EdgeInsets.zero,
         ),
+
+        // ── Input Fields ────────────────────────────
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: AppColors.border),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.divider),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             borderSide: const BorderSide(color: AppColors.error),
           ),
           labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
         ),
+
+        // ── Buttons ─────────────────────────────────
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.textOnPrimary,
             elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: TextStyle(
               fontFamily: _fontFamily,
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -85,12 +92,12 @@ class AppTheme {
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
             side: const BorderSide(color: AppColors.primary),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: TextStyle(
               fontFamily: _fontFamily,
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -104,6 +111,8 @@ class AppTheme {
             ),
           ),
         ),
+
+        // ── Chips ───────────────────────────────────
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.primaryLight,
           labelStyle: const TextStyle(
@@ -114,23 +123,55 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
+
+        // ── Bottom Navigation ───────────────────────
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: AppColors.white,
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.textHint,
-          elevation: 8,
+          elevation: 0,
           type: BottomNavigationBarType.fixed,
           selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
           unselectedLabelStyle: TextStyle(fontSize: 11),
         ),
+
+        // ── Bottom Sheet (Wolt-style) ───────────────
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: AppColors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          dragHandleColor: AppColors.divider,
+          dragHandleSize: Size(40, 4),
+          showDragHandle: true,
+        ),
+
+        // ── Dialog ──────────────────────────────────
+        dialogTheme: DialogThemeData(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          surfaceTintColor: Colors.transparent,
+        ),
+
+        // ── Divider ─────────────────────────────────
         dividerTheme: const DividerThemeData(
           color: AppColors.divider,
           thickness: 1,
           space: 1,
         ),
+
+        // ── SnackBar ────────────────────────────────
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+
+        // ── Page Transitions ────────────────────────
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          },
         ),
       );
 
