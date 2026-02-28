@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -29,13 +30,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Whether Google Sign-In has real credentials configured
+  bool get _isGoogleConfigured {
+    // On Android we need google-services.json (checked at build time)
+    // On iOS we need a real URL scheme (not the placeholder)
+    // Both need a serverClientId for backend token verification
+    // If the env var is empty, credentials are not configured
+    return AppConstants.googleServerClientId.isNotEmpty;
+  }
+
   Future<void> _googleSignIn() async {
+    if (!_isGoogleConfigured) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google Sign-In is not configured yet. Please use email login.'),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
       final googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
-        serverClientId: AppConstants.googleServerClientId.isNotEmpty
-            ? AppConstants.googleServerClientId
-            : null,
+        serverClientId: AppConstants.googleServerClientId,
       );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
@@ -61,6 +82,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Google login failed'), backgroundColor: AppColors.error),
+        );
+      }
+    } on PlatformException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.code == 'sign_in_failed'
+                ? 'Google Sign-In is not configured for this app.'
+                : 'Google Sign-In error: ${e.message}'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } catch (e) {
