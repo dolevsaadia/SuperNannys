@@ -23,6 +23,10 @@ import '../../features/nanny_dashboard/screens/availability_screen.dart';
 import '../../features/nanny_dashboard/screens/earnings_screen.dart';
 import '../../features/nanny_onboarding/screens/nanny_onboarding_screen.dart';
 import '../../features/admin/screens/admin_screen.dart';
+import '../../features/admin/screens/admin_users_screen.dart';
+import '../../features/admin/screens/admin_bookings_screen.dart';
+import '../../features/admin/screens/admin_verify_nannies_screen.dart';
+import '../../features/map/screens/map_screen.dart';
 
 /// Bridges Riverpod [AuthState] changes into a [Listenable] that GoRouter can
 /// use via [refreshListenable] — this re-evaluates the redirect function
@@ -128,6 +132,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'edit', builder: (_, __) => const EditProfileScreen()),
             ],
           ),
+          GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           // Nanny-only routes
           GoRoute(
             path: '/dashboard',
@@ -137,7 +142,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'earnings', builder: (_, __) => const EarningsScreen()),
             ],
           ),
-          GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
+          GoRoute(
+            path: '/admin',
+            builder: (_, __) => const AdminScreen(),
+            routes: [
+              GoRoute(path: 'users', builder: (_, __) => const AdminUsersScreen()),
+              GoRoute(path: 'bookings', builder: (_, __) => const AdminBookingsScreen()),
+              GoRoute(path: 'verify-nannies', builder: (_, __) => const AdminVerifyNanniesScreen()),
+            ],
+          ),
         ],
       ),
 
