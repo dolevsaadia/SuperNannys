@@ -65,7 +65,7 @@ export const authService = {
     const client = getGoogleClient()
     const ticket = await client.verifyIdToken({
       idToken: data.idToken,
-      audience: config.google.clientId,
+      audience: config.google.allClientIds,
     })
     const payload = ticket.getPayload()
     if (!payload?.email) throw new AppError('Invalid Google token', 401)
@@ -74,18 +74,30 @@ export const authService = {
     let isNewUser = false
 
     if (!user) {
+      if (!data.role) {
+        // New user — don't create yet, let client ask for role first
+        return {
+          isNewUser: true,
+          token: null,
+          user: {
+            email: payload.email,
+            fullName: payload.name || payload.email,
+            avatarUrl: payload.picture || null,
+          },
+        }
+      }
+
       isNewUser = true
-      const userRole = data.role || 'PARENT'
       const created = await authDal.createUser({
         email: payload.email,
         fullName: payload.name || payload.email,
         avatarUrl: payload.picture,
-        role: userRole,
+        role: data.role,
         authProvider: 'GOOGLE',
         googleSub: payload.sub,
         isVerified: true,
       })
-      if (userRole === 'NANNY') {
+      if (data.role === 'NANNY') {
         await authDal.createNannyProfile(created.id)
       }
       const token = signToken({ userId: created.id, email: created.email, role: created.role })

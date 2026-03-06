@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/biometric_prompt_dialog.dart';
+import '../../../core/widgets/google_sign_in_button.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -38,6 +43,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _promptBiometricAndNavigate(String route) async {
+    final token = await ref.read(authProvider.notifier).getStoredToken();
+    if (token != null && mounted) {
+      await showBiometricPrompt(context, token);
+    }
+    if (mounted) context.go(route);
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     final success = await ref.read(authProvider.notifier).register(
@@ -45,12 +58,62 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
     if (!mounted) return;
     if (success) {
-      context.go(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
+      await _promptBiometricAndNavigate(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
     } else {
       final err = ref.read(authProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err ?? 'Registration failed'), backgroundColor: AppColors.error),
       );
+    }
+  }
+
+  Future<void> _googleSignUp() async {
+    if (AppConstants.googleServerClientId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google Sign-In is not configured yet. Please use email registration.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        serverClientId: AppConstants.googleServerClientId,
+      );
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return;
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Google Sign-In failed: no ID token'), backgroundColor: AppColors.error),
+          );
+        }
+        return;
+      }
+
+      // Register directly with the selected role
+      final result = await ref.read(authProvider.notifier).loginWithGoogle(idToken, role: _role);
+      if (!mounted) return;
+      if (result.success) {
+        await _promptBiometricAndNavigate(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error ?? 'Google sign-up failed'), backgroundColor: AppColors.error),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign-Up error: $e'), backgroundColor: AppColors.error),
+        );
+      }
     }
   }
 
@@ -97,6 +160,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
+
+                // ── Google Sign-Up ──────────────────
+                GoogleSignInButton(
+                  onTap: _googleSignUp,
+                  label: 'Sign up with Google',
+                ),
+                const SizedBox(height: 20),
+
+                // ── OR divider ──────────────────────
+                Row(children: [
+                  Expanded(child: Container(height: 1, color: AppColors.divider)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('OR', style: TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+                  Expanded(child: Container(height: 1, color: AppColors.divider)),
+                ]),
+                const SizedBox(height: 20),
 
                 // ── Form Card ───────────────────────
                 Container(

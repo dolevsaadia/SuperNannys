@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/biometric_prompt_dialog.dart';
+import '../../../core/widgets/google_sign_in_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +25,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _biometric = BiometricService();
+  bool _biometricAvailable = false;
+  bool _hasFaceId = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometric();
+  }
 
   @override
   void dispose() {
@@ -30,17 +42,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// Whether Google Sign-In has real credentials configured
-  bool get _isGoogleConfigured {
-    // On Android we need google-services.json (checked at build time)
-    // On iOS we need a real URL scheme (not the placeholder)
-    // Both need a serverClientId for backend token verification
-    // If the env var is empty, credentials are not configured
-    return AppConstants.googleServerClientId.isNotEmpty;
+  Future<void> _checkBiometric() async {
+    final available = await _biometric.isAvailable;
+    if (available) {
+      final types = await _biometric.getAvailableBiometrics();
+      if (mounted) {
+        setState(() {
+          _biometricAvailable = true;
+          _hasFaceId = types.contains(BiometricType.face);
+        });
+      }
+    }
+  }
+
+  Future<void> _biometricLogin() async {
+    final authenticated = await _biometric.authenticate(
+      reason: _hasFaceId ? 'Use Face ID to sign in' : 'Use fingerprint to sign in',
+    );
+    if (!authenticated || !mounted) return;
+
+    final token = await _biometric.getSavedToken();
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No saved session. Please sign in manually.'), backgroundColor: AppColors.error),
+      );
+      await _biometric.disable();
+      setState(() => _biometricAvailable = false);
+      return;
+    }
+
+    // Restore session with saved token
+    final success = await ref.read(authProvider.notifier).restoreWithToken(token);
+    if (!mounted) return;
+    if (success) {
+      context.go('/home');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session expired. Please sign in again.'), backgroundColor: AppColors.error),
+      );
+      await _biometric.disable();
+      setState(() => _biometricAvailable = false);
+    }
   }
 
   Future<void> _googleSignIn() async {
-    if (!_isGoogleConfigured) {
+    if (AppConstants.googleServerClientId.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -77,22 +123,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // New user from Google — redirect to role selection
           context.go('/role-select', extra: {'googleIdToken': idToken});
         } else {
-          context.go('/home');
+          await _promptBiometricAndNavigate('/home');
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Google login failed'), backgroundColor: AppColors.error),
-        );
-      }
-    } on PlatformException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.code == 'sign_in_failed'
-                ? 'Google Sign-In is not configured for this app.'
-                : 'Google Sign-In error: ${e.message}'),
-            backgroundColor: AppColors.error,
-          ),
         );
       }
     } catch (e) {
@@ -104,12 +139,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _promptBiometricAndNavigate(String route) async {
+    final token = await ref.read(authProvider.notifier).getStoredToken();
+    if (token != null && mounted) {
+      await showBiometricPrompt(context, token);
+    }
+    if (mounted) context.go(route);
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
     final success = await ref.read(authProvider.notifier).login(_email.text.trim(), _password.text);
     if (!mounted) return;
     if (success) {
-      context.go('/home');
+      await _promptBiometricAndNavigate('/home');
     } else {
       final err = ref.read(authProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -215,7 +258,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 24),
 
                 // ── Google Sign-In ───────────────────
-                _GoogleButton(onTap: _googleSignIn),
+                GoogleSignInButton(onTap: _googleSignIn),
+
+                // ── Biometric Login ──────────────────
+                if (_biometricAvailable) ...[
+                  const SizedBox(height: 16),
+                  _BiometricButton(onTap: _biometricLogin, hasFaceId: _hasFaceId),
+                ],
+
                 const SizedBox(height: 36),
 
                 // ── Sign up ──────────────────────────
@@ -241,9 +291,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _GoogleButton extends StatelessWidget {
+class _BiometricButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _GoogleButton({required this.onTap});
+  final bool hasFaceId;
+
+  const _BiometricButton({required this.onTap, required this.hasFaceId});
 
   @override
   Widget build(BuildContext context) {
@@ -261,11 +313,15 @@ class _GoogleButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset('assets/images/google_logo.svg', width: 20, height: 20),
+            Icon(
+              hasFaceId ? Icons.face_rounded : Icons.fingerprint_rounded,
+              size: 22,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 12),
-            const Text(
-              'Continue with Google',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            Text(
+              hasFaceId ? 'Sign in with Face ID' : 'Sign in with Fingerprint',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
           ],
         ),

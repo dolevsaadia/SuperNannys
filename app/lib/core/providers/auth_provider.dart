@@ -89,6 +89,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final resp = await apiClient.dio.post('/auth/google', data: body);
       final data = resp.data['data'] as Map<String, dynamic>;
       final isNewUser = data['isNewUser'] == true;
+
+      if (isNewUser && data['token'] == null) {
+        // New user needs role selection — don't save session yet
+        state = state.copyWith(isLoading: false);
+        return GoogleLoginResult(success: true, isNewUser: true);
+      }
+
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
       return GoogleLoginResult(success: true, isNewUser: isNewUser);
     } catch (e) {
@@ -96,6 +103,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, error: err);
       return GoogleLoginResult(success: false, error: err);
     }
+  }
+
+  /// Restore session from a saved JWT token (used for biometric login)
+  Future<bool> restoreWithToken(String token) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await apiClient.setToken(token);
+      await _storage.write(key: AppConstants.tokenKey, value: token);
+      final resp = await apiClient.dio.get('/auth/me');
+      final user = UserModel.fromJson(resp.data['data'] as Map<String, dynamic>);
+      await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
+      state = AuthState(user: user);
+      return true;
+    } catch (_) {
+      await apiClient.clearToken();
+      state = state.copyWith(isLoading: false);
+      return false;
+    }
+  }
+
+  /// Get the current stored token (for biometric save)
+  Future<String?> getStoredToken() async {
+    return await _storage.read(key: AppConstants.tokenKey);
   }
 
   Future<void> refreshMe() async {

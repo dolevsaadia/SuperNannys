@@ -15,9 +15,8 @@ class AppConstants {
   static const String userKey = 'user_data';
 
   // Google Sign-In — Web client ID from Google Cloud Console
-  // Replace this with your actual Web OAuth 2.0 Client ID
   static const String googleServerClientId =
-      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID', defaultValue: '');
+      '768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com';
 
   static const int pageSize = 20;
 
