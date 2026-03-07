@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,8 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _biometric = BiometricService();
-  bool _biometricAvailable = false;
-  bool _hasFaceId = false;
+  List<BiometricType> _availableBiometrics = [];
 
   @override
   void initState() {
@@ -43,31 +43,94 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkBiometric() async {
-    final available = await _biometric.isAvailable;
-    if (available) {
-      final types = await _biometric.getAvailableBiometrics();
+    // Show a biometric button for every available type so the user can choose.
+    // We always show buttons when hardware exists — enrollment errors are
+    // handled gracefully at login time with a friendly message.
+    final supported = await _biometric.isDeviceSupported;
+    if (supported) {
+      var types = await _biometric.getAvailableBiometrics();
+      // If no biometrics enrolled yet, infer the default type per platform
+      // so the button still shows (user sees the feature exists).
+      if (types.isEmpty) {
+        if (Platform.isIOS) {
+          types = [BiometricType.face];
+        } else {
+          types = [BiometricType.fingerprint];
+        }
+      }
       if (mounted) {
-        setState(() {
-          _biometricAvailable = true;
-          _hasFaceId = types.contains(BiometricType.face);
-        });
+        setState(() => _availableBiometrics = types);
       }
     }
   }
 
-  Future<void> _biometricLogin() async {
-    final authenticated = await _biometric.authenticate(
-      reason: _hasFaceId ? 'Use Face ID to sign in' : 'Use fingerprint to sign in',
-    );
-    if (!authenticated || !mounted) return;
+  String _labelForType(BiometricType type) {
+    switch (type) {
+      case BiometricType.face:
+        return Platform.isIOS ? 'Face ID' : 'Face Recognition';
+      case BiometricType.fingerprint:
+        return 'Fingerprint';
+      case BiometricType.iris:
+        return 'Iris Scan';
+      default:
+        return 'Biometric';
+    }
+  }
 
+  Future<void> _biometricLogin(BiometricType type) async {
+    final label = _labelForType(type);
+
+    // Check if user has a saved biometric session
+    final isEnabled = await _biometric.isEnabled;
     final token = await _biometric.getSavedToken();
-    if (token == null) {
+
+    if (!isEnabled || token == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No saved session. Please sign in manually.'), backgroundColor: AppColors.error),
+        SnackBar(
+          content: Text('Sign in first to enable $label for quick login.'),
+          backgroundColor: AppColors.textSecondary,
+          duration: const Duration(seconds: 3),
+        ),
       );
-      await _biometric.disable();
-      setState(() => _biometricAvailable = false);
+      return;
+    }
+
+    // Authenticate with biometrics
+    bool authenticated = false;
+    try {
+      authenticated = await _biometric.authenticate(
+        reason: 'Use $label to sign in',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final err = e.toString();
+      final String message;
+      if (err.contains('noBiometricsEnrolled') || err.contains('not enrolled')) {
+        message = '$label is not set up. Please enable it in your device settings first.';
+      } else if (err.contains('lockedOut') || err.contains('locked out')) {
+        message = '$label is locked. Try again later or use your passcode.';
+      } else {
+        message = '$label error: $err';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    if (!authenticated) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$label authentication cancelled.'),
+          backgroundColor: AppColors.textSecondary,
+        ),
+      );
       return;
     }
 
@@ -81,7 +144,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SnackBar(content: Text('Session expired. Please sign in again.'), backgroundColor: AppColors.error),
       );
       await _biometric.disable();
-      setState(() => _biometricAvailable = false);
     }
   }
 
@@ -261,9 +323,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 GoogleSignInButton(onTap: _googleSignIn),
 
                 // ── Biometric Login ──────────────────
-                if (_biometricAvailable) ...[
-                  const SizedBox(height: 16),
-                  _BiometricButton(onTap: _biometricLogin, hasFaceId: _hasFaceId),
+                for (final type in _availableBiometrics) ...[
+                  const SizedBox(height: 12),
+                  _BiometricButton(
+                    onTap: () => _biometricLogin(type),
+                    biometricType: type,
+                  ),
                 ],
 
                 const SizedBox(height: 36),
@@ -293,9 +358,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
 class _BiometricButton extends StatelessWidget {
   final VoidCallback onTap;
-  final bool hasFaceId;
+  final BiometricType biometricType;
 
-  const _BiometricButton({required this.onTap, required this.hasFaceId});
+  const _BiometricButton({required this.onTap, required this.biometricType});
+
+  IconData get _icon {
+    switch (biometricType) {
+      case BiometricType.face:
+        return Icons.face_rounded;
+      case BiometricType.fingerprint:
+        return Icons.fingerprint_rounded;
+      case BiometricType.iris:
+        return Icons.remove_red_eye_rounded;
+      default:
+        return Icons.security_rounded;
+    }
+  }
+
+  String get _label {
+    switch (biometricType) {
+      case BiometricType.face:
+        return Platform.isIOS ? 'Sign in with Face ID' : 'Sign in with Face Recognition';
+      case BiometricType.fingerprint:
+        return 'Sign in with Fingerprint';
+      case BiometricType.iris:
+        return 'Sign in with Iris Scan';
+      default:
+        return 'Sign in with Biometric';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -313,14 +404,10 @@ class _BiometricButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              hasFaceId ? Icons.face_rounded : Icons.fingerprint_rounded,
-              size: 22,
-              color: AppColors.primary,
-            ),
+            Icon(_icon, size: 22, color: AppColors.primary),
             const SizedBox(width: 12),
             Text(
-              hasFaceId ? 'Sign in with Face ID' : 'Sign in with Fingerprint',
+              _label,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
           ],

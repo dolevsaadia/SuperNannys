@@ -22,10 +22,11 @@ class BiometricService {
     }
   }
 
-  /// Check if biometrics are enrolled on the device
+  /// Check if biometrics are actually enrolled on the device
   Future<bool> get isBiometricEnrolled async {
     try {
-      return await _auth.canCheckBiometrics;
+      final biometrics = await _auth.getAvailableBiometrics();
+      return biometrics.isNotEmpty;
     } catch (_) {
       return false;
     }
@@ -51,7 +52,8 @@ class BiometricService {
     }
   }
 
-  /// Authenticate user with biometrics
+  /// Authenticate user with biometrics.
+  /// Returns true on success, throws [String] on error for UI display.
   Future<bool> authenticate({String reason = 'Authenticate to sign in'}) async {
     try {
       return await _auth.authenticate(
@@ -59,8 +61,9 @@ class BiometricService {
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );
-    } catch (_) {
-      return false;
+    } catch (e) {
+      // Re-throw with a user-friendly message
+      throw e.toString();
     }
   }
 

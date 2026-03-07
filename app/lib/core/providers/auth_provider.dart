@@ -147,6 +147,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _saveSession(String token, Map<String, dynamic> userData) async {
     await apiClient.setToken(token);
+    await _storage.write(key: AppConstants.tokenKey, value: token);
     final user = UserModel.fromJson(userData);
     await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
     state = AuthState(user: user);
