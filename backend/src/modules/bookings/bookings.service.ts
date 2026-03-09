@@ -1,5 +1,4 @@
 import type { BookingStatus } from '@prisma/client'
-import { config } from '../../config'
 import { AppError } from '../../shared/errors/app-error'
 import { bookingsDal } from './bookings.dal'
 import type { CreateBookingInput } from './bookings.validation'
@@ -17,19 +16,26 @@ export const bookingsService = {
     if (conflict) throw new AppError('Nanny is not available for this time slot', 409)
 
     const durationHours = (end.getTime() - start.getTime()) / 3_600_000
-    const totalAmountNis = Math.round(durationHours * nannyProfile.hourlyRateNis)
+
+    // Use recurring rate if this booking is explicitly marked as recurring, otherwise casual
+    const isRecurring = !!(data as any).isRecurring
+    const rate = isRecurring && nannyProfile.recurringHourlyRateNis
+      ? nannyProfile.recurringHourlyRateNis
+      : nannyProfile.hourlyRateNis
+    const totalAmountNis = Math.round(durationHours * rate)
 
     return bookingsDal.create({
       parentUserId,
       nannyUserId: data.nannyUserId,
       startTime: start,
       endTime: end,
-      hourlyRateNis: nannyProfile.hourlyRateNis,
+      hourlyRateNis: rate,
       totalAmountNis,
       notes: data.notes,
       childrenCount: data.childrenCount,
       childrenAges: data.childrenAges,
       address: data.address,
+      isRecurring,
     })
   },
 
@@ -66,6 +72,14 @@ export const bookingsService = {
     const booking = await bookingsDal.findByIdSimple(bookingId)
     if (!booking) throw new AppError('Booking not found', 404)
 
+    // Guard: IN_PROGRESS and COMPLETED transitions go through sessions module only
+    if (status === 'IN_PROGRESS') {
+      throw new AppError('Use the sessions API to start a live session', 400)
+    }
+    if (status === 'COMPLETED') {
+      throw new AppError('Use the sessions API to end a live session', 400)
+    }
+
     // Authorization checks
     if ((status === 'ACCEPTED' || status === 'DECLINED') && booking.nannyUserId !== userId) {
       throw new AppError('Only the nanny can accept/decline', 403)
@@ -73,26 +87,8 @@ export const bookingsService = {
     if (status === 'CANCELLED' && booking.parentUserId !== userId && booking.nannyUserId !== userId) {
       throw new AppError('Forbidden', 403)
     }
-    if (status === 'COMPLETED' && booking.nannyUserId !== userId) {
-      throw new AppError('Only the nanny can mark completed', 403)
-    }
 
     const updated = await bookingsDal.updateStatus(bookingId, status)
-
-    // Create earnings on completion
-    if (status === 'COMPLETED') {
-      const platformFee = Math.round(updated.totalAmountNis * config.platformFeePercent / 100)
-      const netAmount = updated.totalAmountNis - platformFee
-      await bookingsDal.upsertEarning({
-        nannyUserId: updated.nannyUserId,
-        bookingId: updated.id,
-        amountNis: updated.totalAmountNis,
-        platformFee,
-        netAmountNis: netAmount,
-      })
-      await bookingsDal.updateNannyStats(updated.nannyUserId, netAmount)
-    }
-
     return updated
   },
 }
