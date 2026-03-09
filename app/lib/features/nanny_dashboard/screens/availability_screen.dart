@@ -18,6 +18,9 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
   List<Map<String, dynamic>> _slots = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _enableRecurring = false;
+  int _recurringRate = 45;
+  int _hourlyRate = 55;
 
   static const _days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   static const _daysFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -33,6 +36,8 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
       final resp = await apiClient.dio.get('/nannies/me');
       final profile = resp.data['data'] as Map<String, dynamic>;
       final avail = (profile['availability'] as List<dynamic>?) ?? [];
+      final recurringRate = profile['recurringHourlyRateNis'] as int?;
+      final hourlyRate = profile['hourlyRateNis'] as int? ?? 55;
       setState(() {
         _slots = List.generate(7, (day) {
           final existing = avail.firstWhere(
@@ -41,6 +46,9 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
           ) as Map<String, dynamic>;
           return Map<String, dynamic>.from(existing);
         });
+        _enableRecurring = recurringRate != null;
+        _recurringRate = recurringRate ?? (hourlyRate * 0.8).round();
+        _hourlyRate = hourlyRate;
         _isLoading = false;
       });
     } catch (_) {
@@ -51,7 +59,10 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      await apiClient.dio.put('/nannies/me', data: {'availability': _slots});
+      await apiClient.dio.put('/nannies/me', data: {
+        'availability': _slots,
+        'recurringHourlyRateNis': _enableRecurring ? _recurringRate : null,
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Availability saved'), backgroundColor: AppColors.success),
@@ -117,6 +128,100 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                     ],
                   ),
                 ),
+              ],
+            ),
+          ),
+
+          // ── Recurring Bookings Toggle ──────────────────
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: AppShadows.sm,
+              border: Border.all(
+                color: _enableRecurring ? AppColors.accent.withValues(alpha: 0.3) : AppColors.border,
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _enableRecurring ? AppColors.accent.withValues(alpha: 0.1) : AppColors.bg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.repeat_rounded, size: 20,
+                        color: _enableRecurring ? AppColors.accent : AppColors.textHint),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Recurring Bookings',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                          Text('Allow parents to book a fixed weekly schedule',
+                            style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: _enableRecurring,
+                      activeColor: AppColors.accent,
+                      onChanged: (v) {
+                        HapticFeedback.lightImpact();
+                        setState(() => _enableRecurring = v);
+                      },
+                    ),
+                  ],
+                ),
+                if (_enableRecurring) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accent.withValues(alpha: 0.15)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('\u20AA$_recurringRate', style: const TextStyle(
+                              fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.accent)),
+                            const Text('/hr', style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${((((_hourlyRate - _recurringRate) / _hourlyRate) * 100)).round()}% off',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Slider(
+                          value: _recurringRate.toDouble(),
+                          min: 20, max: 130, divisions: 22,
+                          activeColor: AppColors.accent,
+                          onChanged: (v) => setState(() => _recurringRate = v.toInt()),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

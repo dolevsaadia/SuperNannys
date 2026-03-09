@@ -164,34 +164,38 @@ class _ProfileBody extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: AppShadows.lg,
                     ),
-                    child: Row(
+                    child: Column(
                       children: [
-                        _FloatingStatItem(
-                          value: '\u20AA${profile.hourlyRateNis}',
-                          label: 'per hour',
-                          icon: Icons.attach_money_rounded,
-                          color: AppColors.success,
-                        ),
-                        _statDivider(),
-                        _FloatingStatItem(
-                          value: '${profile.yearsExperience}',
-                          label: 'years exp',
-                          icon: Icons.workspace_premium_rounded,
-                          color: AppColors.primary,
-                        ),
-                        _statDivider(),
-                        _FloatingStatItem(
-                          value: '${profile.completedJobs}',
-                          label: 'jobs done',
-                          icon: Icons.work_outline_rounded,
-                          color: AppColors.accent,
-                        ),
-                        _statDivider(),
-                        _FloatingStatItem(
-                          value: '${profile.rating}',
-                          label: 'rating',
-                          icon: Icons.star_rounded,
-                          color: AppColors.star,
+                        Row(
+                          children: [
+                            _FloatingStatItem(
+                              value: '\u20AA${profile.hourlyRateNis}',
+                              label: 'casual / hr',
+                              icon: Icons.attach_money_rounded,
+                              color: AppColors.success,
+                            ),
+                            _statDivider(),
+                            _FloatingStatItem(
+                              value: profile.recurringHourlyRateNis != null ? '\u20AA${profile.recurringHourlyRateNis}' : '—',
+                              label: 'recurring / hr',
+                              icon: Icons.repeat_rounded,
+                              color: AppColors.accent,
+                            ),
+                            _statDivider(),
+                            _FloatingStatItem(
+                              value: '${profile.yearsExperience}',
+                              label: 'years exp',
+                              icon: Icons.workspace_premium_rounded,
+                              color: AppColors.primary,
+                            ),
+                            _statDivider(),
+                            _FloatingStatItem(
+                              value: '${profile.rating}',
+                              label: 'rating',
+                              icon: Icons.star_rounded,
+                              color: AppColors.star,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -368,8 +372,13 @@ class _ProfileBody extends StatelessWidget {
                   children: [
                     Text(
                       '\u20AA${profile.hourlyRateNis}/hr',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                     ),
+                    if (profile.recurringHourlyRateNis != null)
+                      Text(
+                        '\u20AA${profile.recurringHourlyRateNis}/hr recurring',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
+                      ),
                     if (!profile.isAvailable)
                       const Text('Currently unavailable', style: TextStyle(fontSize: 12, color: AppColors.error)),
                   ],
@@ -483,52 +492,89 @@ class _AvailabilityGrid extends StatelessWidget {
   final List<AvailabilitySlot> slots;
   const _AvailabilityGrid({required this.slots});
 
+  static const _hebrewDays = ['\u05D0\'', '\u05D1\'', '\u05D2\'', '\u05D3\'', '\u05D4\'', '\u05D5\'', '\u05E9\''];
+
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: AppShadows.sm,
         ),
-        child: Row(
-          children: slots.map((slot) => Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          children: slots.map((slot) {
+            final isOn = slot.isAvailable;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: slot.isAvailable ? AppColors.success.withValues(alpha: 0.1) : AppColors.bg,
-                borderRadius: BorderRadius.circular(10),
+                color: isOn ? AppColors.success.withValues(alpha: 0.06) : AppColors.bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isOn ? AppColors.success.withValues(alpha: 0.15) : AppColors.divider.withValues(alpha: 0.5),
+                ),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Text(
-                    slot.dayName,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: slot.isAvailable ? AppColors.success : AppColors.textHint,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
                   Container(
-                    width: 24,
-                    height: 24,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: slot.isAvailable ? AppColors.success : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: slot.isAvailable ? null : Border.all(color: AppColors.divider, width: 1.5),
+                      color: isOn ? AppColors.success.withValues(alpha: 0.12) : AppColors.bg,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      slot.isAvailable ? Icons.check_rounded : Icons.close_rounded,
-                      size: 14,
-                      color: slot.isAvailable ? Colors.white : AppColors.textHint,
+                    child: Center(
+                      child: Text(
+                        _hebrewDays[slot.dayOfWeek],
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isOn ? AppColors.success : AppColors.textHint,
+                        ),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      slot.dayName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isOn ? AppColors.textPrimary : AppColors.textHint,
+                      ),
+                    ),
+                  ),
+                  if (isOn)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${slot.fromTime} - ${slot.toTime}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    )
+                  else
+                    Text(
+                      'Unavailable',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textHint.withValues(alpha: 0.6),
+                      ),
+                    ),
                 ],
               ),
-            ),
-          )).toList(),
+            );
+          }).toList(),
         ),
       );
 }
