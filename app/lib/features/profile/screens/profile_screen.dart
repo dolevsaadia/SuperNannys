@@ -100,6 +100,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _MenuGroup(items: [
                     _MenuItem(Icons.calendar_today_rounded, 'My Bookings', () => context.go('/bookings')),
+                    _MenuItem(Icons.repeat_rounded, 'Recurring Bookings', () => context.go('/recurring-bookings')),
                     if (user.isNanny) ...[
                       _MenuItem(Icons.dashboard_rounded, 'Dashboard', () => context.go('/dashboard')),
                       _MenuItem(Icons.schedule_rounded, 'Manage Availability', () => context.go('/dashboard/availability')),

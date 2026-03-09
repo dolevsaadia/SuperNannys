@@ -172,23 +172,38 @@ class _BookingsList extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: sColor.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(_statusIcon(b.status), size: 12, color: sColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    b.status,
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sColor),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (b.isRecurring)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accent.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(Icons.repeat_rounded, size: 12, color: AppColors.accent),
                                   ),
-                                ],
-                              ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: sColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(_statusIcon(b.status), size: 12, color: sColor),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        b.status,
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sColor),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

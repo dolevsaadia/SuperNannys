@@ -4,6 +4,7 @@ class NannyModel {
   final String headline;
   final String bio;
   final int hourlyRateNis;
+  final int? recurringHourlyRateNis;
   final int yearsExperience;
   final List<String> languages;
   final List<String> skills;
@@ -27,6 +28,7 @@ class NannyModel {
     required this.headline,
     required this.bio,
     required this.hourlyRateNis,
+    this.recurringHourlyRateNis,
     required this.yearsExperience,
     required this.languages,
     required this.skills,
@@ -51,6 +53,7 @@ class NannyModel {
         headline: json['headline'] as String? ?? '',
         bio: json['bio'] as String? ?? '',
         hourlyRateNis: json['hourlyRateNis'] as int? ?? 50,
+        recurringHourlyRateNis: json['recurringHourlyRateNis'] as int?,
         yearsExperience: json['yearsExperience'] as int? ?? 0,
         languages: (json['languages'] as List<dynamic>?)?.cast<String>() ?? [],
         skills: (json['skills'] as List<dynamic>?)?.cast<String>() ?? [],

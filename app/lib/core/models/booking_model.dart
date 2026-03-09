@@ -12,10 +12,27 @@ class BookingModel {
   final int childrenCount;
   final List<String> childrenAges;
   final String? address;
+
+  // ── Recurring fields ─────────────────────────────────
+  final String? recurringBookingId;
+  final bool isRecurring;
+  final DateTime? occurrenceDate;
+
   final DateTime createdAt;
   final BookingUser? parent;
   final BookingUser? nanny;
   final BookingReview? review;
+
+  // ── Live session fields ────────────────────────────────
+  final bool parentConfirmedStart;
+  final bool nannyConfirmedStart;
+  final DateTime? actualStartTime;
+  final DateTime? actualEndTime;
+  final bool parentConfirmedEnd;
+  final bool nannyConfirmedEnd;
+  final int? actualDurationMin;
+  final int? finalAmountNis;
+  final int overtimeAmountNis;
 
   const BookingModel({
     required this.id,
@@ -31,10 +48,22 @@ class BookingModel {
     required this.childrenCount,
     required this.childrenAges,
     this.address,
+    this.recurringBookingId,
+    this.isRecurring = false,
+    this.occurrenceDate,
     required this.createdAt,
     this.parent,
     this.nanny,
     this.review,
+    this.parentConfirmedStart = false,
+    this.nannyConfirmedStart = false,
+    this.actualStartTime,
+    this.actualEndTime,
+    this.parentConfirmedEnd = false,
+    this.nannyConfirmedEnd = false,
+    this.actualDurationMin,
+    this.finalAmountNis,
+    this.overtimeAmountNis = 0,
   });
 
   bool get isRequested => status == 'REQUESTED';
@@ -46,6 +75,10 @@ class BookingModel {
 
   double get durationHours =>
       endTime.difference(startTime).inMinutes / 60;
+
+  /// Booked duration in minutes (scheduled)
+  int get bookedDurationMin =>
+      endTime.difference(startTime).inMinutes;
 
   factory BookingModel.fromJson(Map<String, dynamic> json) => BookingModel(
         id: json['id'] as String,
@@ -61,10 +94,22 @@ class BookingModel {
         childrenCount: json['childrenCount'] as int? ?? 1,
         childrenAges: (json['childrenAges'] as List<dynamic>?)?.cast<String>() ?? [],
         address: json['address'] as String?,
+        recurringBookingId: json['recurringBookingId'] as String?,
+        isRecurring: json['isRecurring'] as bool? ?? false,
+        occurrenceDate: json['occurrenceDate'] != null ? DateTime.parse(json['occurrenceDate'] as String) : null,
         createdAt: DateTime.parse(json['createdAt'] as String),
         parent: json['parent'] != null ? BookingUser.fromJson(json['parent'] as Map<String, dynamic>) : null,
         nanny: json['nanny'] != null ? BookingUser.fromJson(json['nanny'] as Map<String, dynamic>) : null,
         review: json['review'] != null ? BookingReview.fromJson(json['review'] as Map<String, dynamic>) : null,
+        parentConfirmedStart: json['parentConfirmedStart'] as bool? ?? false,
+        nannyConfirmedStart: json['nannyConfirmedStart'] as bool? ?? false,
+        actualStartTime: json['actualStartTime'] != null ? DateTime.parse(json['actualStartTime'] as String) : null,
+        actualEndTime: json['actualEndTime'] != null ? DateTime.parse(json['actualEndTime'] as String) : null,
+        parentConfirmedEnd: json['parentConfirmedEnd'] as bool? ?? false,
+        nannyConfirmedEnd: json['nannyConfirmedEnd'] as bool? ?? false,
+        actualDurationMin: json['actualDurationMin'] as int?,
+        finalAmountNis: json['finalAmountNis'] as int?,
+        overtimeAmountNis: json['overtimeAmountNis'] as int? ?? 0,
       );
 }
 
