@@ -6,6 +6,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/bubble_overlay_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../session/widgets/session_banner.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -75,7 +76,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               ];
 
     return Scaffold(
-      body: widget.child,
+      body: Column(
+        children: [
+          // ── Persistent session banner ────────────────
+          SafeArea(
+            bottom: false,
+            child: const SessionBanner(),
+          ),
+          // ── Main content ─────────────────────────────
+          Expanded(child: widget.child),
+        ],
+      ),
       bottomNavigationBar: _PremiumBottomNav(
         items: navItems,
         currentIndex: currentIndex,

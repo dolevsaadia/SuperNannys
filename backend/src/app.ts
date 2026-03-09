@@ -21,6 +21,8 @@ import messageRoutes from './modules/messages/messages.routes'
 import reviewRoutes  from './modules/reviews/reviews.routes'
 import paymentRoutes from './modules/payments/payments.routes'
 import adminRoutes   from './modules/admin/admin.routes'
+import sessionRoutes   from './modules/sessions/sessions.routes'
+import recurringRoutes from './modules/recurring-bookings/recurring-bookings.routes'
 
 export function createApp() {
   const app = express()
@@ -62,6 +64,8 @@ export function createApp() {
   app.use('/api/reviews',  reviewRoutes)
   app.use('/api/payments', paymentRoutes)
   app.use('/api/admin',    adminRoutes)
+  app.use('/api/sessions', sessionRoutes)
+  app.use('/api/recurring-bookings', recurringRoutes)
 
   // ── Socket.IO ──────────────────────────────────────────
   initSocketIO(io)

@@ -31,7 +31,7 @@ class FloatingBookingBubble extends StatefulWidget {
 
 class _FloatingBookingBubbleState extends State<FloatingBookingBubble> with SingleTickerProviderStateMixin {
   bool _expanded = false;
-  late Timer _countdownTimer;
+  Timer? _countdownTimer;
   Duration _remaining = Duration.zero;
   double? _distanceKm;
   LatLng? _userLocation;
@@ -52,7 +52,7 @@ class _FloatingBookingBubbleState extends State<FloatingBookingBubble> with Sing
 
   @override
   void dispose() {
-    _countdownTimer.cancel();
+    _countdownTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -61,7 +61,7 @@ class _FloatingBookingBubbleState extends State<FloatingBookingBubble> with Sing
     final now = DateTime.now();
     final diff = widget.startTime.difference(now);
     if (diff.isNegative) {
-      _countdownTimer.cancel();
+      _countdownTimer?.cancel();
     }
     if (mounted) setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
   }
