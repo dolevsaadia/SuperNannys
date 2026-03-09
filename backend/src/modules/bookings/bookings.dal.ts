@@ -5,6 +5,7 @@ const bookingListInclude = {
   parent: { select: { id: true, fullName: true, avatarUrl: true } },
   nanny: { select: { id: true, fullName: true, avatarUrl: true } },
   review: { select: { rating: true, comment: true } },
+  recurringBooking: { select: { id: true, status: true } },
   _count: { select: { messages: true } },
 } as const
 
@@ -13,10 +14,11 @@ const bookingDetailInclude = {
   nanny: {
     select: {
       id: true, fullName: true, avatarUrl: true, phone: true,
-      nannyProfile: { select: { hourlyRateNis: true, city: true, rating: true, badges: true, latitude: true, longitude: true } },
+      nannyProfile: { select: { hourlyRateNis: true, recurringHourlyRateNis: true, city: true, rating: true, badges: true, latitude: true, longitude: true } },
     },
   },
   review: true,
+  recurringBooking: { select: { id: true, status: true, daysOfWeek: true, startTime: true, endTime: true } },
   earning: { select: { netAmountNis: true, isPaid: true } },
 } as const
 
@@ -47,6 +49,9 @@ export const bookingsDal = {
     childrenCount: number
     childrenAges?: string[]
     address?: string
+    isRecurring?: boolean
+    recurringBookingId?: string
+    occurrenceDate?: Date
   }) {
     return prisma.booking.create({
       data,
