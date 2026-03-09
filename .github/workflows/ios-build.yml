@@ -1,0 +1,53 @@
+name: Build iOS App
+
+on:
+  push:
+    branches:
+      - main
+      - feature/v1.3-recurring-bookings
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+
+      - name: Build iOS without codesign
+        run: flutter build ios --release --no-codesign
+
+      - name: Archive Runner.app
+        run: |
+          mkdir -p ../ios-artifact
+          cp -R build/ios/iphoneos/Runner.app ../ios-artifact/Runner.app
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SuperNannys-ios-runner-app
+          path: ios-artifact/Runner.app
