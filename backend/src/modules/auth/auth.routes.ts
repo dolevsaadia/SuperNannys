@@ -5,9 +5,11 @@ import { authController } from './auth.controller'
 
 const router = Router()
 
-router.post('/register', asyncHandler(authController.register))
-router.post('/login',    asyncHandler(authController.login))
-router.post('/google',   asyncHandler(authController.googleSignIn))
-router.get('/me',        requireAuth, asyncHandler(authController.getMe))
+router.post('/register',    asyncHandler(authController.register))
+router.post('/login',       asyncHandler(authController.login))
+router.post('/google',      asyncHandler(authController.googleSignIn))
+router.post('/verify-otp',  asyncHandler(authController.verifyOTP))
+router.post('/resend-otp',  asyncHandler(authController.resendOTP))
+router.get('/me',           requireAuth, asyncHandler(authController.getMe))
 
 export default router
