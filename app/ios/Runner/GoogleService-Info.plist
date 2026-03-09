@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>768121322557-3reccv7capojqi11t3an73eir4178fc6.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.768121322557-3reccv7capojqi11t3an73eir4178fc6</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>768121322557-gs4qufuh0j2lfrag98eepfiebjk3dg9k.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDKYX6QEnhbEfYeS8CmI8oDmTtOjbRWph4</string>
+	<key>GCM_SENDER_ID</key>
+	<string>768121322557</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.superNanny</string>
+	<key>PROJECT_ID</key>
+	<string>super-nannys-1771710657</string>
+	<key>STORAGE_BUCKET</key>
+	<string>super-nannys-1771710657.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:768121322557:ios:bd460af8a42bbd42847e54</string>
+</dict>
+</plist>
