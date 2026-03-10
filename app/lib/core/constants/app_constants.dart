@@ -6,12 +6,10 @@ class AppConstants {
   static const String _lanHost = '192.168.1.190';
 
   static String get _host {
-    // Use LAN IP for mobile devices so physical phones can reach the backend.
     if (Platform.isAndroid || Platform.isIOS) {
       return _lanHost;
     }
 
-    // Desktop development on the same machine
     if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
       return 'localhost';
     }
@@ -24,6 +22,8 @@ class AppConstants {
 
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
+
+  static const String googleServerClientId = '';
 
   static const int pageSize = 20;
 
