@@ -1,10 +1,8 @@
 class AppConstants {
   AppConstants._();
 
-  static const String apiBaseUrl =
-      'https://illustratable-sirena-subjectively.ngrok-free.app/api';
-  static const String socketUrl =
-      'https://illustratable-sirena-subjectively.ngrok-free.app';
+  static const String apiBaseUrl = 'https://api.supernanny.net/api';
+  static const String socketUrl = 'https://api.supernanny.net';
 
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
