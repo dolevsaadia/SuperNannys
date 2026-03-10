@@ -1,29 +1,13 @@
-
-import 'dart:io';
-
 class AppConstants {
   AppConstants._();
 
-  static const String _lanHost = '192.168.1.190';
-
-  static String get _host {
-    if (Platform.isAndroid || Platform.isIOS) {
-      return _lanHost;
-    }
-
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      return 'localhost';
-    }
-
-    return _lanHost;
-  }
-
-  static String get apiBaseUrl => 'http://$_host:8080/api';
-  static String get socketUrl => 'http://$_host:8080';
+  static const String apiBaseUrl =
+      'https://illustratable-sirena-subjectively.ngrok-free.app/api';
+  static const String socketUrl =
+      'https://illustratable-sirena-subjectively.ngrok-free.app';
 
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
-
   static const String googleServerClientId = '';
 
   static const int pageSize = 20;
