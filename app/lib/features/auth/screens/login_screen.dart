@@ -182,10 +182,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final result = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
       if (!mounted) return;
       if (result.success) {
-        if (result.pendingVerification && result.email != null) {
-          // OTP verification required
-          context.go('/verify-otp', extra: {'email': result.email});
-        } else if (result.isNewUser) {
+        if (result.isNewUser) {
           // New user from Google — redirect to role selection
           context.go('/role-select', extra: {'googleIdToken': idToken});
         } else {

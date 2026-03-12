@@ -54,13 +54,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = await _storage.read(key: AppConstants.tokenKey);
       final userData = await _storage.read(key: AppConstants.userKey);
       if (token != null && userData != null) {
+        // Sync the in-memory cache in ApiClient so the interceptor has the
+        // token immediately without needing another storage read.
+        await apiClient.setToken(token);
         final user = UserModel.fromJson(jsonDecode(userData) as Map<String, dynamic>);
         state = AuthState(user: user);
         // Verify token is still valid
         await refreshMe();
       }
     } catch (_) {
-      await logout();
+      // Storage read may fail on first launch after reboot (keychain locked).
+      // Silently fall back to logged-out state — user can sign in again.
+      try { await logout(); } catch (_) {}
     }
   }
 
@@ -77,11 +82,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register(String email, String password, String fullName, String role) async {
+  Future<bool> register(String email, String password, String fullName, String role, {String? phone, String? idNumber}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final resp = await apiClient.dio.post('/auth/register', data: {
         'email': email, 'password': password, 'fullName': fullName, 'role': role,
+        if (phone != null) 'phone': phone,
+        if (idNumber != null) 'idNumber': idNumber,
       });
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);

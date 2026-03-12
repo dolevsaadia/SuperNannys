@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -16,6 +19,7 @@ class NannyOnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
+  static const _totalSteps = 4;
   int _step = 0;
   final _headlineCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
@@ -28,6 +32,10 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
   final List<String> _skills = [];
   bool _isLoading = false;
 
+  // Document uploads
+  File? _idDocument;
+  File? _policeCheck;
+
   @override
   void dispose() {
     _headlineCtrl.dispose();
@@ -36,9 +44,62 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
     super.dispose();
   }
 
+  Future<void> _pickFile(String type) async {
+    final picker = ImagePicker();
+    final result = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, maxHeight: 1920, imageQuality: 85);
+    if (result == null) return;
+    setState(() {
+      if (type == 'id') _idDocument = File(result.path);
+      if (type == 'police') _policeCheck = File(result.path);
+    });
+  }
+
+  Future<void> _takePhoto(String type) async {
+    final picker = ImagePicker();
+    final result = await picker.pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1920, imageQuality: 85);
+    if (result == null) return;
+    setState(() {
+      if (type == 'id') _idDocument = File(result.path);
+      if (type == 'police') _policeCheck = File(result.path);
+    });
+  }
+
+  void _showPickerOptions(String type) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+              title: const Text('Choose from gallery'),
+              onTap: () { Navigator.pop(context); _pickFile(type); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              title: const Text('Take a photo'),
+              onTap: () { Navigator.pop(context); _takePhoto(type); },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _uploadDocument(File file, String docType) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(file.path, filename: '${docType}_${DateTime.now().millisecondsSinceEpoch}.jpg'),
+      'type': docType,
+    });
+    await apiClient.dio.post('/nannies/me/documents', data: formData);
+  }
+
   Future<void> _submit() async {
     setState(() => _isLoading = true);
     try {
+      // 1. Update profile
       await apiClient.dio.put('/nannies/me', data: {
         'headline': _headlineCtrl.text,
         'bio': _bioCtrl.text,
@@ -50,6 +111,15 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
         'skills': _skills,
         'isAvailable': true,
       });
+
+      // 2. Upload documents (if selected)
+      if (_idDocument != null) {
+        await _uploadDocument(_idDocument!, 'ID_CARD');
+      }
+      if (_policeCheck != null) {
+        await _uploadDocument(_policeCheck!, 'POLICE_CHECK');
+      }
+
       await ref.read(authProvider.notifier).refreshMe();
       if (mounted) context.go('/home');
     } catch (_) {
@@ -72,14 +142,14 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Step ${_step + 1} of 3', style: const TextStyle(color: AppColors.textHint, fontSize: 13)),
+                      Text('Step ${_step + 1} of $_totalSteps', style: const TextStyle(color: AppColors.textHint, fontSize: 13)),
                       if (_step > 0)
                         TextButton(onPressed: () => setState(() => _step--), child: const Text('Back')),
                     ],
                   ),
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
-                    value: (_step + 1) / 3,
+                    value: (_step + 1) / _totalSteps,
                     backgroundColor: AppColors.divider,
                     valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                     borderRadius: BorderRadius.circular(4),
@@ -99,10 +169,10 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
             Padding(
               padding: const EdgeInsets.all(20),
               child: AppButton(
-                label: _step < 2 ? 'Next' : 'Complete Setup',
+                label: _step < _totalSteps - 1 ? 'Next' : 'Complete Setup',
                 isLoading: _isLoading,
                 onTap: () {
-                  if (_step < 2) setState(() => _step++);
+                  if (_step < _totalSteps - 1) setState(() => _step++);
                   else _submit();
                 },
               ),
@@ -133,6 +203,15 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
           languages: _languages, skills: _skills,
           onLanguageToggle: (l) => setState(() => _languages.contains(l) ? _languages.remove(l) : _languages.add(l)),
           onSkillToggle: (s) => setState(() => _skills.contains(s) ? _skills.remove(s) : _skills.add(s)),
+        );
+      case 3:
+        return _DocumentsStep(
+          idDocument: _idDocument,
+          policeCheck: _policeCheck,
+          onPickId: () => _showPickerOptions('id'),
+          onPickPolice: () => _showPickerOptions('police'),
+          onRemoveId: () => setState(() => _idDocument = null),
+          onRemovePolice: () => setState(() => _policeCheck = null),
         );
       default:
         return const SizedBox.shrink();
@@ -408,4 +487,198 @@ class _SkillsStep extends StatelessWidget {
           const SizedBox(height: 32),
         ],
       );
+}
+
+class _DocumentsStep extends StatelessWidget {
+  final File? idDocument;
+  final File? policeCheck;
+  final VoidCallback onPickId;
+  final VoidCallback onPickPolice;
+  final VoidCallback onRemoveId;
+  final VoidCallback onRemovePolice;
+
+  const _DocumentsStep({
+    required this.idDocument,
+    required this.policeCheck,
+    required this.onPickId,
+    required this.onPickPolice,
+    required this.onRemoveId,
+    required this.onRemovePolice,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Upload Documents', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text(
+            'Upload your ID and certificate of good conduct for verification',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+
+          // ID Document + Appendix
+          _DocumentUploadCard(
+            title: 'ID Card + Appendix',
+            subtitle: 'Photo of your Israeli ID card (front & appendix)',
+            icon: Icons.badge_outlined,
+            file: idDocument,
+            onPick: onPickId,
+            onRemove: onRemoveId,
+            color: AppColors.primary,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Certificate of Good Conduct (Police Check)
+          _DocumentUploadCard(
+            title: 'Certificate of Good Conduct',
+            subtitle: 'Police background check certificate',
+            icon: Icons.verified_user_outlined,
+            file: policeCheck,
+            onPick: onPickPolice,
+            onRemove: onRemovePolice,
+            color: AppColors.accent,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Info note
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, size: 20, color: AppColors.primary.withValues(alpha: 0.7)),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Documents will be reviewed by our team. You can also upload them later from your profile.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      );
+}
+
+class _DocumentUploadCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final File? file;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+  final Color color;
+
+  const _DocumentUploadCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.file,
+    required this.onPick,
+    required this.onRemove,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasFile = file != null;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: hasFile ? color.withValues(alpha: 0.4) : AppColors.border),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          if (hasFile)
+            // Show thumbnail of uploaded file
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                  child: Image.file(file!, height: 160, width: double.infinity, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  top: 8, right: 8,
+                  child: GestureDetector(
+                    onTap: onRemove,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(hasFile ? Icons.check_circle_rounded : icon, size: 22, color: color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasFile ? 'Document uploaded' : subtitle,
+                        style: TextStyle(
+                          color: hasFile ? color : AppColors.textHint,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!hasFile)
+                  GestureDetector(
+                    onTap: onPick,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('Upload', style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: onPick,
+                    child: Text('Replace', style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
