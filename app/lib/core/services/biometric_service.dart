@@ -8,7 +8,10 @@ class BiometricService {
   BiometricService._();
 
   final _auth = LocalAuthentication();
-  final _secureStorage = const FlutterSecureStorage();
+  static const _secureStorage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   static const _kBiometricEnabled = 'biometric_enabled';
   static const _kBiometricToken = 'biometric_token';

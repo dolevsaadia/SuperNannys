@@ -32,9 +32,12 @@ class GoogleLoginResult {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final FlutterSecureStorage _storage;
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
-  AuthNotifier() : _storage = const FlutterSecureStorage(), super(const AuthState()) {
+  AuthNotifier() : super(const AuthState()) {
     _loadStoredUser();
   }
 
