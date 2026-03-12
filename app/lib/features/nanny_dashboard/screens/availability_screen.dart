@@ -172,7 +172,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                     ),
                     Switch.adaptive(
                       value: _enableRecurring,
-                      activeColor: AppColors.accent,
+                      activeTrackColor: AppColors.accent,
                       onChanged: (v) {
                         HapticFeedback.lightImpact();
                         setState(() => _enableRecurring = v);
@@ -285,7 +285,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                             ),
                             Switch.adaptive(
                               value: isAvailable,
-                              activeColor: AppColors.primary,
+                              activeTrackColor: AppColors.primary,
                               onChanged: (v) {
                                 HapticFeedback.lightImpact();
                                 setState(() => _slots[day]['isAvailable'] = v);

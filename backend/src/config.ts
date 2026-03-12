@@ -12,19 +12,17 @@ export const config = {
   },
 
   google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || '',
-    iosClientId: process.env.GOOGLE_IOS_CLIENT_ID || '',
-    androidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID || '',
+    // Web client ID (type 3) from google-services.json
+    clientId: process.env.GOOGLE_CLIENT_ID || '768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com',
+    // iOS client ID (type 2) from GoogleService-Info.plist
+    iosClientId: process.env.GOOGLE_IOS_CLIENT_ID || '768121322557-3reccv7capojqi11t3an73eir4178fc6.apps.googleusercontent.com',
+    // Android client ID (type 1) from google-services.json
+    androidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID || '768121322557-gs4qufuh0j2lfrag98eepfiebjk3dg9k.apps.googleusercontent.com',
     get allClientIds(): string[] {
-      return [
-        process.env.GOOGLE_CLIENT_ID || '',
-        process.env.GOOGLE_IOS_CLIENT_ID || '',
-        process.env.GOOGLE_ANDROID_CLIENT_ID || '',
-      ].filter((id) => id !== '')
+      return [this.clientId, this.iosClientId, this.androidClientId].filter((id) => id !== '')
     },
     get isConfigured(): boolean {
-      const id = process.env.GOOGLE_CLIENT_ID || ''
-      return id !== '' && id !== 'your-google-client-id'
+      return this.clientId !== '' && this.clientId !== 'your-google-client-id'
     },
   },
 

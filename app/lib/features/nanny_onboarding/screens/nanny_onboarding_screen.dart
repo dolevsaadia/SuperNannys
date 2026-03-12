@@ -216,7 +216,7 @@ class _RateStep extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text('Standard', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
@@ -247,7 +247,7 @@ class _RateStep extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: enableRecurring ? AppColors.accent.withOpacity(0.4) : AppColors.border,
+                color: enableRecurring ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border,
               ),
             ),
             child: Row(
@@ -275,7 +275,7 @@ class _RateStep extends StatelessWidget {
                 ),
                 Switch.adaptive(
                   value: enableRecurring,
-                  activeColor: AppColors.accent,
+                  activeTrackColor: AppColors.accent,
                   onChanged: onEnableRecurringChanged,
                 ),
               ],
@@ -290,7 +290,7 @@ class _RateStep extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,7 +300,7 @@ class _RateStep extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.accent.withOpacity(0.1),
+                          color: AppColors.accent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text('Recurring', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w600, fontSize: 12)),
