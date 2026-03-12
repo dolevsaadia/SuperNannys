@@ -48,6 +48,7 @@ class _BookingDetailBody extends ConsumerWidget {
   Color _statusColor(String status) => switch (status) {
         'REQUESTED' => AppColors.warning,
         'ACCEPTED' => AppColors.success,
+        'IN_PROGRESS' => AppColors.accent,
         'COMPLETED' => AppColors.primary,
         'DECLINED' || 'CANCELLED' => AppColors.error,
         _ => AppColors.textHint,
@@ -56,6 +57,7 @@ class _BookingDetailBody extends ConsumerWidget {
   IconData _statusIcon(String status) => switch (status) {
         'REQUESTED' => Icons.schedule_rounded,
         'ACCEPTED' => Icons.check_circle_outline_rounded,
+        'IN_PROGRESS' => Icons.timer_rounded,
         'COMPLETED' => Icons.check_circle_rounded,
         'DECLINED' || 'CANCELLED' => Icons.cancel_rounded,
         _ => Icons.info_outline_rounded,
@@ -301,15 +303,41 @@ class _BookingDetailBody extends ConsumerWidget {
                 _premiumDivider(),
                 _PremiumRow(
                   icon: Icons.receipt_rounded,
-                  label: 'Total',
+                  label: booking.finalAmountNis != null ? 'Booked' : 'Total',
                   value: '\u20AA${booking.totalAmountNis}',
-                  valueBold: true,
+                  valueBold: booking.finalAmountNis == null,
                 ),
+                if (booking.overtimeAmountNis > 0) ...[
+                  _premiumDivider(),
+                  _PremiumRow(
+                    icon: Icons.more_time_rounded,
+                    label: 'Overtime',
+                    value: '+\u20AA${booking.overtimeAmountNis}',
+                    valueColor: AppColors.warning,
+                  ),
+                ],
+                if (booking.finalAmountNis != null) ...[
+                  _premiumDivider(),
+                  _PremiumRow(
+                    icon: Icons.receipt_rounded,
+                    label: 'Final Total',
+                    value: '\u20AA${booking.finalAmountNis}',
+                    valueBold: true,
+                  ),
+                ],
+                if (booking.actualDurationMin != null) ...[
+                  _premiumDivider(),
+                  _PremiumRow(
+                    icon: Icons.timer_rounded,
+                    label: 'Actual Duration',
+                    value: '${booking.actualDurationMin} min',
+                  ),
+                ],
                 _premiumDivider(),
                 _PremiumRow(
                   icon: booking.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
                   label: 'Status',
-                  value: booking.isPaid ? 'Paid' : 'Pending',
+                  value: booking.isPaid ? 'Paid' : (booking.isCompleted ? 'Processing' : 'After session'),
                   valueColor: booking.isPaid ? AppColors.success : AppColors.warning,
                 ),
               ],
@@ -359,13 +387,32 @@ class _BookingDetailBody extends ConsumerWidget {
                 onTap: () => _updateStatus(context, 'CANCELLED'),
               ),
             ),
-          if (isNanny && booking.isAccepted)
+          if ((isParent || isNanny) && booking.isAccepted)
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: AppButton(
-                label: 'Mark as Completed',
+                label: 'Start Live Session',
                 variant: AppButtonVariant.gradient,
-                onTap: () => _updateStatus(context, 'COMPLETED'),
+                prefixIcon: const Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 20),
+                onTap: () => context.push('/session/${booking.id}', extra: {
+                  'otherUserName': isParent ? booking.nanny?.fullName ?? '' : booking.parent?.fullName ?? '',
+                  'otherUserAvatar': isParent ? booking.nanny?.avatarUrl : booking.parent?.avatarUrl,
+                  'isParent': isParent,
+                }),
+              ),
+            ),
+          if ((isParent || isNanny) && booking.isInProgress)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: AppButton(
+                label: 'View Live Session',
+                variant: AppButtonVariant.gradient,
+                prefixIcon: const Icon(Icons.timer_rounded, color: Colors.white, size: 20),
+                onTap: () => context.push('/session/${booking.id}', extra: {
+                  'otherUserName': isParent ? booking.nanny?.fullName ?? '' : booking.parent?.fullName ?? '',
+                  'otherUserAvatar': isParent ? booking.nanny?.avatarUrl : booking.parent?.avatarUrl,
+                  'isParent': isParent,
+                }),
               ),
             ),
           if (isParent && booking.isCompleted && booking.review == null)
@@ -386,8 +433,9 @@ class _BookingDetailBody extends ConsumerWidget {
 
   String _statusDescription(String status) => switch (status) {
         'REQUESTED' => 'Waiting for nanny to respond',
-        'ACCEPTED' => 'Booking confirmed! See you soon',
-        'COMPLETED' => 'This booking has been completed',
+        'ACCEPTED' => 'Booking confirmed! Start the session when ready',
+        'IN_PROGRESS' => 'Session is currently active',
+        'COMPLETED' => 'This session has been completed',
         'DECLINED' => 'The nanny declined this request',
         'CANCELLED' => 'This booking was cancelled',
         _ => '',
@@ -514,7 +562,7 @@ class _StatusTimeline extends StatelessWidget {
   final String currentStatus;
   const _StatusTimeline({required this.currentStatus});
 
-  static const _steps = ['REQUESTED', 'ACCEPTED', 'COMPLETED'];
+  static const _steps = ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED'];
 
   int get _currentIndex {
     if (currentStatus == 'DECLINED' || currentStatus == 'CANCELLED') return -1;

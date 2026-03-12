@@ -7,7 +7,12 @@ class ApiClient {
   factory ApiClient() => _instance;
   ApiClient._internal();
 
-  final _storage = const FlutterSecureStorage();
+  // iOS: use first_unlock so keychain is readable right after device boots
+  // (before first user unlock). Without this the app hangs on launch.
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   late final Dio dio;
 
   void init() {

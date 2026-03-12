@@ -21,6 +21,8 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
   final _bioCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
   int _rate = 55;
+  bool _enableRecurring = false;
+  int _recurringRate = 45;
   int _years = 1;
   final List<String> _languages = ['Hebrew'];
   final List<String> _skills = [];
@@ -42,6 +44,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
         'bio': _bioCtrl.text,
         'city': _cityCtrl.text,
         'hourlyRateNis': _rate,
+        if (_enableRecurring) 'recurringHourlyRateNis': _recurringRate,
         'yearsExperience': _years,
         'languages': _languages,
         'skills': _skills,
@@ -116,8 +119,13 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
         return _BasicInfoStep(headlineCtrl: _headlineCtrl, bioCtrl: _bioCtrl, cityCtrl: _cityCtrl);
       case 1:
         return _RateStep(
-          rate: _rate, years: _years,
+          rate: _rate,
+          enableRecurring: _enableRecurring,
+          recurringRate: _recurringRate,
+          years: _years,
           onRateChanged: (r) => setState(() => _rate = r),
+          onEnableRecurringChanged: (v) => setState(() => _enableRecurring = v),
+          onRecurringRateChanged: (r) => setState(() => _recurringRate = r),
           onYearsChanged: (y) => setState(() => _years = y),
         );
       case 2:
@@ -163,32 +171,164 @@ class _BasicInfoStep extends StatelessWidget {
 
 class _RateStep extends StatelessWidget {
   final int rate;
+  final bool enableRecurring;
+  final int recurringRate;
   final int years;
   final ValueChanged<int> onRateChanged;
+  final ValueChanged<bool> onEnableRecurringChanged;
+  final ValueChanged<int> onRecurringRateChanged;
   final ValueChanged<int> onYearsChanged;
 
-  const _RateStep({required this.rate, required this.years, required this.onRateChanged, required this.onYearsChanged});
+  const _RateStep({
+    required this.rate,
+    required this.enableRecurring,
+    required this.recurringRate,
+    required this.years,
+    required this.onRateChanged,
+    required this.onEnableRecurringChanged,
+    required this.onRecurringRateChanged,
+    required this.onYearsChanged,
+  });
 
   @override
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Set your rate & experience', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const Text('Set your rates & experience', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text('Set your hourly rate for bookings',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
           const SizedBox(height: 24),
-          const Text('Hourly Rate (₪)', style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('₪$rate/hr', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.primary)),
-            ],
+
+          // Casual rate
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Standard', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Hourly Rate', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text('\u20AA$rate/hr', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                ),
+                Slider(
+                  value: rate.toDouble(), min: 30, max: 150, divisions: 24,
+                  activeColor: AppColors.primary,
+                  onChanged: (v) => onRateChanged(v.toInt()),
+                ),
+              ],
+            ),
           ),
-          Slider(
-            value: rate.toDouble(), min: 30, max: 150, divisions: 24,
-            activeColor: AppColors.primary,
-            onChanged: (v) => onRateChanged(v.toInt()),
+
+          const SizedBox(height: 14),
+
+          // Enable recurring toggle
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: enableRecurring ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.repeat_rounded,
+                  size: 22,
+                  color: enableRecurring ? AppColors.accent : AppColors.textHint,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Allow Recurring Bookings',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      Text(
+                        'Let parents book you on a fixed weekly schedule',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: enableRecurring,
+                  activeTrackColor: AppColors.accent,
+                  onChanged: onEnableRecurringChanged,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+
+          // Recurring rate (only shown when enabled)
+          if (enableRecurring) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('Recurring', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w600, fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Fixed Schedule Rate', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('Discounted rate attracts regular clients',
+                      style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text('\u20AA$recurringRate/hr', style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.accent)),
+                  ),
+                  Slider(
+                    value: recurringRate.toDouble(), min: 20, max: 130, divisions: 22,
+                    activeColor: AppColors.accent,
+                    onChanged: (v) => onRecurringRateChanged(v.toInt()),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 20),
+
+          // Years experience
           const Text('Years of Experience', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Row(

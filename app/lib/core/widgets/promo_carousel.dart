@@ -152,7 +152,7 @@ class _BannerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: banner.gradient[0].withOpacity(0.3),
+            color: banner.gradient[0].withValues(alpha:0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -167,7 +167,7 @@ class _BannerCard extends StatelessWidget {
             child: Icon(
               banner.icon,
               size: 140,
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha:0.12),
             ),
           ),
           // Content
@@ -192,7 +192,7 @@ class _BannerCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha:0.9),
                     height: 1.4,
                   ),
                 ),

@@ -117,7 +117,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                                 Container(
                                   padding: const EdgeInsets.all(2),
                                   decoration: BoxDecoration(
-                                    color: AppColors.badgeVerified.withOpacity(0.1),
+                                    color: AppColors.badgeVerified.withValues(alpha:0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.verified_rounded, color: AppColors.badgeVerified, size: 18),
@@ -141,7 +141,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: AppColors.star.withOpacity(0.1),
+                                  color: AppColors.star.withValues(alpha:0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(

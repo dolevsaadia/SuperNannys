@@ -26,15 +26,26 @@ class AuthState {
 class GoogleLoginResult {
   final bool success;
   final bool isNewUser;
+  final bool pendingVerification;
+  final String? email;
   final String? error;
 
-  const GoogleLoginResult({required this.success, this.isNewUser = false, this.error});
+  const GoogleLoginResult({
+    required this.success,
+    this.isNewUser = false,
+    this.pendingVerification = false,
+    this.email,
+    this.error,
+  });
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final FlutterSecureStorage _storage;
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
-  AuthNotifier() : _storage = const FlutterSecureStorage(), super(const AuthState()) {
+  AuthNotifier() : super(const AuthState()) {
     _loadStoredUser();
   }
 
@@ -89,6 +100,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final resp = await apiClient.dio.post('/auth/google', data: body);
       final data = resp.data['data'] as Map<String, dynamic>;
       final isNewUser = data['isNewUser'] == true;
+      final pendingVerification = data['pendingVerification'] == true;
+
+      if (pendingVerification) {
+        state = state.copyWith(isLoading: false);
+        return GoogleLoginResult(
+          success: true,
+          pendingVerification: true,
+          email: data['email'] as String?,
+          isNewUser: isNewUser,
+        );
+      }
 
       if (isNewUser && data['token'] == null) {
         // New user needs role selection — don't save session yet
@@ -143,6 +165,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> updateUser(UserModel user) async {
     await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
     state = state.copyWith(user: user);
+  }
+
+  /// Complete login after OTP verification (called from OTP screen)
+  Future<void> loginWithVerifiedToken(String token, Map<String, dynamic> userData) async {
+    await _saveSession(token, userData);
   }
 
   Future<void> _saveSession(String token, Map<String, dynamic> userData) async {
