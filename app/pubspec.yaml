@@ -74,6 +74,12 @@ flutter:
   assets:
     - assets/brand/
     - assets/images/
+    - assets/fonts/
+
+  fonts:
+    - family: Heebo
+      fonts:
+        - asset: assets/fonts/Heebo[wght].ttf
 
 
 flutter_launcher_icons:

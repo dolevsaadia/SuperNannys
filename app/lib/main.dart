@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
@@ -11,6 +12,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Use bundled Heebo font — don't try to download at runtime.
+  // Without this, real devices may fall back to the system font.
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   // Initialize API client
   apiClient.init();
