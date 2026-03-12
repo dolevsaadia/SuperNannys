@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { ok, created } from '../../shared/utils/response'
 import { authService } from './auth.service'
-import { registerSchema, loginSchema, googleSignInSchema } from './auth.validation'
+import { registerSchema, loginSchema, googleSignInSchema, verifyOTPSchema, resendOTPSchema } from './auth.validation'
 
 export const authController = {
   async register(req: Request, res: Response): Promise<void> {
@@ -19,6 +19,18 @@ export const authController = {
   async googleSignIn(req: Request, res: Response): Promise<void> {
     const data = googleSignInSchema.parse(req.body)
     const result = await authService.googleSignIn(data)
+    ok(res, result)
+  },
+
+  async verifyOTP(req: Request, res: Response): Promise<void> {
+    const data = verifyOTPSchema.parse(req.body)
+    const result = await authService.verifyOTP(data)
+    ok(res, result)
+  },
+
+  async resendOTP(req: Request, res: Response): Promise<void> {
+    const data = resendOTPSchema.parse(req.body)
+    const result = await authService.resendOTP(data.email)
     ok(res, result)
   },
 

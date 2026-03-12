@@ -37,7 +37,12 @@ class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (result.success) {
-        context.go('/home');
+        if (result.pendingVerification && result.email != null) {
+          // OTP verification required after role selection
+          context.go('/verify-otp', extra: {'email': result.email});
+        } else {
+          context.go('/home');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Failed to set role'), backgroundColor: AppColors.error),

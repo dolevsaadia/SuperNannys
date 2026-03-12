@@ -30,6 +30,14 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum RecurringBookingStatus {
+  PENDING    // waiting for nanny approval
+  ACTIVE     // actively generating bookings
+  PAUSED     // temporarily paused
+  CANCELLED
+  ENDED
+}
+
 enum DocumentType {
   ID_CARD
   POLICE_CHECK
@@ -65,15 +73,17 @@ model User {
   updatedAt    DateTime     @updatedAt
 
   nannyProfile    NannyProfile?
-  parentBookings  Booking[]       @relation("ParentBookings")
-  nannyBookings   Booking[]       @relation("NannyBookings")
-  sentMessages    Message[]       @relation("SentMessages")
-  givenReviews    Review[]        @relation("GivenReviews")
-  receivedReviews Review[]        @relation("ReceivedReviews")
-  devices         Device[]
-  paymentMethods  PaymentMethod[]
-  earnings        Earning[]
-  notifications   Notification[]
+  parentBookings          Booking[]           @relation("ParentBookings")
+  nannyBookings           Booking[]           @relation("NannyBookings")
+  parentRecurringBookings RecurringBooking[]  @relation("ParentRecurring")
+  nannyRecurringBookings  RecurringBooking[]  @relation("NannyRecurring")
+  sentMessages            Message[]           @relation("SentMessages")
+  givenReviews            Review[]            @relation("GivenReviews")
+  receivedReviews         Review[]            @relation("ReceivedReviews")
+  devices                 Device[]
+  paymentMethods          PaymentMethod[]
+  earnings                Earning[]
+  notifications           Notification[]
 
   @@map("users")
 }
@@ -84,7 +94,8 @@ model NannyProfile {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   headline        String   @default("")
   bio             String   @default("")
-  hourlyRateNis   Int      @default(50)
+  hourlyRateNis          Int      @default(50)
+  recurringHourlyRateNis Int?
   yearsExperience Int      @default(0)
   languages       String[] @default(["Hebrew"])
   skills          String[] @default([])
@@ -140,8 +151,26 @@ model Booking {
   childrenCount   Int           @default(1)
   childrenAges    String[]      @default([])
   address         String?
+
+  // ── Recurring link ────────────────────────────────────
+  recurringBookingId String?
+  recurringBooking   RecurringBooking? @relation(fields: [recurringBookingId], references: [id])
+  isRecurring        Boolean           @default(false)
+  occurrenceDate     DateTime?         // the specific day this occurrence covers
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  // ── Live session fields ─────────────────────────────────
+  parentConfirmedStart Boolean   @default(false)
+  nannyConfirmedStart  Boolean   @default(false)
+  actualStartTime      DateTime?
+  actualEndTime        DateTime?
+  parentConfirmedEnd   Boolean   @default(false)
+  nannyConfirmedEnd    Boolean   @default(false)
+  actualDurationMin    Int?
+  finalAmountNis       Int?
+  overtimeAmountNis    Int       @default(0)
 
   messages Message[]
   review   Review?
@@ -245,4 +274,49 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@map("notifications")
+}
+
+model RecurringBooking {
+  id              String                @id @default(cuid())
+  parentUserId    String
+  parent          User                  @relation("ParentRecurring", fields: [parentUserId], references: [id])
+  nannyUserId     String
+  nanny           User                  @relation("NannyRecurring", fields: [nannyUserId], references: [id])
+
+  // ── Schedule ──────────────────────────────────────────
+  daysOfWeek      Int[]                 // 0=Sun … 6=Sat
+  startTime       String                // "08:00"
+  endTime         String                // "17:00"
+  startDate       DateTime              // when the recurring arrangement begins
+  endDate         DateTime?             // null = indefinite
+
+  // ── Pricing ───────────────────────────────────────────
+  hourlyRateNis   Int                   // snapshot of recurring rate
+  childrenCount   Int                   @default(1)
+  childrenAges    String[]              @default([])
+  address         String?
+  notes           String?
+
+  status          RecurringBookingStatus @default(PENDING)
+  lastGeneratedAt DateTime?             // last date auto-generation ran up to
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  bookings        Booking[]
+
+  @@map("recurring_bookings")
+}
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email, code])
+  @@map("verification_codes")
 }

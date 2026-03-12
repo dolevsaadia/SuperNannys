@@ -20,6 +20,7 @@ export const updateNannyProfileSchema = z.object({
   headline: z.string().max(200).optional(),
   bio: z.string().max(2000).optional(),
   hourlyRateNis: z.number().min(20).max(500).optional(),
+  recurringHourlyRateNis: z.number().min(20).max(500).optional().nullable(),
   yearsExperience: z.number().min(0).max(50).optional(),
   languages: z.array(z.string()).optional(),
   skills: z.array(z.string()).optional(),

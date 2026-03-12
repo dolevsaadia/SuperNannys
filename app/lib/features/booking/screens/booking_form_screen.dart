@@ -19,9 +19,22 @@ class BookingFormScreen extends ConsumerStatefulWidget {
 }
 
 class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
+  // ── Booking type toggle ──────────────────
+  bool _isRecurring = false;
+
+  // ── One-time fields ──────────────────
   DateTime? _startDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+
+  // ── Recurring fields ──────────────────
+  final Set<int> _selectedDays = {}; // 0=Sun … 6=Sat
+  TimeOfDay? _recurringStartTime;
+  TimeOfDay? _recurringEndTime;
+  DateTime? _recurringStartDate;
+  DateTime? _recurringEndDate;
+
+  // ── Shared fields ──────────────────
   int _childrenCount = 1;
   final _notesCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
@@ -32,6 +45,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   String? _nannyName;
   String? _nannyUserId;
   int _hourlyRate = 0;
+  int? _recurringHourlyRate;
 
   // Visual stepper
   int _currentStep = 0; // 0=When, 1=Details, 2=Confirm
@@ -51,24 +65,38 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         _nannyName = user['fullName'] as String;
         _nannyUserId = user['id'] as String;
         _hourlyRate = profile['hourlyRateNis'] as int;
+        _recurringHourlyRate = profile['recurringHourlyRateNis'] as int?;
       });
     } catch (_) {}
   }
 
+  int get _effectiveRate => _isRecurring
+      ? (_recurringHourlyRate ?? _hourlyRate)
+      : _hourlyRate;
+
   int get _totalAmount {
-    if (_startTime == null || _endTime == null) return 0;
-    final startMin = _startTime!.hour * 60 + _startTime!.minute;
-    final endMin = _endTime!.hour * 60 + _endTime!.minute;
+    final st = _isRecurring ? _recurringStartTime : _startTime;
+    final et = _isRecurring ? _recurringEndTime : _endTime;
+    if (st == null || et == null) return 0;
+    final startMin = st.hour * 60 + st.minute;
+    final endMin = et.hour * 60 + et.minute;
     final durationHours = (endMin - startMin) / 60;
     if (durationHours <= 0) return 0;
-    return (_hourlyRate * durationHours).round();
+    return (_effectiveRate * durationHours).round();
   }
 
   double get _durationHours {
-    if (_startTime == null || _endTime == null) return 0;
-    final startMin = _startTime!.hour * 60 + _startTime!.minute;
-    final endMin = _endTime!.hour * 60 + _endTime!.minute;
+    final st = _isRecurring ? _recurringStartTime : _startTime;
+    final et = _isRecurring ? _recurringEndTime : _endTime;
+    if (st == null || et == null) return 0;
+    final startMin = st.hour * 60 + st.minute;
+    final endMin = et.hour * 60 + et.minute;
     return (endMin - startMin) / 60;
+  }
+
+  int get _weeklyEstimate {
+    if (_selectedDays.isEmpty || _durationHours <= 0) return 0;
+    return (_effectiveRate * _durationHours * _selectedDays.length).round();
   }
 
   Future<void> _pickDate() async {
@@ -93,6 +121,48 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   Future<void> _pickEndTime() async {
     final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 17, minute: 0));
     if (t != null) setState(() => _endTime = t);
+  }
+
+  Future<void> _proceedRecurring() async {
+    if (_selectedDays.isEmpty || _recurringStartTime == null || _recurringEndTime == null || _recurringStartDate == null) {
+      setState(() => _error = 'Please select days, time, and start date');
+      return;
+    }
+
+    final startMin = _recurringStartTime!.hour * 60 + _recurringStartTime!.minute;
+    final endMin = _recurringEndTime!.hour * 60 + _recurringEndTime!.minute;
+    if (endMin <= startMin) {
+      setState(() => _error = 'End time must be after start time');
+      return;
+    }
+
+    setState(() { _isLoading = true; _error = null; });
+
+    try {
+      final startTimeStr = '${_recurringStartTime!.hour.toString().padLeft(2, '0')}:${_recurringStartTime!.minute.toString().padLeft(2, '0')}';
+      final endTimeStr = '${_recurringEndTime!.hour.toString().padLeft(2, '0')}:${_recurringEndTime!.minute.toString().padLeft(2, '0')}';
+
+      await apiClient.dio.post('/recurring-bookings', data: {
+        'nannyUserId': _nannyUserId ?? widget.nannyId,
+        'daysOfWeek': _selectedDays.toList()..sort(),
+        'startTime': startTimeStr,
+        'endTime': endTimeStr,
+        'startDate': _recurringStartDate!.toUtc().toIso8601String(),
+        if (_recurringEndDate != null) 'endDate': _recurringEndDate!.toUtc().toIso8601String(),
+        'childrenCount': _childrenCount,
+        if (_notesCtrl.text.isNotEmpty) 'notes': _notesCtrl.text,
+        if (_addressCtrl.text.isNotEmpty) 'address': _addressCtrl.text,
+      });
+
+      if (mounted) {
+        context.go('/home/nanny/${widget.nannyId}/book/success', extra: {'isRecurring': true});
+      }
+    } catch (e) {
+      setState(() {
+        _error = (e as dynamic).response?.data?['message'] as String? ?? 'Booking failed';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _proceed() async {
@@ -189,13 +259,95 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── Booking Type Toggle ──────────────────
+                    if (_recurringHourlyRate != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  setState(() => _isRecurring = false);
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: !_isRecurring ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: !_isRecurring ? AppShadows.sm : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.event_rounded, size: 18, color: !_isRecurring ? AppColors.primary : AppColors.textHint),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'One-time',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                          color: !_isRecurring ? AppColors.primary : AppColors.textHint,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  setState(() => _isRecurring = true);
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: _isRecurring ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: _isRecurring ? AppShadows.sm : null,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.repeat_rounded, size: 18, color: _isRecurring ? AppColors.accent : AppColors.textHint),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Recurring',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                          color: _isRecurring ? AppColors.accent : AppColors.textHint,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // ── Rate info banner ──────────────────
-                    if (_hourlyRate > 0)
+                    if (_effectiveRate > 0)
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: AppColors.gradientPrimary,
+                          gradient: LinearGradient(
+                            colors: _isRecurring
+                                ? [AppColors.accent, AppColors.accent.withValues(alpha: 0.8)]
+                                : AppColors.gradientPrimary,
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -211,29 +363,140 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                 color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.attach_money_rounded, color: Colors.white, size: 24),
+                              child: Icon(
+                                _isRecurring ? Icons.repeat_rounded : Icons.attach_money_rounded,
+                                color: Colors.white, size: 24,
+                              ),
                             ),
                             const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '\u20AA$_hourlyRate/hour',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
-                                ),
-                                if (_totalAmount > 0)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    '${_durationHours.toStringAsFixed(1)}h = \u20AA$_totalAmount total',
-                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                                    '\u20AA$_effectiveRate/hour${_isRecurring ? ' (recurring)' : ''}',
+                                    style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
                                   ),
-                              ],
+                                  if (!_isRecurring && _totalAmount > 0)
+                                    Text(
+                                      '${_durationHours.toStringAsFixed(1)}h = \u20AA$_totalAmount total',
+                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                                    ),
+                                  if (_isRecurring && _weeklyEstimate > 0)
+                                    Text(
+                                      '~\u20AA$_weeklyEstimate/week  (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
+                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                                    ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     const SizedBox(height: 24),
 
-                    // ── Date section ──────────────────
+                    // ── RECURRING: Day picker + time ──────────────────
+                    if (_isRecurring) ...[
+                      _FormSection(
+                        icon: Icons.calendar_view_week_rounded,
+                        title: 'Weekly Days',
+                        child: _DayOfWeekPicker(
+                          selectedDays: _selectedDays,
+                          onToggle: (day) {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _selectedDays.contains(day)
+                                  ? _selectedDays.remove(day)
+                                  : _selectedDays.add(day);
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _FormSection(
+                        icon: Icons.schedule_rounded,
+                        title: 'Daily Hours',
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _PremiumDateTimeTile(
+                                icon: Icons.play_circle_outline_rounded,
+                                label: _recurringStartTime != null ? _recurringStartTime!.format(context) : 'Start',
+                                isSelected: _recurringStartTime != null,
+                                onTap: () async {
+                                  final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 8, minute: 0));
+                                  if (t != null) setState(() => _recurringStartTime = t);
+                                },
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Icon(Icons.arrow_forward_rounded, color: AppColors.textHint, size: 20),
+                            ),
+                            Expanded(
+                              child: _PremiumDateTimeTile(
+                                icon: Icons.stop_circle_outlined,
+                                label: _recurringEndTime != null ? _recurringEndTime!.format(context) : 'End',
+                                isSelected: _recurringEndTime != null,
+                                onTap: () async {
+                                  final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 17, minute: 0));
+                                  if (t != null) setState(() => _recurringEndTime = t);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _FormSection(
+                        icon: Icons.date_range_rounded,
+                        title: 'Date Range',
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _PremiumDateTimeTile(
+                                icon: Icons.flag_outlined,
+                                label: _recurringStartDate != null ? DateFormat('MMM d, yyyy').format(_recurringStartDate!) : 'Start date',
+                                isSelected: _recurringStartDate != null,
+                                onTap: () async {
+                                  final d = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now().add(const Duration(days: 1)),
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                                  );
+                                  if (d != null) setState(() => _recurringStartDate = d);
+                                },
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Icon(Icons.arrow_forward_rounded, color: AppColors.textHint, size: 20),
+                            ),
+                            Expanded(
+                              child: _PremiumDateTimeTile(
+                                icon: Icons.flag_rounded,
+                                label: _recurringEndDate != null ? DateFormat('MMM d, yyyy').format(_recurringEndDate!) : 'No end date',
+                                isSelected: _recurringEndDate != null,
+                                onTap: () async {
+                                  final d = await showDatePicker(
+                                    context: context,
+                                    initialDate: _recurringStartDate ?? DateTime.now().add(const Duration(days: 30)),
+                                    firstDate: _recurringStartDate ?? DateTime.now(),
+                                    lastDate: DateTime.now().add(const Duration(days: 730)),
+                                  );
+                                  if (d != null) setState(() => _recurringEndDate = d);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // ── ONE-TIME: Date section ──────────────────
+                    if (!_isRecurring) ...[
                     _FormSection(
                       icon: Icons.calendar_month_rounded,
                       title: 'Date',
@@ -285,6 +548,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    ], // close if (!_isRecurring)
 
                     // ── Children counter ──────────────────
                     _FormSection(
@@ -373,11 +637,11 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
 
                     const SizedBox(height: 24),
                     AppButton(
-                      label: 'Request Booking',
+                      label: _isRecurring ? 'Request Recurring Booking' : 'Request Booking',
                       variant: AppButtonVariant.gradient,
                       onTap: () {
                         setState(() => _currentStep = 2);
-                        _proceed();
+                        _isRecurring ? _proceedRecurring() : _proceed();
                       },
                       isLoading: _isLoading,
                     ),
@@ -554,5 +818,68 @@ class _CounterButton extends StatelessWidget {
           ),
           child: Icon(icon, color: enabled ? Colors.white : AppColors.textHint, size: 22),
         ),
+      );
+}
+
+// ── Day of Week Picker ──────────────────
+class _DayOfWeekPicker extends StatelessWidget {
+  final Set<int> selectedDays;
+  final ValueChanged<int> onToggle;
+  const _DayOfWeekPicker({required this.selectedDays, required this.onToggle});
+
+  static const _dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  static const _dayLabelsHe = ['\u05D0\'', '\u05D1\'', '\u05D2\'', '\u05D3\'', '\u05D4\'', '\u05D5\'', '\u05E9\''];
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: List.generate(7, (i) {
+          final selected = selectedDays.contains(i);
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onToggle(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.accent : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selected ? AppColors.accent : AppColors.border,
+                    width: selected ? 2 : 1,
+                  ),
+                  boxShadow: selected ? [
+                    BoxShadow(
+                      color: AppColors.accent.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ] : null,
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      _dayLabelsHe[i],
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _dayLabels[i],
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w500,
+                        color: selected ? Colors.white70 : AppColors.textHint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
       );
 }

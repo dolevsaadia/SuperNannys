@@ -27,6 +27,10 @@ import '../../features/admin/screens/admin_users_screen.dart';
 import '../../features/admin/screens/admin_bookings_screen.dart';
 import '../../features/admin/screens/admin_verify_nannies_screen.dart';
 import '../../features/map/screens/map_screen.dart';
+import '../../features/auth/screens/otp_verification_screen.dart';
+import '../../features/session/screens/live_session_screen.dart';
+import '../../features/recurring_bookings/screens/recurring_bookings_screen.dart';
+import '../../features/recurring_bookings/screens/recurring_booking_detail_screen.dart';
 
 /// Bridges Riverpod [AuthState] changes into a [Listenable] that GoRouter can
 /// use via [refreshListenable] — this re-evaluates the redirect function
@@ -51,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isLoading) return null;
 
-      final publicRoutes = ['/login', '/register', '/role-select', '/onboarding'];
+      final publicRoutes = ['/login', '/register', '/role-select', '/onboarding', '/verify-otp'];
       final isPublic = publicRoutes.any((r) => loc.startsWith(r));
 
       if (!isAuth && !isPublic) return '/onboarding';
@@ -63,6 +67,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/role-select', builder: (_, __) => const RoleSelectScreen()),
+      GoRoute(
+        path: '/verify-otp',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final email = extra?['email'] as String? ?? '';
+          return OtpVerificationScreen(email: email);
+        },
+      ),
 
       // Main shell with bottom nav
       ShellRoute(
@@ -133,6 +145,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+          GoRoute(
+            path: '/recurring-bookings',
+            builder: (_, __) => const RecurringBookingsScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (_, state) => RecurringBookingDetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
+          ),
           // Nanny-only routes
           GoRoute(
             path: '/dashboard',
@@ -155,6 +177,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(path: '/nanny-onboarding', builder: (_, __) => const NannyOnboardingScreen()),
+
+      // Live session — full screen, no bottom nav
+      GoRoute(
+        path: '/session/:bookingId',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return LiveSessionScreen(
+            bookingId: state.pathParameters['bookingId']!,
+            otherUserName: extra?['otherUserName'] as String? ?? '',
+            otherUserAvatar: extra?['otherUserAvatar'] as String?,
+            isParent: extra?['isParent'] as bool? ?? true,
+          );
+        },
+      ),
     ],
     errorBuilder: (_, state) => Scaffold(
       body: Center(child: Text('Page not found: ${state.error}')),

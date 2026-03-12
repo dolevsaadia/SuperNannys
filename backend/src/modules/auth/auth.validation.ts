@@ -18,6 +18,17 @@ export const googleSignInSchema = z.object({
   role: z.enum(['PARENT', 'NANNY']).optional(),
 })
 
+export const verifyOTPSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6, 'Code must be 6 digits'),
+})
+
+export const resendOTPSchema = z.object({
+  email: z.string().email(),
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type GoogleSignInInput = z.infer<typeof googleSignInSchema>
+export type VerifyOTPInput = z.infer<typeof verifyOTPSchema>
+export type ResendOTPInput = z.infer<typeof resendOTPSchema>
