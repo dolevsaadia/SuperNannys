@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_indicator.dart';
@@ -69,7 +70,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Manage Users')),
+      appBar: AppBar(
+        title: const Text('Manage Users'),
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
       body: Column(
         children: [
           // Search + filter row

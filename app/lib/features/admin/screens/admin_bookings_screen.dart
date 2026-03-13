@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
@@ -41,7 +42,10 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Review Bookings')),
+      appBar: AppBar(
+        title: const Text('Review Bookings'),
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
       body: Column(
         children: [
           // Status filter chips

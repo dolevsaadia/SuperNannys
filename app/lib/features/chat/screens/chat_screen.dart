@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/message_model.dart';
@@ -136,6 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        leading: BackButton(onPressed: () => context.pop()),
         titleSpacing: 0,
         title: Row(
           children: [

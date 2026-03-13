@@ -23,7 +23,10 @@ class RecurringBookingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Recurring Bookings')),
+      appBar: AppBar(
+        title: const Text('Recurring Bookings'),
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
       body: async.when(
         loading: () => const FullScreenLoader(),
         error: (e, _) => Center(child: Text('Error: $e')),
