@@ -72,12 +72,20 @@ class BiometricService {
 
   /// Save token for biometric login
   Future<void> saveToken(String token) async {
-    await _secureStorage.write(key: _kBiometricToken, value: token);
+    try {
+      await _secureStorage.write(key: _kBiometricToken, value: token);
+    } catch (_) {
+      // Keychain may be temporarily locked on iOS after reboot
+    }
   }
 
   /// Get saved token for biometric login
   Future<String?> getSavedToken() async {
-    return await _secureStorage.read(key: _kBiometricToken);
+    try {
+      return await _secureStorage.read(key: _kBiometricToken);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Enable biometric login and store the session token
@@ -91,6 +99,8 @@ class BiometricService {
   Future<void> disable() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kBiometricEnabled, false);
-    await _secureStorage.delete(key: _kBiometricToken);
+    try {
+      await _secureStorage.delete(key: _kBiometricToken);
+    } catch (_) {}
   }
 }

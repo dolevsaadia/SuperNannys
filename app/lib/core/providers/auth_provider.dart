@@ -154,7 +154,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Get the current stored token (for biometric save)
   Future<String?> getStoredToken() async {
-    return await _storage.read(key: AppConstants.tokenKey);
+    try {
+      return await _storage.read(key: AppConstants.tokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> refreshMe() async {
@@ -170,7 +174,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> updateUser(UserModel user) async {
-    await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
+    try {
+      await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
+    } catch (_) {}
     state = state.copyWith(user: user);
   }
 
@@ -181,15 +187,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _saveSession(String token, Map<String, dynamic> userData) async {
     await apiClient.setToken(token);
-    await _storage.write(key: AppConstants.tokenKey, value: token);
+    try {
+      await _storage.write(key: AppConstants.tokenKey, value: token);
+    } catch (_) {}
     final user = UserModel.fromJson(userData);
-    await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
+    try {
+      await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
+    } catch (_) {}
     state = AuthState(user: user);
   }
 
   Future<void> logout() async {
     await apiClient.clearToken();
-    await _storage.delete(key: AppConstants.userKey);
+    try {
+      await _storage.delete(key: AppConstants.userKey);
+    } catch (_) {}
     state = const AuthState();
   }
 

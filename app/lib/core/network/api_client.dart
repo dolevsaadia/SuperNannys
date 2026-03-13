@@ -64,12 +64,21 @@ class ApiClient {
 
   Future<void> setToken(String token) async {
     _cachedToken = token;
-    await _storage.write(key: AppConstants.tokenKey, value: token);
+    try {
+      await _storage.write(key: AppConstants.tokenKey, value: token);
+    } catch (_) {
+      // Keychain may be temporarily locked on iOS — token is still cached
+      // in memory and will be persisted on the next successful write.
+    }
   }
 
   Future<void> clearToken() async {
     _cachedToken = null;
-    await _storage.delete(key: AppConstants.tokenKey);
+    try {
+      await _storage.delete(key: AppConstants.tokenKey);
+    } catch (_) {
+      // Keychain may be temporarily locked — token already cleared from memory.
+    }
   }
 }
 
