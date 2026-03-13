@@ -51,8 +51,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadStoredUser() async {
     try {
-      final token = await _storage.read(key: AppConstants.tokenKey);
-      final userData = await _storage.read(key: AppConstants.userKey);
+      // Timeout protects against iOS keychain hangs (when accessibility
+      // policy changed and old entries deadlock on read).
+      final token = await _storage.read(key: AppConstants.tokenKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+      final userData = await _storage.read(key: AppConstants.userKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
       if (token != null && userData != null) {
         // Sync the in-memory cache in ApiClient so the interceptor has the
         // token immediately without needing another storage read.

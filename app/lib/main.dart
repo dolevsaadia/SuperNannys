@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
@@ -17,11 +19,19 @@ void main() async {
   // Without this, real devices may fall back to the system font.
   GoogleFonts.config.allowRuntimeFetching = false;
 
+  // On iOS, changing KeychainAccessibility can cause old keychain entries to
+  // hang on read (the Future never completes). On the first launch after an
+  // update we wipe the secure storage so fresh entries use the new policy.
+  await _migrateSecureStorageIfNeeded();
+
   // Initialize API client
   apiClient.init();
 
-  // Initialize notifications
-  await NotificationService.instance.init();
+  // Initialize notifications — wrapped in try-catch so a permission dialog
+  // or plugin error doesn't prevent the app from launching.
+  try {
+    await NotificationService.instance.init().timeout(const Duration(seconds: 5));
+  } catch (_) {}
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -35,6 +45,36 @@ void main() async {
   ));
 
   runApp(const ProviderScope(child: SuperNannyApp()));
+}
+
+/// Wipe legacy keychain entries that were written with the default iOS
+/// accessibility (whenUnlocked). Reading those entries with
+/// [KeychainAccessibility.first_unlock] can deadlock forever on iOS,
+/// preventing the app from ever launching again.
+///
+/// This runs once per install/update — detected via a SharedPreferences flag.
+Future<void> _migrateSecureStorageIfNeeded() async {
+  const migrationKey = 'keychain_migrated_v2';
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(migrationKey) == true) return; // already migrated
+
+    // Delete ALL keychain entries (with a timeout so it can't hang either)
+    const storage = FlutterSecureStorage(
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    );
+    await storage.deleteAll().timeout(const Duration(seconds: 3));
+
+    await prefs.setBool(migrationKey, true);
+  } catch (_) {
+    // If anything fails, the app will just show the login screen.
+    // Mark as migrated so we don't retry every launch.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(migrationKey, true);
+    } catch (_) {}
+  }
 }
 
 class SuperNannyApp extends ConsumerWidget {

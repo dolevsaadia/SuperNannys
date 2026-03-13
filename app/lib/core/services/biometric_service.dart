@@ -82,7 +82,8 @@ class BiometricService {
   /// Get saved token for biometric login
   Future<String?> getSavedToken() async {
     try {
-      return await _secureStorage.read(key: _kBiometricToken);
+      return await _secureStorage.read(key: _kBiometricToken)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
     } catch (_) {
       return null;
     }

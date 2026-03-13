@@ -34,7 +34,8 @@ class ApiClient {
           String? token = _cachedToken;
           if (token == null) {
             try {
-              token = await _storage.read(key: AppConstants.tokenKey);
+              token = await _storage.read(key: AppConstants.tokenKey)
+                  .timeout(const Duration(seconds: 3), onTimeout: () => null);
               _cachedToken = token;
             } catch (_) {
               // Secure storage may be temporarily unavailable after app restart.
@@ -57,7 +58,8 @@ class ApiClient {
   Future<String?> getToken() async {
     if (_cachedToken != null) return _cachedToken;
     try {
-      _cachedToken = await _storage.read(key: AppConstants.tokenKey);
+      _cachedToken = await _storage.read(key: AppConstants.tokenKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
     } catch (_) {}
     return _cachedToken;
   }
