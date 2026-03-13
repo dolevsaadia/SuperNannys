@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
@@ -72,6 +73,7 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: const Text('Verify Nannies'),
+        leading: BackButton(onPressed: () => context.pop()),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
