@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,38 +14,53 @@ import 'core/theme/app_theme.dart';
 /// Global navigator key for overlay services (floating bubble etc.)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // Catch ALL errors (sync + async) so no unhandled exception can crash
+  // the iOS isolate and prevent the app from ever relaunching.
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Heebo font is bundled as a variable font (Heebo[wght].ttf) and
-  // registered directly in pubspec.yaml — no GoogleFonts needed.
+    // Catch Flutter framework errors (layout, rendering, etc.)
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details); // logs to console
+    };
 
-  // On iOS, changing KeychainAccessibility can cause old keychain entries to
-  // hang on read (the Future never completes). On the first launch after an
-  // update we wipe the secure storage so fresh entries use the new policy.
-  await _migrateSecureStorageIfNeeded();
+    // Catch platform errors (native plugin crashes surfaced to Dart)
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint('PlatformDispatcher error: $error');
+      return true; // handled — don't crash
+    };
 
-  // Initialize API client
-  apiClient.init();
+    // On iOS, changing KeychainAccessibility can cause old keychain entries to
+    // hang on read (the Future never completes). On the first launch after an
+    // update we wipe the secure storage so fresh entries use the new policy.
+    await _migrateSecureStorageIfNeeded();
 
-  // Initialize notifications — wrapped in try-catch so a permission dialog
-  // or plugin error doesn't prevent the app from launching.
-  try {
-    await NotificationService.instance.init().timeout(const Duration(seconds: 5));
-  } catch (_) {}
+    // Initialize API client
+    apiClient.init();
 
-  // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+    // Initialize notifications — wrapped in try-catch so a permission dialog
+    // or plugin error doesn't prevent the app from launching.
+    try {
+      await NotificationService.instance.init().timeout(const Duration(seconds: 5));
+    } catch (_) {}
 
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-  ));
+    // Set preferred orientations
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
-  runApp(const ProviderScope(child: SuperNannyApp()));
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
+
+    runApp(const ProviderScope(child: SuperNannyApp()));
+  }, (error, stack) {
+    // Last-resort error handler — prevent isolate crash
+    debugPrint('Uncaught error: $error');
+  });
 }
 
 /// Wipe legacy keychain entries that were written with the default iOS
