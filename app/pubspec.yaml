@@ -65,7 +65,8 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   build_runner: ^2.4.9
   flutter_launcher_icons: ^0.13.1
-  flutter_native_splash: ^2.4.0
+  # flutter_native_splash removed — incompatible with Flutter 3.41 UIScene lifecycle.
+  # Splash assets (LaunchScreen.storyboard + LaunchImage) are already generated.
 
 flutter:
   uses-material-design: true
@@ -91,9 +92,4 @@ flutter_launcher_icons:
   web:
     generate: false
 
-flutter_native_splash:
-  color: "#7C3AED"
-  image: assets/brand/splash_logo.png
-  android_12:
-    color: "#7C3AED"
-    image: assets/brand/splash_logo.png
+# flutter_native_splash config removed (plugin no longer in use)
