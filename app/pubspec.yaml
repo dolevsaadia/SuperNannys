@@ -24,7 +24,7 @@ dependencies:
   shared_preferences: ^2.2.3
 
   # UI / Design
-  google_fonts: ^6.2.1
+  # google_fonts removed — Heebo is bundled as variable font in assets/fonts/
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// Named text styles for consistent typography across the app
 class AppTextStyles {
   AppTextStyles._();
 
-  static String get _fontFamily => GoogleFonts.heebo().fontFamily!;
+  // Use the bundled Heebo variable font registered in pubspec.yaml.
+  // Do NOT use GoogleFonts.heebo() — it looks for Heebo-Regular.ttf which
+  // doesn't exist (we have the variable font Heebo[wght].ttf instead).
+  static const String _fontFamily = 'Heebo';
 
   // ── Display ───────────────────────────────────────────
   static TextStyle get displayLarge => TextStyle(

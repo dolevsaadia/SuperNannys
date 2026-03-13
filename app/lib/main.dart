@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
@@ -15,9 +14,8 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Use bundled Heebo font — don't try to download at runtime.
-  // Without this, real devices may fall back to the system font.
-  GoogleFonts.config.allowRuntimeFetching = false;
+  // Heebo font is bundled as a variable font (Heebo[wght].ttf) and
+  // registered directly in pubspec.yaml — no GoogleFonts needed.
 
   // On iOS, changing KeychainAccessibility can cause old keychain entries to
   // hang on read (the Future never completes). On the first launch after an

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static final String _fontFamily = GoogleFonts.heebo().fontFamily!;
+  // Use the bundled Heebo variable font directly (registered in pubspec.yaml).
+  static const String _fontFamily = 'Heebo';
 
   static ThemeData get light => ThemeData(
         useMaterial3: true,
