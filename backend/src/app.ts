@@ -34,6 +34,7 @@ export function createApp() {
   })
 
   // ── Security ───────────────────────────────────────────
+  app.set('trust proxy', 1) // Behind nginx reverse proxy on Lightsail
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
   app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))

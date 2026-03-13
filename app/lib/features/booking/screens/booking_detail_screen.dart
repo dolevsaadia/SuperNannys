@@ -31,7 +31,10 @@ class BookingDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Booking Details')),
+      appBar: AppBar(
+        title: const Text('Booking Details'),
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
       body: async.when(
         loading: () => const LoadingIndicator(),
         error: (e, _) => Center(child: Text('Error: $e')),

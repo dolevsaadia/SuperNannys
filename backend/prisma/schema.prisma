@@ -63,6 +63,7 @@ model User {
   passwordHash String?
   fullName     String
   phone        String?
+  idNumber     String?      @unique  // Israeli ID number
   avatarUrl    String?
   role         Role         @default(PARENT)
   authProvider AuthProvider @default(LOCAL)

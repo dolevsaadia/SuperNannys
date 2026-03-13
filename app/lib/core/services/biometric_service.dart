@@ -8,7 +8,10 @@ class BiometricService {
   BiometricService._();
 
   final _auth = LocalAuthentication();
-  final _secureStorage = const FlutterSecureStorage();
+  static const _secureStorage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   static const _kBiometricEnabled = 'biometric_enabled';
   static const _kBiometricToken = 'biometric_token';
@@ -69,12 +72,21 @@ class BiometricService {
 
   /// Save token for biometric login
   Future<void> saveToken(String token) async {
-    await _secureStorage.write(key: _kBiometricToken, value: token);
+    try {
+      await _secureStorage.write(key: _kBiometricToken, value: token);
+    } catch (_) {
+      // Keychain may be temporarily locked on iOS after reboot
+    }
   }
 
   /// Get saved token for biometric login
   Future<String?> getSavedToken() async {
-    return await _secureStorage.read(key: _kBiometricToken);
+    try {
+      return await _secureStorage.read(key: _kBiometricToken)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Enable biometric login and store the session token
@@ -88,6 +100,8 @@ class BiometricService {
   Future<void> disable() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kBiometricEnabled, false);
-    await _secureStorage.delete(key: _kBiometricToken);
+    try {
+      await _secureStorage.delete(key: _kBiometricToken);
+    } catch (_) {}
   }
 }

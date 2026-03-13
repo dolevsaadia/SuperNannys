@@ -92,7 +92,7 @@ class _AppButtonState extends State<AppButton> with SingleTickerProviderStateMix
             gradient: isGradient
                 ? const LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight)
                 : (widget.variant == AppButtonVariant.primary
-                    ? LinearGradient(colors: [AppColors.primary, AppColors.primary.withOpacity(0.9)])
+                    ? LinearGradient(colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.9)])
                     : null),
             borderRadius: BorderRadius.circular(14),
             border: widget.variant == AppButtonVariant.outline

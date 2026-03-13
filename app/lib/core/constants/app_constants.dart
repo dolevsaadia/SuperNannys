@@ -1,29 +1,14 @@
-import 'dart:io';
-
 class AppConstants {
   AppConstants._();
 
-  static const String _lanHost = '192.168.1.190';
-
-  static String get _host {
-    // Use LAN IP for mobile devices so physical phones can reach the backend.
-    if (Platform.isAndroid || Platform.isIOS) {
-      return _lanHost;
-    }
-
-    // Desktop development on the same machine
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      return 'localhost';
-    }
-
-    return _lanHost;
-  }
-
-  static String get apiBaseUrl => 'http://$_host:8080/api';
-  static String get socketUrl => 'http://$_host:8080';
+  static const String apiBaseUrl = 'https://api.supernanny.net/api';
+  static const String socketUrl = 'https://api.supernanny.net';
 
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
+  // Web client ID (type 3) from google-services.json — required for both iOS & Android
+  static const String googleServerClientId =
+      '768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com';
 
   static const int pageSize = 20;
 

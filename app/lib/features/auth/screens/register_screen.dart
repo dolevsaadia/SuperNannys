@@ -24,6 +24,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _idNumber = TextEditingController();
+  final _phone = TextEditingController();
   String _role = 'PARENT';
 
   @override
@@ -40,7 +42,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _name.dispose();
     _email.dispose();
     _password.dispose();
+    _idNumber.dispose();
+    _phone.dispose();
     super.dispose();
+  }
+
+  /// Validate Israeli ID number (Luhn mod-10 check)
+  bool _isValidIsraeliId(String id) {
+    if (id.length < 5 || id.length > 9) return false;
+    final padded = id.padLeft(9, '0');
+    int sum = 0;
+    for (int i = 0; i < 9; i++) {
+      int digit = int.parse(padded[i]);
+      int val = digit * ((i % 2 == 0) ? 1 : 2);
+      if (val > 9) val -= 9;
+      sum += val;
+    }
+    return sum % 10 == 0;
+  }
+
+  /// Validate email format with regex
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
   }
 
   Future<void> _promptBiometricAndNavigate(String route) async {
@@ -54,7 +77,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     final success = await ref.read(authProvider.notifier).register(
-      _email.text.trim(), _password.text, _name.text.trim(), _role,
+      _email.text.trim(),
+      _password.text,
+      _name.text.trim(),
+      _role,
+      phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+      idNumber: _idNumber.text.trim().isEmpty ? null : _idNumber.text.trim(),
     );
     if (!mounted) return;
     if (success) {
@@ -204,8 +232,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         keyboardType: TextInputType.emailAddress,
                         prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
                         validator: (v) {
-                          if (v?.isEmpty == true) return 'Email is required';
-                          if (!v!.contains('@')) return 'Enter a valid email';
+                          if (v == null || v.trim().isEmpty) return 'Email is required';
+                          if (!_isValidEmail(v.trim())) return 'Enter a valid email address';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        label: 'Phone',
+                        hint: '050-1234567',
+                        controller: _phone,
+                        keyboardType: TextInputType.phone,
+                        prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.textHint),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null; // optional
+                          final cleaned = v.replaceAll(RegExp(r'[\s\-]'), '');
+                          if (cleaned.length < 9 || cleaned.length > 13) return 'Enter a valid phone number';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        label: 'ID Number',
+                        hint: 'Israeli ID number',
+                        controller: _idNumber,
+                        keyboardType: TextInputType.number,
+                        prefixIcon: const Icon(Icons.badge_outlined, size: 20, color: AppColors.textHint),
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'ID number is required';
+                          if (!_isValidIsraeliId(v.trim())) return 'Enter a valid Israeli ID number';
                           return null;
                         },
                       ),
@@ -215,7 +271,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         controller: _password,
                         obscureText: true,
                         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textHint),
-                        validator: (v) => (v?.length ?? 0) < 8 ? 'Password must be at least 8 characters' : null,
+                        validator: (v) {
+                          if (v == null || v.length < 8) return 'Password must be at least 8 characters';
+                          if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'[0-9]').hasMatch(v)) {
+                            return 'Password must contain letters and numbers';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 20),
                       AppButton(label: 'Create Account', onTap: _register, isLoading: isLoading),
@@ -243,6 +305,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
               ],
             ),
           ),

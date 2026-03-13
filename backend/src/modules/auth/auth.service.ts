@@ -37,6 +37,7 @@ export const authService = {
       passwordHash,
       fullName: data.fullName,
       phone: data.phone,
+      idNumber: data.idNumber,
       role: data.role,
     })
 
@@ -99,7 +100,8 @@ export const authService = {
         }
       }
 
-      // New user with role — create account then send OTP
+      // New user with role — create account.
+      // Google already verified the email, so sign in directly (no OTP needed).
       isNewUser = true
       const created = await authDal.createUser({
         email: payload.email,
@@ -114,11 +116,14 @@ export const authService = {
         await authDal.createNannyProfile(created.id)
       }
 
-      await sendOTP(payload.email, created.id)
+      const newToken = signToken({ userId: created.id, email: created.email, role: created.role })
       return {
-        pendingVerification: true,
-        email: payload.email,
+        token: newToken,
         isNewUser: true,
+        user: {
+          id: created.id, email: created.email, fullName: created.fullName,
+          role: created.role, avatarUrl: created.avatarUrl, isVerified: created.isVerified,
+        },
       }
     }
 
@@ -127,12 +132,15 @@ export const authService = {
       user = await authDal.updateGoogleSub(user.id, payload.sub!)
     }
 
-    // Send OTP for existing users
-    await sendOTP(user.email, user.id)
+    // Google already verified the email, so sign in directly (no OTP needed).
+    const existingToken = signToken({ userId: user.id, email: user.email, role: user.role })
     return {
-      pendingVerification: true,
-      email: user.email,
+      token: existingToken,
       isNewUser: false,
+      user: {
+        id: user.id, email: user.email, fullName: user.fullName,
+        role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+      },
     }
   },
 

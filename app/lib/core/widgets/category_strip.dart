@@ -72,7 +72,7 @@ class CategoryStrip extends StatelessWidget {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: AppColors.primary.withOpacity(0.25),
+                                color: AppColors.primary.withValues(alpha:0.25),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -82,7 +82,7 @@ class CategoryStrip extends StatelessWidget {
                     child: Icon(
                       cat.icon,
                       size: 28,
-                      color: isSelected ? Colors.white : AppColors.textPrimary.withOpacity(0.7),
+                      color: isSelected ? Colors.white : AppColors.textPrimary.withValues(alpha:0.7),
                     ),
                   ),
                   const SizedBox(height: 8),

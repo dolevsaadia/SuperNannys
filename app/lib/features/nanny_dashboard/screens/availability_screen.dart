@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -83,6 +84,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: const Text('Manage Availability'),
+        leading: BackButton(onPressed: () => context.pop()),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
@@ -172,7 +174,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                     ),
                     Switch.adaptive(
                       value: _enableRecurring,
-                      activeColor: AppColors.accent,
+                      activeTrackColor: AppColors.accent,
                       onChanged: (v) {
                         HapticFeedback.lightImpact();
                         setState(() => _enableRecurring = v);
@@ -285,7 +287,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                             ),
                             Switch.adaptive(
                               value: isAvailable,
-                              activeColor: AppColors.primary,
+                              activeTrackColor: AppColors.primary,
                               onChanged: (v) {
                                 HapticFeedback.lightImpact();
                                 setState(() => _slots[day]['isAvailable'] = v);

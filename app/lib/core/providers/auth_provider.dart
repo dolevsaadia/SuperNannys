@@ -40,24 +40,36 @@ class GoogleLoginResult {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final FlutterSecureStorage _storage;
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
-  AuthNotifier() : _storage = const FlutterSecureStorage(), super(const AuthState()) {
+  AuthNotifier() : super(const AuthState()) {
     _loadStoredUser();
   }
 
   Future<void> _loadStoredUser() async {
     try {
-      final token = await _storage.read(key: AppConstants.tokenKey);
-      final userData = await _storage.read(key: AppConstants.userKey);
+      // Timeout protects against iOS keychain hangs (when accessibility
+      // policy changed and old entries deadlock on read).
+      final token = await _storage.read(key: AppConstants.tokenKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+      final userData = await _storage.read(key: AppConstants.userKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
       if (token != null && userData != null) {
+        // Sync the in-memory cache in ApiClient so the interceptor has the
+        // token immediately without needing another storage read.
+        await apiClient.setToken(token);
         final user = UserModel.fromJson(jsonDecode(userData) as Map<String, dynamic>);
         state = AuthState(user: user);
         // Verify token is still valid
         await refreshMe();
       }
     } catch (_) {
-      await logout();
+      // Storage read may fail on first launch after reboot (keychain locked).
+      // Silently fall back to logged-out state — user can sign in again.
+      try { await logout(); } catch (_) {}
     }
   }
 
@@ -74,11 +86,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register(String email, String password, String fullName, String role) async {
+  Future<bool> register(String email, String password, String fullName, String role, {String? phone, String? idNumber}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final resp = await apiClient.dio.post('/auth/register', data: {
         'email': email, 'password': password, 'fullName': fullName, 'role': role,
+        if (phone != null) 'phone': phone,
+        if (idNumber != null) 'idNumber': idNumber,
       });
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
@@ -144,7 +158,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Get the current stored token (for biometric save)
   Future<String?> getStoredToken() async {
-    return await _storage.read(key: AppConstants.tokenKey);
+    try {
+      return await _storage.read(key: AppConstants.tokenKey);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> refreshMe() async {
@@ -160,7 +178,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> updateUser(UserModel user) async {
-    await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
+    try {
+      await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
+    } catch (_) {}
     state = state.copyWith(user: user);
   }
 
@@ -171,15 +191,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _saveSession(String token, Map<String, dynamic> userData) async {
     await apiClient.setToken(token);
-    await _storage.write(key: AppConstants.tokenKey, value: token);
+    try {
+      await _storage.write(key: AppConstants.tokenKey, value: token);
+    } catch (_) {}
     final user = UserModel.fromJson(userData);
-    await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
+    try {
+      await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
+    } catch (_) {}
     state = AuthState(user: user);
   }
 
   Future<void> logout() async {
     await apiClient.clearToken();
-    await _storage.delete(key: AppConstants.userKey);
+    try {
+      await _storage.delete(key: AppConstants.userKey);
+    } catch (_) {}
     state = const AuthState();
   }
 

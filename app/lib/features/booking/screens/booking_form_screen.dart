@@ -199,18 +199,27 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
 
       final booking = resp.data['data'] as Map<String, dynamic>;
 
-      await BookingReminderService.instance.scheduleReminders(
-        bookingId: booking['id'] as String,
-        nannyName: _nannyName ?? 'your nanny',
-        startTime: startDt,
-      );
+      // Schedule reminders in a separate try-catch — notification permission
+      // failures must NOT block navigation to the success screen.
+      try {
+        await BookingReminderService.instance.scheduleReminders(
+          bookingId: booking['id'] as String,
+          nannyName: _nannyName ?? 'your nanny',
+          startTime: startDt,
+        );
+      } catch (_) {}
 
       if (mounted) {
         context.go('/home/nanny/${widget.nannyId}/book/success', extra: {'bookingId': booking['id']});
       }
     } catch (e) {
+      if (!mounted) return;
+      String message = 'Booking failed';
+      try {
+        message = (e as dynamic).response?.data?['message'] as String? ?? message;
+      } catch (_) {}
       setState(() {
-        _error = (e as dynamic).response?.data?['message'] as String? ?? 'Booking failed';
+        _error = message;
         _isLoading = false;
       });
     }

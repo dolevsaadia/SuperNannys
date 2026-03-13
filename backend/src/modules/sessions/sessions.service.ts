@@ -31,15 +31,16 @@ export const sessionsService = {
       throw new AppError('Forbidden', 403)
     }
 
-    // Time window check: 15 min before to 30 min after scheduled start
+    // Time window check: 30 min before to 60 min after scheduled start
+    // (widened to accommodate clock skew and user delays)
     const now = new Date()
     const scheduled = new Date(booking.startTime)
-    const windowStart = new Date(scheduled.getTime() - 15 * 60_000)
-    const windowEnd = new Date(scheduled.getTime() + 30 * 60_000)
+    const windowStart = new Date(scheduled.getTime() - 30 * 60_000)
+    const windowEnd = new Date(scheduled.getTime() + 60 * 60_000)
 
     if (now < windowStart || now > windowEnd) {
       throw new AppError(
-        'Session can only be started within 15 minutes before to 30 minutes after the scheduled time',
+        `Session can only be started between ${windowStart.toISOString()} and ${windowEnd.toISOString()} (scheduled: ${scheduled.toISOString()}, now: ${now.toISOString()})`,
         400,
       )
     }
