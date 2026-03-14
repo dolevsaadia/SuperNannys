@@ -28,6 +28,8 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
   bool _enableRecurring = false;
   int _recurringRate = 45;
   int _years = 1;
+  double _minimumHours = 0;
+  bool _allowsBabysittingAtHome = false;
   final List<String> _languages = ['Hebrew'];
   final List<String> _skills = [];
   bool _isLoading = false;
@@ -110,6 +112,8 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
         'languages': _languages,
         'skills': _skills,
         'isAvailable': true,
+        'minimumHoursPerBooking': _minimumHours,
+        'allowsBabysittingAtHome': _allowsBabysittingAtHome,
       });
 
       // 2. Upload documents (if selected)
@@ -193,10 +197,14 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
           enableRecurring: _enableRecurring,
           recurringRate: _recurringRate,
           years: _years,
+          minimumHours: _minimumHours,
+          allowsBabysittingAtHome: _allowsBabysittingAtHome,
           onRateChanged: (r) => setState(() => _rate = r),
           onEnableRecurringChanged: (v) => setState(() => _enableRecurring = v),
           onRecurringRateChanged: (r) => setState(() => _recurringRate = r),
           onYearsChanged: (y) => setState(() => _years = y),
+          onMinimumHoursChanged: (h) => setState(() => _minimumHours = h),
+          onAllowsBabysittingChanged: (v) => setState(() => _allowsBabysittingAtHome = v),
         );
       case 2:
         return _SkillsStep(
@@ -253,20 +261,28 @@ class _RateStep extends StatelessWidget {
   final bool enableRecurring;
   final int recurringRate;
   final int years;
+  final double minimumHours;
+  final bool allowsBabysittingAtHome;
   final ValueChanged<int> onRateChanged;
   final ValueChanged<bool> onEnableRecurringChanged;
   final ValueChanged<int> onRecurringRateChanged;
   final ValueChanged<int> onYearsChanged;
+  final ValueChanged<double> onMinimumHoursChanged;
+  final ValueChanged<bool> onAllowsBabysittingChanged;
 
   const _RateStep({
     required this.rate,
     required this.enableRecurring,
     required this.recurringRate,
     required this.years,
+    required this.minimumHours,
+    required this.allowsBabysittingAtHome,
     required this.onRateChanged,
     required this.onEnableRecurringChanged,
     required this.onRecurringRateChanged,
     required this.onYearsChanged,
+    required this.onMinimumHoursChanged,
+    required this.onAllowsBabysittingChanged,
   });
 
   @override
@@ -420,6 +436,72 @@ class _RateStep extends StatelessWidget {
             value: years.toDouble(), min: 0, max: 20, divisions: 20,
             activeColor: AppColors.primary,
             onChanged: (v) => onYearsChanged(v.toInt()),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Minimum hours per booking
+          const Text('Minimum Hours Per Session', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          const Text('Set 0 for no minimum', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                minimumHours == 0 ? 'No minimum' : '${minimumHours.toStringAsFixed(minimumHours == minimumHours.roundToDouble() ? 0 : 1)} hours',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primary),
+              ),
+            ],
+          ),
+          Slider(
+            value: minimumHours, min: 0, max: 8, divisions: 16,
+            activeColor: AppColors.primary,
+            onChanged: (v) => onMinimumHoursChanged(v),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Allow babysitting at home toggle
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: allowsBabysittingAtHome ? AppColors.success.withValues(alpha: 0.4) : AppColors.border,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.home_rounded,
+                  size: 22,
+                  color: allowsBabysittingAtHome ? AppColors.success : AppColors.textHint,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Babysitting at My Home',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      Text(
+                        'Allow parents to bring kids to your place',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: allowsBabysittingAtHome,
+                  activeTrackColor: AppColors.success,
+                  onChanged: onAllowsBabysittingChanged,
+                ),
+              ],
+            ),
           ),
         ],
       );

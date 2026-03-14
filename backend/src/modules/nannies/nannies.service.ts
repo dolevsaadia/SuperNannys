@@ -1,4 +1,6 @@
 import { AppError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
+import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { nanniesDal } from './nannies.dal'
 import { haversineKm } from './nannies.utils'
 import type { SearchNanniesInput, UpdateNannyProfileInput } from './nannies.validation'
@@ -20,22 +22,20 @@ export const nanniesService = {
     if (city) where.city = { contains: city, mode: 'insensitive' }
     if (minRate || maxRate) {
       const r: Record<string, number> = {}
-      if (minRate) r.gte = parseInt(minRate)
-      if (maxRate) r.lte = parseInt(maxRate)
-      where.hourlyRateNis = r
+      if (minRate) { const v = parseInt(minRate); if (!isNaN(v)) r.gte = v }
+      if (maxRate) { const v = parseInt(maxRate); if (!isNaN(v)) r.lte = v }
+      if (Object.keys(r).length) where.hourlyRateNis = r
     }
-    if (minYears) where.yearsExperience = { gte: parseInt(minYears) }
+    if (minYears) { const v = parseInt(minYears); if (!isNaN(v)) where.yearsExperience = { gte: v } }
     if (language) where.languages = { has: language }
     if (skill) where.skills = { has: skill }
-    if (minRating) where.rating = { gte: parseFloat(minRating) }
+    if (minRating) { const v = parseFloat(minRating); if (!isNaN(v)) where.rating = { gte: v } }
 
     const orderBy = orderByMap[sortBy] || orderByMap['rating']
-    const pageNum = Math.max(1, parseInt(params.page || '1'))
-    const limitNum = Math.min(50, Math.max(1, parseInt(params.limit || '20')))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination({ page: params.page, limit: params.limit })
 
     const [profiles, total] = await Promise.all([
-      nanniesDal.searchProfiles(where, orderBy, skip, limitNum),
+      nanniesDal.searchProfiles(where, orderBy, skip, limit),
       nanniesDal.countProfiles(where),
     ])
 
@@ -52,9 +52,11 @@ export const nanniesService = {
       results = results.filter(r => r.distanceKm !== null && r.distanceKm <= radius)
     }
 
+    logger.debug('Nanny search', { city, filters: Object.keys(where).length, results: results.length })
+
     return {
       nannies: results,
-      pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+      pagination: paginationMeta(total, page, limit),
     }
   },
 
@@ -78,9 +80,20 @@ export const nanniesService = {
 
     if (availability) {
       for (const slot of availability) {
-        await nanniesDal.upsertAvailability(profile.id, slot)
+        try {
+          await nanniesDal.upsertAvailability(profile.id, slot)
+        } catch (err) {
+          logger.error('Failed to upsert availability slot', {
+            userId,
+            profileId: profile.id,
+            dayOfWeek: slot.dayOfWeek,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        }
       }
     }
+
+    logger.info('Nanny profile updated', { userId })
     return profile
   },
 
@@ -100,5 +113,61 @@ export const nanniesService = {
     const profile = await nanniesDal.findByUserId(userId)
     if (!profile) throw new AppError('Profile not found', 404)
     return nanniesDal.deleteDocument(profile.id, docId)
+  },
+
+  // ── Date-specific availability ─────────────────────────────
+  async upsertDateAvailability(userId: string, data: { date: Date; startTime: string; endTime: string; isBlocked?: boolean }) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new AppError('Profile not found', 404)
+    return nanniesDal.upsertDateAvailability(profile.id, data)
+  },
+
+  async deleteDateAvailability(userId: string, slotId: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new AppError('Profile not found', 404)
+    return nanniesDal.deleteDateAvailability(profile.id, slotId)
+  },
+
+  async blockDate(userId: string, date: Date) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new AppError('Profile not found', 404)
+    return nanniesDal.blockDate(profile.id, date)
+  },
+
+  async getAvailabilityCalendar(nannyProfileId: string, month?: string) {
+    const profile = await nanniesDal.findById(nannyProfileId)
+    if (!profile) throw new AppError('Nanny not found', 404)
+
+    // Determine date range for the requested month
+    let startDate: Date
+    let endDate: Date
+    if (month) {
+      const [year, m] = month.split('-').map(Number)
+      startDate = new Date(year, m - 1, 1)
+      endDate = new Date(year, m, 0, 23, 59, 59) // last day of month
+    } else {
+      const now = new Date()
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    }
+
+    // Get date-specific availability slots
+    const dateSlots = await nanniesDal.getDateAvailability(profile.id, startDate, endDate)
+
+    // Get existing bookings for this nanny in the range
+    const bookings = await nanniesDal.getNannyBookingsForRange(profile.userId, startDate, endDate)
+
+    // Get weekly availability pattern
+    const weeklyAvailability = profile.availability || []
+
+    return {
+      nannyProfileId: profile.id,
+      month: month || `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`,
+      weeklyAvailability,
+      dateSlots,
+      bookings,
+      minimumHoursPerBooking: profile.minimumHoursPerBooking,
+      allowsBabysittingAtHome: profile.allowsBabysittingAtHome,
+    }
   },
 }

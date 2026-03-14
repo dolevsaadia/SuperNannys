@@ -8,6 +8,9 @@ import { paymentsService } from '../payments/payments.service'
 
 let ioRef: SocketIOServer | null = null
 
+/** Track bookings that already have a pending end-timeout to avoid duplicates. */
+const pendingEndTimeouts = new Set<string>()
+
 export const sessionsService = {
   setIO(io: SocketIOServer) {
     ioRef = io
@@ -61,6 +64,9 @@ export const sessionsService = {
       updated = await sessionsDal.confirmNannyStart(bookingId)
     }
 
+    const confirmedBy = isParent ? 'parent' : 'nanny'
+    logger.info('Session start confirmed', { bookingId, confirmedBy, userId })
+
     // If this is the first confirmation, start the auto-cancel timeout
     const isFirstConfirmation =
       (isParent && !booking.nannyConfirmedStart) ||
@@ -73,7 +79,7 @@ export const sessionsService = {
     if (ioRef) {
       ioRef.to(`booking:${bookingId}`).emit('session:start-confirmed', {
         bookingId,
-        confirmedBy: isParent ? 'parent' : 'nanny',
+        confirmedBy,
         parentConfirmed: updated.parentConfirmedStart,
         nannyConfirmed: updated.nannyConfirmedStart,
       })
@@ -91,6 +97,12 @@ export const sessionsService = {
 
       // Start the timer
       sessionTimer.start(bookingId, actualStartTime, bookedDurationMin, booking.hourlyRateNis)
+
+      logger.info('Session started — both parties confirmed', {
+        bookingId,
+        actualStartTime: actualStartTime.toISOString(),
+        bookedDurationMin,
+      })
 
       // Emit session started
       if (ioRef) {
@@ -133,11 +145,14 @@ export const sessionsService = {
       updated = await sessionsDal.confirmNannyEnd(bookingId)
     }
 
+    const requestedBy = isParent ? 'parent' : 'nanny'
+    logger.info('Session end requested', { bookingId, requestedBy, userId })
+
     // Emit end request
     if (ioRef) {
       ioRef.to(`booking:${bookingId}`).emit('session:end-requested', {
         bookingId,
-        requestedBy: isParent ? 'parent' : 'nanny',
+        requestedBy,
         parentConfirmed: updated.parentConfirmedEnd,
         nannyConfirmed: updated.nannyConfirmedEnd,
       })
@@ -162,44 +177,52 @@ export const sessionsService = {
 
   // ── Finalize Session ──────────────────────────────────────
   async finalizeSession(bookingId: string) {
+    // Get booking data for minimum hours enforcement
+    const bookingData = await sessionsDal.findBookingById(bookingId)
+    if (!bookingData || !bookingData.actualStartTime) {
+      throw new AppError('Cannot finalize session — no start time found', 500)
+    }
+
+    // Get nanny's minimum hours setting
+    const nannyProfile = bookingData.nanny?.nannyProfile
+    const minimumHours = nannyProfile?.minimumHoursPerBooking || 0
+
     const calcResult = sessionTimer.calculateFinal(bookingId)
 
     let actualDurationMin: number
     let finalAmountNis: number
     let overtimeAmountNis: number
 
+    const now = new Date()
+
     if (calcResult) {
       actualDurationMin = calcResult.actualDurationMin
-      finalAmountNis = calcResult.finalAmountNis
-      overtimeAmountNis = calcResult.overtimeAmountNis
     } else {
       // Fallback: calculate from DB if timer not found (server restart edge case)
-      const booking = await sessionsDal.findBookingByIdSimple(bookingId)
-      if (!booking || !booking.actualStartTime) {
-        throw new AppError('Cannot finalize session — no start time found', 500)
-      }
-      const now = new Date()
-      const elapsedMs = now.getTime() - new Date(booking.actualStartTime).getTime()
+      const elapsedMs = now.getTime() - new Date(bookingData.actualStartTime).getTime()
       actualDurationMin = Math.round(elapsedMs / 60_000)
+    }
 
-      const bookedDurationMin = Math.round(
-        (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60_000,
-      )
-      const baseAmount = booking.totalAmountNis
+    // ── Price = actual time × rate, with minimum hours enforcement ──
+    const actualHours = actualDurationMin / 60
+    const chargeableHours = Math.max(actualHours, minimumHours)
+    finalAmountNis = Math.round(chargeableHours * bookingData.hourlyRateNis)
 
-      if (actualDurationMin <= bookedDurationMin) {
-        finalAmountNis = baseAmount
-        overtimeAmountNis = 0
-      } else {
-        const overtimeMin = actualDurationMin - bookedDurationMin
-        const overtimeBlocks = Math.ceil(overtimeMin / 15)
-        overtimeAmountNis = Math.round((overtimeBlocks * 15 / 60) * booking.hourlyRateNis)
-        finalAmountNis = baseAmount + overtimeAmountNis
-      }
+    // Overtime = anything beyond the originally booked duration
+    const bookedDurationMin = Math.round(
+      (new Date(bookingData.endTime).getTime() - new Date(bookingData.startTime).getTime()) / 60_000,
+    )
+    if (actualDurationMin > bookedDurationMin) {
+      overtimeAmountNis = Math.round(((actualDurationMin - bookedDurationMin) / 60) * bookingData.hourlyRateNis)
+    } else {
+      overtimeAmountNis = 0
     }
 
     // Stop the timer
     sessionTimer.stop(bookingId)
+
+    // Clean up pending end-timeout tracking
+    pendingEndTimeouts.delete(bookingId)
 
     // Update booking
     const completed = await sessionsDal.completeSession(bookingId, {
@@ -235,11 +258,18 @@ export const sessionsService = {
       })
     }
 
-    logger.info(`Session completed: ${bookingId} | ${actualDurationMin}min | ₪${finalAmountNis}`)
+    logger.info('Session completed', {
+      bookingId,
+      actualDurationMin,
+      finalAmountNis,
+      overtimeAmountNis,
+      platformFee,
+      netAmountNis,
+    })
 
     // Charge the parent asynchronously (don't block response)
     paymentsService.chargeAfterSession(bookingId, finalAmountNis).catch(err => {
-      logger.error(`Failed to charge after session: ${bookingId}`, { err })
+      logger.warn('Payment charge failed after session, will need manual follow-up', { bookingId, err })
     })
 
     return {
@@ -341,6 +371,8 @@ export const sessionsService = {
 
   // ── Auto-timeout for unconfirmed start (15 min) ──────────
   scheduleStartTimeout(bookingId: string) {
+    logger.info('Scheduling start timeout (15 min)', { bookingId })
+
     setTimeout(async () => {
       try {
         const booking = await sessionsDal.findBookingByIdSimple(bookingId)
@@ -354,7 +386,7 @@ export const sessionsService = {
               reason: 'start_not_confirmed',
             })
           }
-          logger.info(`Session start timeout — booking cancelled: ${bookingId}`)
+          logger.info('Session start timeout fired — booking cancelled', { bookingId })
         }
       } catch (err) {
         logger.error('Start timeout error', { bookingId, err })
@@ -364,7 +396,17 @@ export const sessionsService = {
 
   // ── Auto-timeout for unconfirmed end (10 min) ────────────
   scheduleEndTimeout(bookingId: string) {
+    // Guard: avoid scheduling multiple timeouts for the same booking
+    if (pendingEndTimeouts.has(bookingId)) {
+      logger.debug('End timeout already scheduled, skipping', { bookingId })
+      return
+    }
+
+    pendingEndTimeouts.add(bookingId)
+    logger.info('Scheduling end timeout (10 min)', { bookingId })
+
     setTimeout(async () => {
+      pendingEndTimeouts.delete(bookingId)
       try {
         const booking = await sessionsDal.findBookingByIdSimple(bookingId)
         if (!booking) return
@@ -375,7 +417,7 @@ export const sessionsService = {
           !(booking.parentConfirmedEnd && booking.nannyConfirmedEnd)
         ) {
           await this.finalizeSession(bookingId)
-          logger.info(`Session end timeout — auto-finalized: ${bookingId}`)
+          logger.info('Session end timeout fired — auto-finalized', { bookingId })
         }
       } catch (err) {
         logger.error('End timeout error', { bookingId, err })

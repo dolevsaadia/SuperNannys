@@ -10,9 +10,38 @@ interface ActiveTimer {
   hourlyRateNis: number
 }
 
+interface AmountCalc {
+  currentAmountNis: number
+  isOvertime: boolean
+}
+
 const timers = new Map<string, ActiveTimer>()
 
 let ioRef: SocketIOServer | null = null
+
+/**
+ * Shared overtime calculation logic.
+ * Within booked time → charge the flat booked amount.
+ * Overtime → base + extra time rounded up to 15-min blocks.
+ */
+function calculateAmounts(
+  elapsedMin: number,
+  bookedDurationMin: number,
+  hourlyRateNis: number,
+): AmountCalc {
+  const isOvertime = elapsedMin > bookedDurationMin
+  const baseAmount = Math.round((bookedDurationMin / 60) * hourlyRateNis)
+
+  if (!isOvertime) {
+    return { currentAmountNis: baseAmount, isOvertime }
+  }
+
+  const overtimeMin = elapsedMin - bookedDurationMin
+  const overtimeBlocks = Math.ceil(overtimeMin / 15)
+  const overtimeAmount = Math.round((overtimeBlocks * 15 / 60) * hourlyRateNis)
+
+  return { currentAmountNis: baseAmount + overtimeAmount, isOvertime }
+}
 
 export const sessionTimer = {
   /** Set IO reference for emitting events */
@@ -37,7 +66,7 @@ export const sessionTimer = {
       hourlyRateNis,
     })
 
-    logger.info(`Session timer started: ${bookingId}`)
+    logger.info('Session timer started', { bookingId, bookedDurationMin, hourlyRateNis })
 
     // Emit first tick immediately
     this.tick(bookingId)
@@ -49,7 +78,7 @@ export const sessionTimer = {
     if (timer) {
       clearInterval(timer.interval)
       timers.delete(bookingId)
-      logger.info(`Session timer stopped: ${bookingId}`)
+      logger.info('Session timer stopped', { bookingId })
     }
   },
 
@@ -62,20 +91,15 @@ export const sessionTimer = {
     const elapsedMs = now.getTime() - timer.startTime.getTime()
     const elapsedSeconds = Math.floor(elapsedMs / 1000)
     const elapsedMin = elapsedMs / 60_000
-    const isOvertime = elapsedMin > timer.bookedDurationMin
 
-    let currentAmountNis: number
-    if (!isOvertime) {
-      // Within booked time — charge original amount
-      currentAmountNis = Math.round((timer.bookedDurationMin / 60) * timer.hourlyRateNis)
-    } else {
-      // Overtime — base + extra time at hourly rate
-      const baseAmount = Math.round((timer.bookedDurationMin / 60) * timer.hourlyRateNis)
-      const overtimeMin = elapsedMin - timer.bookedDurationMin
-      // Round overtime to nearest 15 min block
-      const overtimeBlocks = Math.ceil(overtimeMin / 15)
-      const overtimeAmount = Math.round((overtimeBlocks * 15 / 60) * timer.hourlyRateNis)
-      currentAmountNis = baseAmount + overtimeAmount
+    const { currentAmountNis, isOvertime } = calculateAmounts(
+      elapsedMin,
+      timer.bookedDurationMin,
+      timer.hourlyRateNis,
+    )
+
+    if (isOvertime) {
+      logger.debug('Session timer tick — overtime', { bookingId, elapsedMin: Math.round(elapsedMin), currentAmountNis })
     }
 
     ioRef.to(`booking:${bookingId}`).emit('session:tick', {
@@ -99,24 +123,25 @@ export const sessionTimer = {
     const now = new Date()
     const elapsedMs = now.getTime() - timer.startTime.getTime()
     const actualDurationMin = Math.round(elapsedMs / 60_000)
+
     const baseAmount = Math.round((timer.bookedDurationMin / 60) * timer.hourlyRateNis)
+    const { currentAmountNis, isOvertime } = calculateAmounts(
+      actualDurationMin,
+      timer.bookedDurationMin,
+      timer.hourlyRateNis,
+    )
 
-    let finalAmountNis: number
-    let overtimeAmountNis: number
+    const overtimeAmountNis = isOvertime ? currentAmountNis - baseAmount : 0
 
-    if (actualDurationMin <= timer.bookedDurationMin) {
-      // Finished early or on time — charge original booked price
-      finalAmountNis = baseAmount
-      overtimeAmountNis = 0
-    } else {
-      // Overtime — charge extra (rounded up to 15 min blocks)
-      const overtimeMin = actualDurationMin - timer.bookedDurationMin
-      const overtimeBlocks = Math.ceil(overtimeMin / 15)
-      overtimeAmountNis = Math.round((overtimeBlocks * 15 / 60) * timer.hourlyRateNis)
-      finalAmountNis = baseAmount + overtimeAmountNis
-    }
+    logger.info('Session timer final calculation', {
+      bookingId,
+      actualDurationMin,
+      finalAmountNis: currentAmountNis,
+      overtimeAmountNis,
+      isOvertime,
+    })
 
-    return { actualDurationMin, finalAmountNis, overtimeAmountNis }
+    return { actualDurationMin, finalAmountNis: currentAmountNis, overtimeAmountNis }
   },
 
   /** Get current state of a timer (for reconnect/sync) */
@@ -128,18 +153,12 @@ export const sessionTimer = {
     const elapsedMs = now.getTime() - timer.startTime.getTime()
     const elapsedSeconds = Math.floor(elapsedMs / 1000)
     const elapsedMin = elapsedMs / 60_000
-    const isOvertime = elapsedMin > timer.bookedDurationMin
 
-    let currentAmountNis: number
-    if (!isOvertime) {
-      currentAmountNis = Math.round((timer.bookedDurationMin / 60) * timer.hourlyRateNis)
-    } else {
-      const baseAmount = Math.round((timer.bookedDurationMin / 60) * timer.hourlyRateNis)
-      const overtimeMin = elapsedMin - timer.bookedDurationMin
-      const overtimeBlocks = Math.ceil(overtimeMin / 15)
-      const overtimeAmount = Math.round((overtimeBlocks * 15 / 60) * timer.hourlyRateNis)
-      currentAmountNis = baseAmount + overtimeAmount
-    }
+    const { currentAmountNis, isOvertime } = calculateAmounts(
+      elapsedMin,
+      timer.bookedDurationMin,
+      timer.hourlyRateNis,
+    )
 
     return {
       bookingId,

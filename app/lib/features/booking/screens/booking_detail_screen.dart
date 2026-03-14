@@ -14,6 +14,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/services/booking_reminder_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'booking_map_screen.dart';
 
 final _bookingDetailProvider = FutureProvider.autoDispose.family<BookingModel, String>((ref, id) async {
@@ -226,6 +227,58 @@ class _BookingDetailBody extends ConsumerWidget {
               ],
             ),
           ),
+
+          // ── Contact section (after mutual approval) ──────────────────
+          if ((booking.isAccepted || booking.isInProgress || booking.isCompleted)) ...[
+            const SizedBox(height: 12),
+            () {
+              final otherPhone = isParent ? booking.nanny?.phone : booking.parent?.phone;
+              final otherName = isParent ? booking.nanny?.fullName ?? 'Nanny' : booking.parent?.fullName ?? 'Parent';
+              if (otherPhone != null && otherPhone.isNotEmpty) {
+                return GestureDetector(
+                  onTap: () async {
+                    final uri = Uri.parse('tel:$otherPhone');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.phone_rounded, color: AppColors.success, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Call $otherName', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.success)),
+                              Text(otherPhone, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.success, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }(),
+          ],
 
           // ── Mini Map ──────────────────
           if (booking.nanny?.latitude != null && booking.nanny?.longitude != null) ...[

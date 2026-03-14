@@ -1,4 +1,5 @@
 import { AppError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
 import { reviewsDal } from './reviews.dal'
 import type { CreateReviewInput } from './reviews.validation'
 
@@ -19,6 +20,8 @@ export const reviewsService = {
       rating: data.rating,
       comment: data.comment,
     })
+
+    logger.info('Review created', { bookingId: data.bookingId, reviewerUserId, rating: data.rating })
 
     // Recalculate aggregate rating
     const stats = await reviewsDal.aggregateRatings(booking.nannyUserId)

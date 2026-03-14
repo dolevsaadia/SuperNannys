@@ -29,6 +29,13 @@ export const updateNannyProfileSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   isAvailable: z.boolean().optional(),
+  // New fields
+  minimumHoursPerBooking: z.number().min(0).max(8).optional(),
+  allowsBabysittingAtHome: z.boolean().optional(),
+  streetName: z.string().optional(),
+  houseNumber: z.string().optional(),
+  postalCode: z.string().optional(),
+  apartmentFloor: z.string().optional(),
   availability: z.array(z.object({
     dayOfWeek: z.number().min(0).max(6),
     fromTime: z.string(),

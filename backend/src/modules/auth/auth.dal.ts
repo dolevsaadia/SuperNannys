@@ -9,6 +9,14 @@ const userPublicSelect = {
   avatarUrl: true,
   isVerified: true,
   phone: true,
+  phoneVerified: true,
+  city: true,
+  streetName: true,
+  houseNumber: true,
+  postalCode: true,
+  apartmentFloor: true,
+  latitude: true,
+  longitude: true,
 } satisfies Prisma.UserSelect
 
 export const authDal = {
@@ -41,12 +49,18 @@ export const authDal = {
     return prisma.user.findUnique({
       where: { id: userId },
       select: {
-        id: true, email: true, fullName: true, phone: true, role: true,
+        id: true, email: true, fullName: true, phone: true, phoneVerified: true, role: true,
         avatarUrl: true, isVerified: true, createdAt: true,
+        city: true, streetName: true, houseNumber: true, postalCode: true, apartmentFloor: true,
+        latitude: true, longitude: true, isOnline: true, lastSeenAt: true,
         nannyProfile: {
           select: {
-            id: true, headline: true, hourlyRateNis: true, rating: true, reviewsCount: true,
-            isVerified: true, isAvailable: true, city: true, badges: true, completedJobs: true, totalEarnings: true,
+            id: true, headline: true, hourlyRateNis: true, recurringHourlyRateNis: true,
+            rating: true, reviewsCount: true,
+            isVerified: true, isAvailable: true, city: true, badges: true,
+            completedJobs: true, totalEarnings: true,
+            minimumHoursPerBooking: true, allowsBabysittingAtHome: true,
+            streetName: true, houseNumber: true, postalCode: true, apartmentFloor: true,
           },
         },
       },

@@ -19,8 +19,16 @@ export const logger = winston.createLogger({
     ...(isDev
       ? []
       : [
-          new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-          new winston.transports.File({ filename: 'logs/combined.log' }),
+          new winston.transports.File({ filename: 'logs/error.log', level: 'error', maxsize: 10_000_000, maxFiles: 5 }),
+          new winston.transports.File({ filename: 'logs/combined.log', maxsize: 10_000_000, maxFiles: 5 }),
         ]),
   ],
 })
+
+/**
+ * Create a child logger with context fields that appear in every log entry.
+ * Usage: const log = childLogger({ module: 'sessions', bookingId })
+ */
+export function childLogger(meta: Record<string, unknown>) {
+  return logger.child(meta)
+}

@@ -1,10 +1,16 @@
 import type { BookingStatus } from '@prisma/client'
 import { AppError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
+import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { bookingsDal } from './bookings.dal'
 import type { CreateBookingInput } from './bookings.validation'
 
 export const bookingsService = {
   async create(parentUserId: string, data: CreateBookingInput) {
+    if (parentUserId === data.nannyUserId) {
+      throw new AppError('Cannot book yourself', 400)
+    }
+
     const start = new Date(data.startTime)
     const end = new Date(data.endTime)
     if (end <= start) throw new AppError('End time must be after start time')
@@ -12,8 +18,18 @@ export const bookingsService = {
     const nannyProfile = await bookingsDal.findNannyProfile(data.nannyUserId)
     if (!nannyProfile) throw new AppError('Nanny not found', 404)
 
+    // ── Conflict detection: existing bookings ─────────────
     const conflict = await bookingsDal.findConflict(data.nannyUserId, start, end)
     if (conflict) throw new AppError('Nanny is not available for this time slot', 409)
+
+    // ── Conflict detection: date-specific blocked slots ───
+    const dateBlock = await bookingsDal.findDateBlock(
+      nannyProfile.id,
+      start, // date
+      `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`,
+      `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`,
+    )
+    if (dateBlock) throw new AppError('Nanny has blocked this date/time in her calendar', 409)
 
     const durationHours = (end.getTime() - start.getTime()) / 3_600_000
 
@@ -22,21 +38,54 @@ export const bookingsService = {
     const rate = isRecurring && nannyProfile.recurringHourlyRateNis
       ? nannyProfile.recurringHourlyRateNis
       : nannyProfile.hourlyRateNis
-    const totalAmountNis = Math.round(durationHours * rate)
 
-    return bookingsDal.create({
+    if (!rate || rate <= 0) {
+      throw new AppError('Nanny has no rate configured', 400)
+    }
+
+    // Estimated price based on booked hours (actual price determined by timer)
+    const estimatedPriceNis = Math.round(durationHours * rate)
+
+    // If nanny has minimum hours, ensure estimate reflects at least the minimum
+    const minHours = nannyProfile.minimumHoursPerBooking || 0
+    const chargeableHours = Math.max(durationHours, minHours)
+    const totalAmountNis = Math.round(chargeableHours * rate)
+
+    // Build structured address data
+    const addressData: Record<string, any> = {}
+    if (data.address) addressData.address = data.address
+    if ((data as any).bookingCity) addressData.bookingCity = (data as any).bookingCity
+    if ((data as any).bookingStreet) addressData.bookingStreet = (data as any).bookingStreet
+    if ((data as any).bookingHouseNum) addressData.bookingHouseNum = (data as any).bookingHouseNum
+    if ((data as any).bookingPostalCode) addressData.bookingPostalCode = (data as any).bookingPostalCode
+    if ((data as any).bookingLat) addressData.bookingLat = (data as any).bookingLat
+    if ((data as any).bookingLng) addressData.bookingLng = (data as any).bookingLng
+    if ((data as any).locationType) addressData.locationType = (data as any).locationType
+
+    const booking = await bookingsDal.create({
       parentUserId,
       nannyUserId: data.nannyUserId,
       startTime: start,
       endTime: end,
       hourlyRateNis: rate,
       totalAmountNis,
+      estimatedPriceNis,
       notes: data.notes,
       childrenCount: data.childrenCount,
       childrenAges: data.childrenAges,
-      address: data.address,
       isRecurring,
+      ...addressData,
     })
+
+    logger.info('Booking created', {
+      bookingId: booking.id,
+      parentUserId,
+      nannyUserId: data.nannyUserId,
+      startTime: start.toISOString(),
+      totalAmountNis,
+    })
+
+    return booking
   },
 
   async list(userId: string, role: string, filters: { status?: string; page?: string; limit?: string }) {
@@ -46,16 +95,14 @@ export const bookingsService = {
 
     if (filters.status) where.status = filters.status
 
-    const pageNum = Math.max(1, parseInt(filters.page || '1'))
-    const limitNum = Math.min(50, parseInt(filters.limit || '20'))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination(filters)
 
     const [bookings, total] = await Promise.all([
-      bookingsDal.findMany(where, skip, limitNum),
+      bookingsDal.findMany(where, skip, limit),
       bookingsDal.count(where),
     ])
 
-    return { bookings, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } }
+    return { bookings, pagination: paginationMeta(total, page, limit) }
   },
 
   async getById(userId: string, role: string, bookingId: string) {
@@ -89,6 +136,9 @@ export const bookingsService = {
     }
 
     const updated = await bookingsDal.updateStatus(bookingId, status)
+
+    logger.info('Booking status updated', { bookingId, status, userId })
+
     return updated
   },
 }

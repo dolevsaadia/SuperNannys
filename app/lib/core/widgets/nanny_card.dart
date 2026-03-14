@@ -180,34 +180,47 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                                   style: const TextStyle(fontSize: 12, color: AppColors.textHint),
                                 ),
                               ],
-                              const SizedBox(width: 6),
-                              GestureDetector(
-                                onTap: () async {
-                                  String url;
-                                  if (nanny.latitude != null && nanny.longitude != null) {
-                                    url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
-                                  } else if (nanny.address.isNotEmpty) {
-                                    url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
-                                  } else {
-                                    url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
-                                  }
-                                  final uri = Uri.parse(url);
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Icon(Icons.navigation_rounded, size: 12, color: AppColors.primary),
-                                ),
-                              ),
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                    // ── Navigate button ──────────────────
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: GestureDetector(
+                        onTap: () async {
+                          String url;
+                          if (nanny.latitude != null && nanny.longitude != null) {
+                            url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
+                          } else if (nanny.address.isNotEmpty) {
+                            url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
+                          } else {
+                            url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
+                          }
+                          final uri = Uri.parse(url);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFF4285F4).withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2)),
+                            ],
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.navigation_rounded, size: 20, color: Colors.white),
+                              SizedBox(height: 2),
+                              Text('Navigate', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.white)),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],

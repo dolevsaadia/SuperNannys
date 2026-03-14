@@ -10,11 +10,17 @@ const bookingListInclude = {
 } as const
 
 const bookingDetailInclude = {
-  parent: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+  parent: { select: { id: true, fullName: true, avatarUrl: true, phone: true, city: true, streetName: true, houseNumber: true, postalCode: true, latitude: true, longitude: true } },
   nanny: {
     select: {
       id: true, fullName: true, avatarUrl: true, phone: true,
-      nannyProfile: { select: { hourlyRateNis: true, recurringHourlyRateNis: true, city: true, rating: true, badges: true, latitude: true, longitude: true } },
+      nannyProfile: {
+        select: {
+          hourlyRateNis: true, recurringHourlyRateNis: true, city: true, rating: true, badges: true,
+          latitude: true, longitude: true, minimumHoursPerBooking: true, allowsBabysittingAtHome: true,
+          streetName: true, houseNumber: true, postalCode: true,
+        },
+      },
     },
   },
   review: true,
@@ -27,6 +33,9 @@ export const bookingsDal = {
     return prisma.nannyProfile.findUnique({ where: { userId: nannyUserId } })
   },
 
+  // INDEX HINT: This query benefits from a composite index on
+  // Booking(nannyUserId, status, startTime, endTime) to avoid full scans
+  // when checking for scheduling conflicts.
   findConflict(nannyUserId: string, start: Date, end: Date) {
     return prisma.booking.findFirst({
       where: {
@@ -45,6 +54,7 @@ export const bookingsDal = {
     endTime: Date
     hourlyRateNis: number
     totalAmountNis: number
+    estimatedPriceNis?: number
     notes?: string
     childrenCount: number
     childrenAges?: string[]
@@ -53,12 +63,34 @@ export const bookingsDal = {
     recurringBookingId?: string
     occurrenceDate?: Date
     status?: BookingStatus
+    // Structured address
+    bookingCity?: string
+    bookingStreet?: string
+    bookingHouseNum?: string
+    bookingPostalCode?: string
+    bookingLat?: number
+    bookingLng?: number
+    locationType?: string
   }) {
     return prisma.booking.create({
       data,
       include: {
         parent: { select: { fullName: true, avatarUrl: true, phone: true } },
         nanny: { select: { fullName: true, avatarUrl: true, phone: true } },
+      },
+    })
+  },
+
+  // Check date availability blocks for conflict
+  findDateBlock(nannyProfileId: string, date: Date, startTime: string, endTime: string) {
+    return prisma.nannyDateAvailability.findFirst({
+      where: {
+        nannyProfileId,
+        date: {
+          gte: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+          lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
+        },
+        isBlocked: true,
       },
     })
   },

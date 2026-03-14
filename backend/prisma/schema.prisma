@@ -73,6 +73,22 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  // ── Structured address ─────────────────────────────────
+  city            String  @default("")
+  streetName      String  @default("")
+  houseNumber     String  @default("")
+  postalCode      String  @default("")
+  apartmentFloor  String?
+  latitude        Float?
+  longitude       Float?
+
+  // ── Phone verification ─────────────────────────────────
+  phoneVerified   Boolean @default(false)
+
+  // ── Online presence ────────────────────────────────────
+  isOnline        Boolean  @default(false)
+  lastSeenAt      DateTime?
+
   nannyProfile    NannyProfile?
   parentBookings          Booking[]           @relation("ParentBookings")
   nannyBookings           Booking[]           @relation("NannyBookings")
@@ -87,6 +103,7 @@ model User {
   notifications           Notification[]
   favorites               Favorite[]     @relation("UserFavorites")
   favoritedBy             Favorite[]     @relation("FavoritedByUsers")
+  verificationRequests    VerificationRequest[]
 
   @@map("users")
 }
@@ -117,8 +134,17 @@ model NannyProfile {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  availability Availability[]
-  documents    Document[]
+  // ── New fields ─────────────────────────────────────────
+  minimumHoursPerBooking  Float   @default(0)     // Item 6
+  allowsBabysittingAtHome Boolean @default(false)  // Item 14
+  streetName              String  @default("")     // Item 7
+  houseNumber             String  @default("")
+  postalCode              String  @default("")
+  apartmentFloor          String?
+
+  availability     Availability[]
+  dateAvailability NannyDateAvailability[]
+  documents        Document[]
 
   @@map("nanny_profiles")
 }
@@ -154,6 +180,16 @@ model Booking {
   childrenCount   Int           @default(1)
   childrenAges    String[]      @default([])
   address         String?
+
+  // ── Location type ──────────────────────────────────────
+  locationType      String  @default("parent_home") // "parent_home" | "nanny_home"
+  bookingCity       String?
+  bookingStreet     String?
+  bookingHouseNum   String?
+  bookingPostalCode String?
+  bookingLat        Float?
+  bookingLng        Float?
+  estimatedPriceNis Int?
 
   // ── Recurring link ────────────────────────────────────
   recurringBookingId String?
@@ -335,4 +371,36 @@ model Favorite {
 
   @@unique([userId, nannyUserId])
   @@map("favorites")
+}
+
+// ── Date-specific availability (Item 2) ─────────────────
+model NannyDateAvailability {
+  id             String       @id @default(cuid())
+  nannyProfileId String
+  nannyProfile   NannyProfile @relation(fields: [nannyProfileId], references: [id], onDelete: Cascade)
+  date           DateTime     @db.Date  // specific date
+  startTime      String       // "09:00"
+  endTime        String       // "17:00"
+  isBlocked      Boolean      @default(false) // true = manually blocked
+  createdAt      DateTime     @default(now())
+
+  @@unique([nannyProfileId, date, startTime])
+  @@map("nanny_date_availability")
+}
+
+// ── Verification requests (Item 13) ─────────────────────
+model VerificationRequest {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status            String   @default("pending") // pending, approved, rejected, needs_info
+  idCardUrl         String?
+  idAppendixUrl     String?
+  policeClearanceUrl String?
+  adminNotes        String?
+  submittedAt       DateTime @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        String?
+
+  @@map("verification_requests")
 }

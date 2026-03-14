@@ -2,13 +2,13 @@ import express from 'express'
 import http from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
-import morgan from 'morgan'
 import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 import { Server as SocketIOServer } from 'socket.io'
 
 import { config } from './config'
 import { logger } from './shared/utils/logger'
+import { requestContext } from './shared/middlewares/request-context'
 import { errorHandler, notFoundMiddleware } from './shared/middlewares/error.middleware'
 import { initSocketIO } from './socket'
 
@@ -24,6 +24,7 @@ import adminRoutes   from './modules/admin/admin.routes'
 import sessionRoutes   from './modules/sessions/sessions.routes'
 import recurringRoutes from './modules/recurring-bookings/recurring-bookings.routes'
 import favoritesRoutes from './modules/favorites/favorites.routes'
+import verificationRoutes from './modules/verification/verification.routes'
 
 export function createApp() {
   const app = express()
@@ -35,16 +36,18 @@ export function createApp() {
   })
 
   // ── Security ───────────────────────────────────────────
-  app.set('trust proxy', 1) // Behind nginx reverse proxy on Lightsail
+  app.set('trust proxy', 1)
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
   app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))
 
   // ── Middleware ─────────────────────────────────────────
   app.use(compression())
-  app.use(morgan('dev'))
 
-  // Stripe needs raw body
+  // Request correlation IDs and structured request logging
+  app.use(requestContext)
+
+  // Stripe needs raw body — must come before JSON parser
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }))
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true }))
@@ -54,7 +57,7 @@ export function createApp() {
 
   // ── Health ─────────────────────────────────────────────
   app.get('/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.2.0', payments: config.payments.enabled, ts: new Date().toISOString() })
+    res.json({ status: 'ok', version: '1.5.1', payments: config.payments.enabled, ts: new Date().toISOString() })
   )
 
   // ── API Routes ─────────────────────────────────────────
@@ -69,6 +72,7 @@ export function createApp() {
   app.use('/api/sessions', sessionRoutes)
   app.use('/api/recurring-bookings', recurringRoutes)
   app.use('/api/favorites', favoritesRoutes)
+  app.use('/api/verification-requests', verificationRoutes)
 
   // ── Socket.IO ──────────────────────────────────────────
   initSocketIO(io)
@@ -77,7 +81,7 @@ export function createApp() {
   app.use(notFoundMiddleware)
   app.use(errorHandler)
 
-  logger.info(`💳 Payments: ${config.payments.enabled ? 'ENABLED (Stripe)' : 'DISABLED (set ENABLE_PAYMENTS=true)'}`)
+  logger.info(`Payments: ${config.payments.enabled ? 'ENABLED (Stripe)' : 'DISABLED (set ENABLE_PAYMENTS=true)'}`)
 
   return { app, httpServer, io }
 }

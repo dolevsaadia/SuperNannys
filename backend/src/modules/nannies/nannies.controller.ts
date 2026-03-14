@@ -51,4 +51,41 @@ export const nanniesController = {
     await nanniesService.deleteDocument(req.user!.userId, req.params.docId)
     ok(res, { deleted: true })
   },
+
+  // ── Date availability management ─────────────────────────
+  async upsertDateAvailability(req: Request, res: Response): Promise<void> {
+    const { date, startTime, endTime, isBlocked } = req.body
+    if (!date || !startTime || !endTime) {
+      res.status(400).json({ message: 'date, startTime, and endTime are required' })
+      return
+    }
+    const result = await nanniesService.upsertDateAvailability(req.user!.userId, {
+      date: new Date(date),
+      startTime,
+      endTime,
+      isBlocked: isBlocked ?? false,
+    })
+    ok(res, result)
+  },
+
+  async deleteDateAvailability(req: Request, res: Response): Promise<void> {
+    await nanniesService.deleteDateAvailability(req.user!.userId, req.params.slotId)
+    ok(res, { deleted: true })
+  },
+
+  async blockDate(req: Request, res: Response): Promise<void> {
+    const { date } = req.body
+    if (!date) {
+      res.status(400).json({ message: 'date is required' })
+      return
+    }
+    const result = await nanniesService.blockDate(req.user!.userId, new Date(date))
+    ok(res, result)
+  },
+
+  async getAvailabilityCalendar(req: Request, res: Response): Promise<void> {
+    const { month } = req.query // format: "2026-03"
+    const result = await nanniesService.getAvailabilityCalendar(req.params.id, month as string)
+    ok(res, result)
+  },
 }

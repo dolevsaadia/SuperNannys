@@ -12,16 +12,17 @@ function getResend(): Resend | null {
 }
 
 export const emailService = {
+  /**
+   * Send a 6-digit verification code to the given email.
+   * Always logs the code to console for dev convenience.
+   * Throws on failure so the caller knows the email was not sent.
+   */
   async sendVerificationCode(email: string, code: string): Promise<void> {
-    // Always log to console for debugging
-    logger.info(`\n===== VERIFICATION CODE =====`)
-    logger.info(`📧 Email: ${email}`)
-    logger.info(`🔑 Code:  ${code}`)
-    logger.info(`=============================\n`)
+    logger.info('Verification code generated', { email, code })
 
     const resend = getResend()
     if (!resend) {
-      logger.warn('⚠️  RESEND_API_KEY not set — code only logged to console')
+      logger.warn('RESEND_API_KEY not set — code only logged to console', { email })
       return
     }
 
@@ -44,9 +45,11 @@ export const emailService = {
           </div>
         `,
       })
-      logger.info(`✅ Verification email sent to ${email}`)
-    } catch (err) {
-      logger.error(`❌ Failed to send email to ${email}:`, err)
+      logger.info('Verification email sent', { email })
+    } catch (err: any) {
+      logger.error('Failed to send verification email', { email, error: err.message })
+      // Re-throw so callers can handle or report the failure
+      throw err
     }
   },
 }

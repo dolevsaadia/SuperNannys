@@ -45,7 +45,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
-  AuthNotifier() : super(const AuthState()) {
+  AuthNotifier() : super(const AuthState(isLoading: true)) {
     _loadStoredUser();
   }
 
@@ -65,6 +65,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = AuthState(user: user);
         // Verify token is still valid
         await refreshMe();
+      } else {
+        // No stored session — done loading
+        state = const AuthState();
       }
     } catch (_) {
       // Storage read may fail on first launch after reboot (keychain locked).
