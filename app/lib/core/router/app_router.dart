@@ -31,6 +31,11 @@ import '../../features/auth/screens/otp_verification_screen.dart';
 import '../../features/session/screens/live_session_screen.dart';
 import '../../features/recurring_bookings/screens/recurring_bookings_screen.dart';
 import '../../features/recurring_bookings/screens/recurring_booking_detail_screen.dart';
+import '../../features/profile/screens/notifications_settings_screen.dart';
+import '../../features/profile/screens/privacy_screen.dart';
+import '../../features/profile/screens/help_screen.dart';
+import '../../features/profile/screens/about_screen.dart';
+import '../../features/favorites/screens/favorites_screen.dart';
 
 /// Bridges Riverpod [AuthState] changes into a [Listenable] that GoRouter can
 /// use via [refreshListenable] — this re-evaluates the redirect function
@@ -142,9 +147,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const ProfileScreen(),
             routes: [
               GoRoute(path: 'edit', builder: (_, __) => const EditProfileScreen()),
+              GoRoute(path: 'notifications', builder: (_, __) => const NotificationsSettingsScreen()),
+              GoRoute(path: 'privacy', builder: (_, __) => const PrivacyScreen()),
+              GoRoute(path: 'help', builder: (_, __) => const HelpScreen()),
+              GoRoute(path: 'about', builder: (_, __) => const AboutScreen()),
             ],
           ),
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+          GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
           GoRoute(
             path: '/recurring-bookings',
             builder: (_, __) => const RecurringBookingsScreen(),
