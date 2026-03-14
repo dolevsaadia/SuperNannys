@@ -183,149 +183,155 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
       ),
       body: Column(
         children: [
-          // ── Summary header ──────────────────
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.gradientPrimary,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: AppShadows.primaryGlow(0.15),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Your Schedule',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-                      ),
-                      Text(
-                        '$availableCount of 7 days available',
-                        style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Recurring Bookings Toggle ──────────────────
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: AppShadows.sm,
-              border: Border.all(
-                color: _enableRecurring ? AppColors.accent.withValues(alpha: 0.3) : AppColors.border,
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: _enableRecurring ? AppColors.accent.withValues(alpha: 0.1) : AppColors.bg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.repeat_rounded, size: 20,
-                        color: _enableRecurring ? AppColors.accent : AppColors.textHint),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Recurring Bookings',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                          Text('Allow parents to book a fixed weekly schedule',
-                            style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: _enableRecurring,
-                      activeTrackColor: AppColors.accent,
-                      onChanged: (v) {
-                        HapticFeedback.lightImpact();
-                        setState(() => _enableRecurring = v);
-                      },
-                    ),
-                  ],
-                ),
-                if (_enableRecurring) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              itemCount: 7 + 2, // 2 header items + 7 day cards
+              itemBuilder: (_, index) {
+                // ── Summary header (scrollable) ──────────────────
+                if (index == 0) {
+                  return Container(
+                    margin: const EdgeInsets.only(top: 16, bottom: 12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.accent.withValues(alpha: 0.15)),
+                      gradient: const LinearGradient(
+                        colors: AppColors.gradientPrimary,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: AppShadows.primaryGlow(0.15),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Your Schedule',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                              ),
+                              Text(
+                                '$availableCount of 7 days available',
+                                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // ── Recurring Bookings Toggle (scrollable) ──────────────────
+                if (index == 1) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: AppShadows.sm,
+                      border: Border.all(
+                        color: _enableRecurring ? AppColors.accent.withValues(alpha: 0.3) : AppColors.border,
+                      ),
                     ),
                     child: Column(
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('\u20AA$_recurringRate', style: const TextStyle(
-                              fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.accent)),
-                            const Text('/hr', style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent)),
-                            const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
-                                color: AppColors.success.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
+                                color: _enableRecurring ? AppColors.accent.withValues(alpha: 0.1) : AppColors.bg,
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(
-                                '${((((_hourlyRate - _recurringRate) / _hourlyRate) * 100)).round()}% off',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+                              child: Icon(Icons.repeat_rounded, size: 20,
+                                color: _enableRecurring ? AppColors.accent : AppColors.textHint),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Recurring Bookings',
+                                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                  Text('Allow parents to book a fixed weekly schedule',
+                                    style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                                ],
                               ),
+                            ),
+                            Switch.adaptive(
+                              value: _enableRecurring,
+                              activeTrackColor: AppColors.accent,
+                              onChanged: (v) {
+                                HapticFeedback.lightImpact();
+                                setState(() => _enableRecurring = v);
+                              },
                             ),
                           ],
                         ),
-                        Slider(
-                          value: _recurringRate.toDouble(),
-                          min: 20, max: 130, divisions: 22,
-                          activeColor: AppColors.accent,
-                          onChanged: (v) => setState(() => _recurringRate = v.toInt()),
-                        ),
+                        if (_enableRecurring) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.accent.withValues(alpha: 0.15)),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('\u20AA$_recurringRate', style: const TextStyle(
+                                      fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.accent)),
+                                    const Text('/hr', style: TextStyle(
+                                      fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.success.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        '${((((_hourlyRate - _recurringRate) / _hourlyRate) * 100)).round()}% off',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Slider(
+                                  value: _recurringRate.toDouble(),
+                                  min: 20, max: 130, divisions: 22,
+                                  activeColor: AppColors.accent,
+                                  onChanged: (v) => setState(() => _recurringRate = v.toInt()),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+                  );
+                }
 
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: 7,
-              itemBuilder: (_, day) {
+                // ── Day cards (index 2..8 → day 0..6) ──────────────────
+                final day = index - 2;
                 final isEnabled = _enabledDays.contains(day);
                 final slots = _daySlots[day]!;
                 final hasOverlap = isEnabled && _hasOverlap(day);

@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/app_logger.dart';
 import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -103,11 +104,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     // Authenticate with biometrics — result is never an exception
+    appLog.debug('auth', 'biometric_prompt', 'Showing $label prompt');
     final result = await _biometric.authenticate(
       reason: 'Use $label to sign in',
     );
 
     if (!mounted) return;
+
+    appLog.debug('auth', 'biometric_result', 'Biometric result: ${result.name}');
 
     switch (result) {
       case BiometricResult.success:
