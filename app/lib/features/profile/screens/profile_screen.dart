@@ -108,6 +108,9 @@ class ProfileScreen extends ConsumerWidget {
                       _MenuItem(Icons.dashboard_rounded, 'Dashboard', () => context.go('/dashboard')),
                       _MenuItem(Icons.schedule_rounded, 'Manage Availability', () => context.go('/dashboard/availability')),
                       _MenuItem(Icons.account_balance_wallet_rounded, 'Earnings', () => context.go('/dashboard/earnings')),
+                      if (!user.isVerified)
+                        _MenuItem(Icons.verified_user_rounded, 'Get Verified', () => context.go('/dashboard/verification')),
+                      _MenuItem(Icons.description_rounded, 'Documents', () => context.go('/dashboard/documents')),
                     ],
                   ]),
                   const SizedBox(height: 16),

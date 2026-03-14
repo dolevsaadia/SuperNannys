@@ -244,6 +244,9 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                   if (nanny.yearsExperience >= 5 && !effectiveBadges.contains('EXPERIENCE_5_PLUS')) {
                     effectiveBadges.add('EXPERIENCE_5_PLUS');
                   }
+                  if (nanny.recurringHourlyRateNis != null && !effectiveBadges.contains('RECURRING')) {
+                    effectiveBadges.add('RECURRING');
+                  }
                   if (effectiveBadges.isEmpty) return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
