@@ -8,7 +8,7 @@ class AppConstants {
   static const String userKey = 'user_data';
   // Web client ID (type 3) from google-services.json — required for both iOS & Android
   static const String googleServerClientId =
-      '768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com';
+      '768121322557-onvanoq8dpr74bdrg40ne9iqpishgbn7.apps.googleusercontent.com';
 
   static const int pageSize = 20;
 
