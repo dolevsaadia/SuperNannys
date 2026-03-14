@@ -112,8 +112,42 @@ class BiometricService {
       // This is a perfectly normal outcome — NOT an error.
       debugPrint('[Biometric] authentication returned false (user cancelled or dismissed)');
       return BiometricResult.cancelledByUser;
+    } on LocalAuthException catch (e) {
+      // local_auth v3+ throws LocalAuthException with typed codes
+      switch (e.code) {
+        case LocalAuthExceptionCode.userCanceled:
+        case LocalAuthExceptionCode.systemCanceled:
+        case LocalAuthExceptionCode.authInProgress:
+        case LocalAuthExceptionCode.userRequestedFallback:
+          debugPrint('[Biometric] user cancelled via LocalAuthException: ${e.code.name}');
+          return BiometricResult.cancelledByUser;
+
+        case LocalAuthExceptionCode.timeout:
+          debugPrint('[Biometric] timed out via LocalAuthException');
+          return BiometricResult.timeout;
+
+        case LocalAuthExceptionCode.noBiometricHardware:
+        case LocalAuthExceptionCode.noBiometricsEnrolled:
+        case LocalAuthExceptionCode.noCredentialsSet:
+        case LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable:
+        case LocalAuthExceptionCode.uiUnavailable:
+          debugPrint('[Biometric] unavailable via LocalAuthException: ${e.code.name}');
+          lastError = 'Biometric is not set up. Please enable it in your device settings.';
+          return BiometricResult.unavailable;
+
+        case LocalAuthExceptionCode.temporaryLockout:
+        case LocalAuthExceptionCode.biometricLockout:
+          debugPrint('[Biometric] locked out via LocalAuthException: ${e.code.name}');
+          lastError = 'Biometric is locked. Try again later or use your passcode.';
+          return BiometricResult.lockedOut;
+
+        default:
+          debugPrint('[Biometric] error via LocalAuthException: ${e.code.name} — ${e.description}');
+          lastError = 'Biometric error: ${e.description ?? e.code.name}';
+          return BiometricResult.error;
+      }
     } on PlatformException catch (e) {
-      // Parse the platform exception to determine exact cause
+      // Fallback for older platform channels that still throw PlatformException
       final code = e.code;
       final msg = e.message ?? '';
       final combined = '$code $msg'.toLowerCase();
