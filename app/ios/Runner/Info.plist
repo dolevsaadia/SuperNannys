@@ -22,6 +22,10 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>GIDClientID</key>
+	<string>768121322557-3reccv7capojqi11t3an73eir4178fc6.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>768121322557-onvanoq8dpr74bdrg40ne9iqpishgbn7.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
