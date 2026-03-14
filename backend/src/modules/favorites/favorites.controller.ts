@@ -1,10 +1,11 @@
 import { Request, Response } from 'express'
+import { z } from 'zod'
 import { favoritesService } from './favorites.service'
 import { ok } from '../../shared/utils/response'
 
 export const favoritesController = {
   async toggle(req: Request, res: Response): Promise<void> {
-    const { nannyUserId } = req.body
+    const { nannyUserId } = z.object({ nannyUserId: z.string().min(1) }).parse(req.body)
     const result = await favoritesService.toggle(req.user!.userId, nannyUserId)
     ok(res, result)
   },

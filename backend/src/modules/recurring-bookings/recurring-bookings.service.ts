@@ -4,13 +4,36 @@ import { recurringBookingsDal } from './recurring-bookings.dal'
 import { bookingsDal } from '../bookings/bookings.dal'
 import type { CreateRecurringBookingInput, UpdateRecurringBookingInput } from './recurring-bookings.validation'
 import { logger } from '../../shared/utils/logger'
+import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
+
+/**
+ * Parse a "HH:mm" time string into [hours, minutes].
+ * Returns [0, 0] and logs an error if the format is invalid.
+ */
+function parseTime(timeStr: string): [number, number] {
+  const parts = timeStr.split(':')
+  const h = Number(parts[0])
+  const m = Number(parts[1])
+  if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+    logger.error('Invalid time format', { timeStr, parsedH: h, parsedM: m })
+    return [0, 0]
+  }
+  return [h, m]
+}
 
 export const recurringBookingsService = {
   async create(parentUserId: string, data: CreateRecurringBookingInput) {
+    if (parentUserId === data.nannyUserId) {
+      throw new AppError('Cannot create a recurring booking with yourself', 400)
+    }
+
     const nannyProfile = await recurringBookingsDal.findNannyProfile(data.nannyUserId)
     if (!nannyProfile) throw new AppError('Nanny not found', 404)
 
     const rate = nannyProfile.recurringHourlyRateNis ?? nannyProfile.hourlyRateNis
+    if (!rate || rate <= 0) {
+      throw new AppError('Nanny has no rate configured', 400)
+    }
 
     const startDate = new Date(data.startDate)
     const endDate = data.endDate ? new Date(data.endDate) : null
@@ -34,6 +57,12 @@ export const recurringBookingsService = {
       notes: data.notes,
     })
 
+    logger.info('Recurring booking created', {
+      id: recurring.id,
+      parentUserId,
+      nannyUserId: data.nannyUserId,
+    })
+
     return recurring
   },
 
@@ -44,16 +73,14 @@ export const recurringBookingsService = {
 
     if (filters.status) where.status = filters.status
 
-    const pageNum = Math.max(1, parseInt(filters.page || '1'))
-    const limitNum = Math.min(50, parseInt(filters.limit || '20'))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination(filters)
 
     const [items, total] = await Promise.all([
-      recurringBookingsDal.findMany(where, skip, limitNum),
+      recurringBookingsDal.findMany(where, skip, limit),
       recurringBookingsDal.count(where),
     ])
 
-    return { recurringBookings: items, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } }
+    return { recurringBookings: items, pagination: paginationMeta(total, page, limit) }
   },
 
   async getById(userId: string, role: string, id: string) {
@@ -119,6 +146,8 @@ export const recurringBookingsService = {
 
     const updated = await recurringBookingsDal.updateStatus(id, status)
 
+    logger.info('Recurring booking status updated', { id, status, userId })
+
     // If activating, generate initial 2-week batch of bookings
     if (status === 'ACTIVE' && rb.status === 'PENDING') {
       await this.generateOccurrences(updated.id, 14)
@@ -135,12 +164,11 @@ export const recurringBookingsService = {
     const rb = await recurringBookingsDal.findById(recurringBookingId)
     if (!rb || rb.status !== 'ACTIVE') return 0
 
-    const nannyProfile = rb.nanny?.nannyProfile
     const rate = rb.hourlyRateNis
 
-    // Parse start/end times
-    const [startH, startM] = rb.startTime.split(':').map(Number)
-    const [endH, endM] = rb.endTime.split(':').map(Number)
+    // Parse start/end times with validation
+    const [startH, startM] = parseTime(rb.startTime)
+    const [endH, endM] = parseTime(rb.endTime)
     const durationHours = (endH + endM / 60) - (startH + startM / 60)
 
     const totalAmountNis = Math.round(durationHours * rate)
@@ -160,6 +188,13 @@ export const recurringBookingsService = {
     cursor.setHours(0, 0, 0, 0)
 
     while (cursor <= effectiveEnd) {
+      if (count >= 100) {
+        logger.warn('Max occurrences per run (100) reached, stopping generation', {
+          recurringBookingId,
+        })
+        break
+      }
+
       const dayOfWeek = cursor.getDay()
 
       if (rb.daysOfWeek.includes(dayOfWeek)) {
@@ -191,6 +226,11 @@ export const recurringBookingsService = {
             status: 'ACCEPTED', // Nanny already approved the recurring arrangement
           })
           count++
+          logger.debug('Occurrence created', {
+            recurringBookingId,
+            occurrenceDate: occurrenceDate.toISOString(),
+            count,
+          })
         }
       }
 

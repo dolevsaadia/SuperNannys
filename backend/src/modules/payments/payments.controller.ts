@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { ok, created } from '../../shared/utils/response'
+import { logger } from '../../shared/utils/logger'
 import { paymentsService } from './payments.service'
 import { createIntentSchema, addPaymentMethodSchema } from './payments.validation'
 
@@ -15,7 +16,8 @@ export const paymentsController = {
     try {
       const result = await paymentsService.handleWebhook(req.body, sig)
       res.json(result)
-    } catch {
+    } catch (err: any) {
+      logger.warn('Webhook signature verification failed', { error: err.message })
       res.status(400).json({ error: 'Webhook signature verification failed' })
     }
   },

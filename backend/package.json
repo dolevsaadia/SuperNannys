@@ -1,6 +1,6 @@
 {
   "name": "supernanny-backend",
-  "version": "1.4.0",
+  "version": "1.5.1",
   "description": "SuperNanny babysitter marketplace API",
   "main": "dist/index.js",
   "scripts": {
