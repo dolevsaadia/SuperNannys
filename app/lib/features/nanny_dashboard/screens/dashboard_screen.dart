@@ -198,35 +198,31 @@ class DashboardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Floating Stats Cards ──────────────────
-                        Transform.translate(
-                          offset: const Offset(0, -20),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _GradientStatCard(
-                                  title: 'Total Earned',
-                                  value: '\u20AA${earnings['totalEarned'] ?? 0}',
-                                  icon: Icons.account_balance_wallet_rounded,
-                                  gradient: AppColors.gradientSuccess,
-                                ),
+                        const SizedBox(height: 12),
+                        // ── Stats Cards ──────────────────
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _GradientStatCard(
+                                title: 'Total Earned',
+                                value: '\u20AA${earnings['totalEarned'] ?? 0}',
+                                icon: Icons.account_balance_wallet_rounded,
+                                gradient: AppColors.gradientSuccess,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _GradientStatCard(
-                                  title: 'Total Jobs',
-                                  value: '${earnings['totalJobs'] ?? 0}',
-                                  icon: Icons.work_rounded,
-                                  gradient: AppColors.gradientAccent,
-                                ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _GradientStatCard(
+                                title: 'Total Jobs',
+                                value: '${earnings['totalJobs'] ?? 0}',
+                                icon: Icons.work_rounded,
+                                gradient: AppColors.gradientAccent,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        Transform.translate(
-                          offset: const Offset(0, -8),
-                          child: _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
-                        ),
+                        const SizedBox(height: 12),
+                        _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
 
                         const SizedBox(height: 16),
 
