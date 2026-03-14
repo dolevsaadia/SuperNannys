@@ -102,34 +102,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    // Authenticate with biometrics
-    bool authenticated = false;
-    try {
-      authenticated = await _biometric.authenticate(
-        reason: 'Use $label to sign in',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      final err = e.toString();
-      final String message;
-      if (err.contains('noBiometricsEnrolled') || err.contains('not enrolled')) {
-        message = '$label is not set up. Please enable it in your device settings first.';
-      } else if (err.contains('lockedOut') || err.contains('locked out')) {
-        message = '$label is locked. Try again later or use your passcode.';
-      } else {
-        message = '$label error: $err';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-      return;
-    }
+    // Authenticate with biometrics — result is never an exception
+    final result = await _biometric.authenticate(
+      reason: 'Use $label to sign in',
+    );
 
-    if (!authenticated) return; // User cancelled — allow manual login silently
+    if (!mounted) return;
+
+    switch (result) {
+      case BiometricResult.success:
+        // Biometric succeeded — restore the session
+        break;
+
+      case BiometricResult.cancelledByUser:
+      case BiometricResult.timeout:
+        // User cancelled or prompt timed out — this is a normal UI action.
+        // Silently fall back to manual login. No error, no toast, no log.
+        return;
+
+      case BiometricResult.unavailable:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$label is not set up. Please enable it in your device settings first.'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+
+      case BiometricResult.lockedOut:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$label is locked. Try again later or use your passcode.'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+
+      case BiometricResult.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_biometric.lastError ?? '$label error occurred.'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+    }
 
     // Restore session with saved token
     final success = await ref.read(authProvider.notifier).restoreWithToken(token);
@@ -403,8 +423,6 @@ class _BiometricButton extends StatelessWidget {
         return 'Sign in with Biometric';
       case BiometricType.iris:
         return 'Sign in with Iris Scan';
-      default:
-        return 'Sign in with Biometric';
     }
   }
 

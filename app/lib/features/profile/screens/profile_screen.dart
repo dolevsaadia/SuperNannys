@@ -160,35 +160,48 @@ class ProfileScreen extends ConsumerWidget {
         );
       }
     } else {
-      // Enable biometric - authenticate first, then save token
-      try {
-        final authenticated = await biometric.authenticate(
-          reason: 'Verify your identity to enable biometric login',
-        );
-        if (!authenticated) return;
+      // Enable biometric — authenticate first, then save token
+      final result = await biometric.authenticate(
+        reason: 'Verify your identity to enable biometric login',
+      );
 
-        final token = await ref.read(authProvider.notifier).getStoredToken();
-        if (token != null) {
-          await biometric.enable(token);
+      switch (result) {
+        case BiometricResult.success:
+          // Continue to enable
+          break;
+        case BiometricResult.cancelledByUser:
+        case BiometricResult.timeout:
+          // User cancelled — do nothing, no error
+          return;
+        case BiometricResult.unavailable:
+        case BiometricResult.lockedOut:
+        case BiometricResult.error:
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${Platform.isIOS ? "Face ID / Touch ID" : "Fingerprint"} login enabled!'),
-                backgroundColor: AppColors.success,
+                content: Text(biometric.lastError ?? 'Biometric error occurred'),
+                backgroundColor: AppColors.error,
               ),
             );
           }
-        } else {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please sign in again to enable biometric login'), backgroundColor: AppColors.error),
-            );
-          }
-        }
-      } catch (e) {
+          return;
+      }
+
+      final token = await ref.read(authProvider.notifier).getStoredToken();
+      if (token != null) {
+        await biometric.enable(token);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Biometric error: $e'), backgroundColor: AppColors.error),
+            SnackBar(
+              content: Text('${Platform.isIOS ? "Face ID / Touch ID" : "Fingerprint"} login enabled!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please sign in again to enable biometric login'), backgroundColor: AppColors.error),
           );
         }
       }
