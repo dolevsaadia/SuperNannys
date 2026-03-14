@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { ok, created } from '../../shared/utils/response'
 import { authService } from './auth.service'
-import { registerSchema, loginSchema, googleSignInSchema, verifyOTPSchema, resendOTPSchema } from './auth.validation'
+import { registerSchema, loginSchema, googleSignInSchema, verifyOTPSchema, resendOTPSchema, sendPhoneCodeSchema, verifyPhoneSchema } from './auth.validation'
 
 export const authController = {
   async register(req: Request, res: Response): Promise<void> {
@@ -37,5 +37,17 @@ export const authController = {
   async getMe(req: Request, res: Response): Promise<void> {
     const user = await authService.getMe(req.user!.userId)
     ok(res, user)
+  },
+
+  async sendPhoneCode(req: Request, res: Response): Promise<void> {
+    const data = sendPhoneCodeSchema.parse(req.body)
+    const result = await authService.sendPhoneCode(req.user!.userId, data.phone)
+    ok(res, result)
+  },
+
+  async verifyPhone(req: Request, res: Response): Promise<void> {
+    const data = verifyPhoneSchema.parse(req.body)
+    const result = await authService.verifyPhone(req.user!.userId, data.phone, data.code)
+    ok(res, result)
   },
 }

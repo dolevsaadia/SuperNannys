@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/geo_utils.dart';
 
@@ -68,6 +69,15 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
     }
   }
 
+  Future<void> _openGoogleMapsNavigation() async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=${widget.nannyLat},${widget.nannyLng}&travelmode=driving',
+    );
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final nannyLL = LatLng(widget.nannyLat, widget.nannyLng);
@@ -82,6 +92,13 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
       appBar: AppBar(
         title: Text('Route to ${widget.nannyName}'),
         leading: BackButton(onPressed: () => context.pop()),
+        actions: [
+          IconButton(
+            onPressed: _openGoogleMapsNavigation,
+            icon: const Icon(Icons.navigation_rounded),
+            tooltip: 'Navigate with Google Maps',
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -146,66 +163,88 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
             ],
           ),
 
-          // Distance card at bottom
+          // Distance card + navigate button at bottom
           Positioned(
             bottom: 24,
             left: 16,
             right: 16,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4))],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.directions_walk_rounded, color: AppColors.primary, size: 26),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4))],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.nannyName,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(height: 2),
-                        if (_loading)
-                          const Text('Calculating distance...', style: TextStyle(fontSize: 13, color: AppColors.textSecondary))
-                        else if (_distanceKm != null)
-                          Text(
-                            'Distance: ${GeoUtils.formatDistance(_distanceKm!)}',
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                          )
-                        else
-                          const Text('Location not available', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
-                      ],
+                        child: const Icon(Icons.directions_walk_rounded, color: AppColors.primary, size: 26),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.nannyName,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                            ),
+                            const SizedBox(height: 2),
+                            if (_loading)
+                              const Text('Calculating distance...', style: TextStyle(fontSize: 13, color: AppColors.textSecondary))
+                            else if (_distanceKm != null)
+                              Text(
+                                'Distance: ${GeoUtils.formatDistance(_distanceKm!)}',
+                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                              )
+                            else
+                              const Text('Location not available', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+                          ],
+                        ),
+                      ),
+                      if (_distanceKm != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            GeoUtils.formatDistance(_distanceKm!),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Navigate with Google Maps button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _openGoogleMapsNavigation,
+                    icon: const Icon(Icons.navigation_rounded, size: 20),
+                    label: const Text('Navigate with Google Maps', style: TextStyle(fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 4,
                     ),
                   ),
-                  if (_distanceKm != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        GeoUtils.formatDistance(_distanceKm!),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
-                      ),
-                    ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
