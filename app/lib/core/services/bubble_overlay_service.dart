@@ -29,22 +29,38 @@ class BubbleOverlayService {
 
   Future<void> _checkUpcoming(BuildContext context) async {
     try {
-      final resp = await apiClient.dio.get('/bookings', queryParameters: {
+      // Check both ACCEPTED (ready to start) and IN_PROGRESS (active session)
+      final acceptedResp = await apiClient.dio.get('/bookings', queryParameters: {
         'status': 'ACCEPTED',
         'limit': '5',
       });
-      final data = resp.data['data'] as Map<String, dynamic>;
-      final bookings = (data['bookings'] as List?) ?? [];
+      final inProgressResp = await apiClient.dio.get('/bookings', queryParameters: {
+        'status': 'IN_PROGRESS',
+        'limit': '5',
+      });
+      final acceptedData = acceptedResp.data['data'] as Map<String, dynamic>;
+      final inProgressData = inProgressResp.data['data'] as Map<String, dynamic>;
+      final bookings = [
+        ...((inProgressData['bookings'] as List?) ?? []),
+        ...((acceptedData['bookings'] as List?) ?? []),
+      ];
 
-      // Find first booking within 15 minutes
+      // Find first active or upcoming booking
       final now = DateTime.now();
       Map<String, dynamic>? upcomingBooking;
 
       for (final b in bookings) {
         final booking = b as Map<String, dynamic>;
+        final status = booking['status'] as String? ?? '';
+        // IN_PROGRESS bookings always show bubble
+        if (status == 'IN_PROGRESS') {
+          upcomingBooking = booking;
+          break;
+        }
+        // ACCEPTED bookings: within 30 min before to 60 min after
         final startTime = DateTime.parse(booking['startTime'] as String);
         final diff = startTime.difference(now);
-        if (diff.inMinutes <= 15 && diff.inMinutes >= -5) {
+        if (diff.inMinutes <= 30 && diff.inMinutes >= -60) {
           upcomingBooking = booking;
           break;
         }

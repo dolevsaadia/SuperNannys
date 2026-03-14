@@ -49,10 +49,11 @@ class PendingSessionNotifier extends StateNotifier<List<BookingModel>> {
 
       final now = DateTime.now();
 
-      // Filter ACCEPTED bookings: start time window = 15 min before to 30 min after
+      // Filter ACCEPTED bookings: start time window = 30 min before to 60 min after
+      // (matches backend session confirm-start window)
       final readyToStart = acceptedList.where((b) {
-        final windowStart = b.startTime.subtract(const Duration(minutes: 15));
-        final windowEnd = b.startTime.add(const Duration(minutes: 30));
+        final windowStart = b.startTime.subtract(const Duration(minutes: 30));
+        final windowEnd = b.startTime.add(const Duration(minutes: 60));
         return now.isAfter(windowStart) && now.isBefore(windowEnd);
       }).toList();
 

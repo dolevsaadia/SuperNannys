@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/avatar_widget.dart';
@@ -34,6 +35,12 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseAnim;
 
+  // Review state
+  int _reviewRating = 0;
+  final _reviewController = TextEditingController();
+  bool _reviewSubmitted = false;
+  bool _reviewSubmitting = false;
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +61,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _reviewController.dispose();
     super.dispose();
   }
 
@@ -377,6 +385,99 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
           ),
           const SizedBox(height: 32),
 
+          // ── Review section (parents only) ──────────────────
+          if (widget.isParent && !_reviewSubmitted) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Rate Your Experience',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (i) {
+                        final starIndex = i + 1;
+                        return GestureDetector(
+                          onTap: () => setState(() => _reviewRating = starIndex),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              starIndex <= _reviewRating
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              size: 36,
+                              color: starIndex <= _reviewRating
+                                  ? AppColors.warning
+                                  : AppColors.textHint,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _reviewController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        hintText: 'Add a comment (optional)',
+                        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.border),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppButton(
+                      label: _reviewSubmitting ? 'Submitting...' : 'Submit Review',
+                      variant: AppButtonVariant.gradient,
+                      onTap: _reviewRating == 0 || _reviewSubmitting
+                          ? null
+                          : () => _submitReview(session),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (_reviewSubmitted)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                    SizedBox(width: 8),
+                    Text('Thank you for your review!',
+                        style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+
           // Action buttons
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -400,6 +501,30 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         ],
       ),
     );
+  }
+
+  // ── Submit Review ────────────────────────────────────
+  Future<void> _submitReview(SessionState session) async {
+    setState(() => _reviewSubmitting = true);
+    try {
+      await apiClient.dio.post('/reviews', data: {
+        'bookingId': widget.bookingId,
+        'rating': _reviewRating,
+        'comment': _reviewController.text.trim().isEmpty ? null : _reviewController.text.trim(),
+      });
+      setState(() {
+        _reviewSubmitted = true;
+        _reviewSubmitting = false;
+      });
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      setState(() => _reviewSubmitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit review: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   // ── End Confirmation Dialog ────────────────────────────
