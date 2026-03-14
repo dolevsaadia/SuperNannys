@@ -1,4 +1,5 @@
 import { AppError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
 import { messagesDal } from './messages.dal'
 
 export const messagesService = {
@@ -32,6 +33,8 @@ export const messagesService = {
       throw new AppError('Forbidden', 403)
     }
 
-    return messagesDal.createMessage(bookingId, userId, text)
+    const msg = await messagesDal.createMessage(bookingId, userId, text)
+    logger.info('Message sent', { bookingId, userId, messageId: msg.id })
+    return msg
   },
 }

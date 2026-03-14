@@ -33,6 +33,9 @@ export const bookingsDal = {
     return prisma.nannyProfile.findUnique({ where: { userId: nannyUserId } })
   },
 
+  // INDEX HINT: This query benefits from a composite index on
+  // Booking(nannyUserId, status, startTime, endTime) to avoid full scans
+  // when checking for scheduling conflicts.
   findConflict(nannyUserId: string, start: Date, end: Date) {
     return prisma.booking.findFirst({
       where: {

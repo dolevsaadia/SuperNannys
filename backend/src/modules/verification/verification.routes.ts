@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import { requireAuth, requireRole } from '../../shared/middleware/auth'
-import { asyncHandler } from '../../shared/middleware/async-handler'
+import { requireAuth, requireRole } from '../../shared/middlewares/auth.middleware'
+import { asyncHandler } from '../../shared/middlewares/async-handler'
 import { verificationController } from './verification.controller'
 
 const router = Router()

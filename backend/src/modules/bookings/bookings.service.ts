@@ -1,10 +1,16 @@
 import type { BookingStatus } from '@prisma/client'
 import { AppError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
+import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { bookingsDal } from './bookings.dal'
 import type { CreateBookingInput } from './bookings.validation'
 
 export const bookingsService = {
   async create(parentUserId: string, data: CreateBookingInput) {
+    if (parentUserId === data.nannyUserId) {
+      throw new AppError('Cannot book yourself', 400)
+    }
+
     const start = new Date(data.startTime)
     const end = new Date(data.endTime)
     if (end <= start) throw new AppError('End time must be after start time')
@@ -33,6 +39,10 @@ export const bookingsService = {
       ? nannyProfile.recurringHourlyRateNis
       : nannyProfile.hourlyRateNis
 
+    if (!rate || rate <= 0) {
+      throw new AppError('Nanny has no rate configured', 400)
+    }
+
     // Estimated price based on booked hours (actual price determined by timer)
     const estimatedPriceNis = Math.round(durationHours * rate)
 
@@ -52,7 +62,7 @@ export const bookingsService = {
     if ((data as any).bookingLng) addressData.bookingLng = (data as any).bookingLng
     if ((data as any).locationType) addressData.locationType = (data as any).locationType
 
-    return bookingsDal.create({
+    const booking = await bookingsDal.create({
       parentUserId,
       nannyUserId: data.nannyUserId,
       startTime: start,
@@ -66,6 +76,16 @@ export const bookingsService = {
       isRecurring,
       ...addressData,
     })
+
+    logger.info('Booking created', {
+      bookingId: booking.id,
+      parentUserId,
+      nannyUserId: data.nannyUserId,
+      startTime: start.toISOString(),
+      totalAmountNis,
+    })
+
+    return booking
   },
 
   async list(userId: string, role: string, filters: { status?: string; page?: string; limit?: string }) {
@@ -75,16 +95,14 @@ export const bookingsService = {
 
     if (filters.status) where.status = filters.status
 
-    const pageNum = Math.max(1, parseInt(filters.page || '1'))
-    const limitNum = Math.min(50, parseInt(filters.limit || '20'))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination(filters)
 
     const [bookings, total] = await Promise.all([
-      bookingsDal.findMany(where, skip, limitNum),
+      bookingsDal.findMany(where, skip, limit),
       bookingsDal.count(where),
     ])
 
-    return { bookings, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } }
+    return { bookings, pagination: paginationMeta(total, page, limit) }
   },
 
   async getById(userId: string, role: string, bookingId: string) {
@@ -118,6 +136,9 @@ export const bookingsService = {
     }
 
     const updated = await bookingsDal.updateStatus(bookingId, status)
+
+    logger.info('Booking status updated', { bookingId, status, userId })
+
     return updated
   },
 }

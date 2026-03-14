@@ -19,7 +19,7 @@ export const createBookingSchema = z.object({
 })
 
 export const updateBookingStatusSchema = z.object({
-  status: z.enum(['ACCEPTED', 'DECLINED', 'CANCELLED', 'COMPLETED']),
+  status: z.enum(['ACCEPTED', 'DECLINED', 'CANCELLED']),
 })
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>
