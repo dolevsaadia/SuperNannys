@@ -193,6 +193,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SnackBar(content: Text(result.error ?? 'Google login failed'), backgroundColor: AppColors.error),
         );
       }
+    } on PlatformException catch (e) {
+      if (mounted) {
+        final String message;
+        if (e.code == 'sign_in_failed' && e.message != null && e.message!.contains('10')) {
+          message = 'Google Sign-In configuration error. Please check SHA-1 fingerprint in Firebase Console.';
+        } else if (e.code == 'sign_in_canceled') {
+          return;
+        } else if (e.code == 'network_error') {
+          message = 'Network error. Please check your internet connection.';
+        } else {
+          message = 'Google Sign-In error: ${e.message ?? e.code}';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: AppColors.error, duration: const Duration(seconds: 4)),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -212,7 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    final success = await ref.read(authProvider.notifier).login(_email.text.trim(), _password.text);
+    final success = await ref.read(authProvider.notifier).login(_email.text.trim().toLowerCase(), _password.text);
     if (!mounted) return;
     if (success) {
       await _promptBiometricAndNavigate('/home');

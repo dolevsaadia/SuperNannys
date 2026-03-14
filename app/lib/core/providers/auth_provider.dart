@@ -76,7 +76,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final resp = await apiClient.dio.post('/auth/login', data: {'email': email, 'password': password});
+      final resp = await apiClient.dio.post('/auth/login', data: {'email': email.toLowerCase(), 'password': password});
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
       return true;
@@ -90,7 +90,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final resp = await apiClient.dio.post('/auth/register', data: {
-        'email': email, 'password': password, 'fullName': fullName, 'role': role,
+        'email': email.toLowerCase(), 'password': password, 'fullName': fullName, 'role': role,
         if (phone != null) 'phone': phone,
         if (idNumber != null) 'idNumber': idNumber,
       });

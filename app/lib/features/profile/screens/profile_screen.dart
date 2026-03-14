@@ -111,10 +111,10 @@ class ProfileScreen extends ConsumerWidget {
                   const Text('Settings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
                   const SizedBox(height: 8),
                   _MenuGroup(items: [
-                    _MenuItem(Icons.notifications_outlined, 'Notifications', () {}),
-                    _MenuItem(Icons.lock_outline_rounded, 'Privacy & Security', () {}),
-                    _MenuItem(Icons.help_outline_rounded, 'Help & Support', () {}),
-                    _MenuItem(Icons.info_outline_rounded, 'About SuperNanny', () {}),
+                    _MenuItem(Icons.notifications_outlined, 'Notifications', () => context.go('/profile/notifications')),
+                    _MenuItem(Icons.lock_outline_rounded, 'Privacy & Security', () => context.go('/profile/privacy')),
+                    _MenuItem(Icons.help_outline_rounded, 'Help & Support', () => context.go('/profile/help')),
+                    _MenuItem(Icons.info_outline_rounded, 'About SuperNanny', () => context.go('/profile/about')),
                   ]),
                   const SizedBox(height: 16),
                   _MenuGroup(items: [
