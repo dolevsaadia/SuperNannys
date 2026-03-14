@@ -145,6 +145,30 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                         ),
                       ),
                     ),
+                    // Recurring badge bottom-left
+                    if (nanny.recurringHourlyRateNis != null)
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.repeat_rounded, size: 10, color: Colors.white),
+                              const SizedBox(width: 3),
+                              Text(
+                                '₪${nanny.recurringHourlyRateNis}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     // Verified badge
                     if (nanny.isVerified)
                       const Positioned(
