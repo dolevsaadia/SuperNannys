@@ -52,6 +52,7 @@ export const bookingsDal = {
     isRecurring?: boolean
     recurringBookingId?: string
     occurrenceDate?: Date
+    status?: BookingStatus
   }) {
     return prisma.booking.create({
       data,
