@@ -63,6 +63,8 @@ class AppColors {
   static const Color catNight = Color(0xFFC7D2FE);      // indigo-200
   static const Color catWeekend = Color(0xFFA7F3D0);    // green-200
   static const Color catAll = Color(0xFFEDE9FE);        // violet-100
+  static const Color catRegular = Color(0xFFFEF3C7);    // amber-100
+  static const Color catFirstAid = Color(0xFFFEE2E2);   // red-100
 
   // ── Gradient Presets ──────────────────────────────────
   static const List<Color> gradientPrimary = [Color(0xFF7C3AED), Color(0xFF9D5CF8)];

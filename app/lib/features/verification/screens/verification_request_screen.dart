@@ -45,14 +45,6 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
     });
   }
 
-  Future<String?> _uploadFile(File file, String fieldName) async {
-    final formData = FormData.fromMap({
-      fieldName: await MultipartFile.fromFile(file.path, filename: '${fieldName}_${DateTime.now().millisecondsSinceEpoch}.jpg'),
-    });
-    final resp = await apiClient.dio.post('/nannies/me/documents', data: formData);
-    return resp.data['data']?['url'] as String?;
-  }
-
   Future<void> _submit() async {
     if (_idCard == null) {
       ScaffoldMessenger.of(context).showSnackBar(

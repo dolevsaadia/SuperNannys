@@ -14,6 +14,7 @@ export const searchNanniesSchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
   sortBy: z.string().optional(),
+  hasRecurringRate: z.string().optional(),
 })
 
 export const updateNannyProfileSchema = z.object({

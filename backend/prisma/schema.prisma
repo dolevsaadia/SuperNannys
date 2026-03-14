@@ -159,7 +159,7 @@ model Availability {
   isAvailable    Boolean      @default(true)
   createdAt      DateTime     @default(now())
 
-  @@unique([nannyProfileId, dayOfWeek])
+  @@unique([nannyProfileId, dayOfWeek, fromTime])
   @@map("availabilities")
 }
 

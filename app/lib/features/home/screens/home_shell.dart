@@ -6,6 +6,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/bubble_overlay_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/biometric_prompt_dialog.dart';
 import '../../session/widgets/session_banner.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   bool _bubbleStarted = false;
+  bool _biometricChecked = false;
 
   @override
   void didChangeDependencies() {
@@ -27,6 +29,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) BubbleOverlayService.instance.startMonitoring(context);
       });
+    }
+    if (!_biometricChecked) {
+      _biometricChecked = true;
+      _checkBiometricPrompt();
+    }
+  }
+
+  Future<void> _checkBiometricPrompt() async {
+    // Wait for the home screen to fully render before showing the prompt
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    final token = await ref.read(authProvider.notifier).getStoredToken();
+    if (token != null && mounted) {
+      await showBiometricPrompt(context, token);
     }
   }
 
@@ -83,7 +99,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             // ── Persistent session banner ──
             const SessionBanner(),
             // ── Main content ─────────────────────────────
-            Expanded(child: widget.child),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: widget.child,
+              ),
+            ),
           ],
         ),
       ),

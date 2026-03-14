@@ -414,10 +414,20 @@ class _BookingDetailBody extends ConsumerWidget {
                 _premiumDivider(),
                 _PremiumRow(
                   icon: Icons.receipt_rounded,
-                  label: booking.finalAmountNis != null ? 'Booked' : 'Total',
+                  label: booking.isCompleted
+                      ? (booking.finalAmountNis != null ? 'Booked' : 'Total')
+                      : 'Estimated',
                   value: '\u20AA${booking.totalAmountNis}',
-                  valueBold: booking.finalAmountNis == null,
+                  valueBold: booking.isCompleted && booking.finalAmountNis == null,
                 ),
+                if (!booking.isCompleted && booking.finalAmountNis == null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Final price calculated by session timer',
+                      style: TextStyle(fontSize: 11, color: AppColors.textHint, fontStyle: FontStyle.italic),
+                    ),
+                  ),
                 if (booking.overtimeAmountNis > 0) ...[
                   _premiumDivider(),
                   _PremiumRow(
@@ -448,7 +458,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 _PremiumRow(
                   icon: booking.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
                   label: 'Status',
-                  value: booking.isPaid ? 'Paid' : (booking.isCompleted ? 'Processing' : 'After session'),
+                  value: booking.isPaid ? 'Paid' : (booking.isCompleted ? 'Processing' : 'Pending session'),
                   valueColor: booking.isPaid ? AppColors.success : AppColors.warning,
                 ),
               ],

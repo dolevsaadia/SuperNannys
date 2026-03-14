@@ -1,7 +1,9 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
@@ -25,7 +27,7 @@ class ProfileScreen extends ConsumerWidget {
               decoration: const BoxDecoration(
                 gradient: LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 60, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
               child: Column(
                 children: [
                   Stack(
@@ -106,6 +108,9 @@ class ProfileScreen extends ConsumerWidget {
                       _MenuItem(Icons.dashboard_rounded, 'Dashboard', () => context.go('/dashboard')),
                       _MenuItem(Icons.schedule_rounded, 'Manage Availability', () => context.go('/dashboard/availability')),
                       _MenuItem(Icons.account_balance_wallet_rounded, 'Earnings', () => context.go('/dashboard/earnings')),
+                      if (!user.isVerified)
+                        _MenuItem(Icons.verified_user_rounded, 'Get Verified', () => context.go('/dashboard/verification')),
+                      _MenuItem(Icons.description_rounded, 'Documents', () => context.go('/dashboard/documents')),
                     ],
                   ]),
                   const SizedBox(height: 16),
@@ -114,6 +119,7 @@ class ProfileScreen extends ConsumerWidget {
                   _MenuGroup(items: [
                     _MenuItem(Icons.notifications_outlined, 'Notifications', () => context.go('/profile/notifications')),
                     _MenuItem(Icons.language_rounded, 'Language', () => context.go('/profile/language')),
+                    _MenuItem(Icons.fingerprint_rounded, Platform.isIOS ? 'Face ID / Touch ID' : 'Fingerprint Login', () => _toggleBiometric(context, ref)),
                     _MenuItem(Icons.lock_outline_rounded, 'Privacy & Security', () => context.go('/profile/privacy')),
                     _MenuItem(Icons.help_outline_rounded, 'Help & Support', () => context.go('/profile/help')),
                     _MenuItem(Icons.info_outline_rounded, 'About SuperNanny', () => context.go('/profile/about')),
@@ -130,6 +136,63 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _toggleBiometric(BuildContext context, WidgetRef ref) async {
+    final biometric = BiometricService();
+    final isSupported = await biometric.isDeviceSupported;
+    if (!isSupported) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric authentication is not available on this device'), backgroundColor: AppColors.error),
+        );
+      }
+      return;
+    }
+
+    final isEnabled = await biometric.isEnabled;
+    if (isEnabled) {
+      // Disable biometric
+      await biometric.disable();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric login disabled'), backgroundColor: AppColors.textSecondary),
+        );
+      }
+    } else {
+      // Enable biometric - authenticate first, then save token
+      try {
+        final authenticated = await biometric.authenticate(
+          reason: 'Verify your identity to enable biometric login',
+        );
+        if (!authenticated) return;
+
+        final token = await ref.read(authProvider.notifier).getStoredToken();
+        if (token != null) {
+          await biometric.enable(token);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${Platform.isIOS ? "Face ID / Touch ID" : "Fingerprint"} login enabled!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please sign in again to enable biometric login'), backgroundColor: AppColors.error),
+            );
+          }
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Biometric error: $e'), backgroundColor: AppColors.error),
+          );
+        }
+      }
+    }
   }
 
   void _logout(BuildContext context, WidgetRef ref) {

@@ -109,11 +109,19 @@ export const authService = {
     }
 
     const client = getGoogleClient()
-    const ticket = await client.verifyIdToken({
-      idToken: data.idToken,
-      audience: config.google.allClientIds,
-    })
-    const payload = ticket.getPayload()
+    let payload: import('google-auth-library').TokenPayload | undefined
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: data.idToken,
+        audience: config.google.allClientIds,
+      })
+      payload = ticket.getPayload()
+    } catch (err) {
+      logger.warn('Google token verification failed', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      throw new AppError('Invalid or expired Google token', 401)
+    }
     if (!payload?.email) throw new AppError('Invalid Google token', 401)
 
     let user = await authDal.findByGoogleSubOrEmail(payload.sub!, payload.email)

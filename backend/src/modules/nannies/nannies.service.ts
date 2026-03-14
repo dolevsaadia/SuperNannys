@@ -16,7 +16,7 @@ const orderByMap: Record<string, Record<string, string>> = {
 
 export const nanniesService = {
   async search(params: SearchNanniesInput) {
-    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating' } = params
+    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params as any
 
     const where: Record<string, unknown> = {}
     if (city) where.city = { contains: city, mode: 'insensitive' }
@@ -30,6 +30,7 @@ export const nanniesService = {
     if (language) where.languages = { has: language }
     if (skill) where.skills = { has: skill }
     if (minRating) { const v = parseFloat(minRating); if (!isNaN(v)) where.rating = { gte: v } }
+    if (hasRecurringRate === 'true') where.recurringHourlyRateNis = { not: null }
 
     const orderBy = orderByMap[sortBy] || orderByMap['rating']
     const { page, limit, skip } = parsePagination({ page: params.page, limit: params.limit })
@@ -79,14 +80,26 @@ export const nanniesService = {
     const profile = await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
+      // Group slots by day to support multiple time ranges per day
+      const slotsByDay = new Map<number, typeof availability>()
       for (const slot of availability) {
+        const existing = slotsByDay.get(slot.dayOfWeek) ?? []
+        existing.push(slot)
+        slotsByDay.set(slot.dayOfWeek, existing)
+      }
+
+      // For each day, delete old slots then create new ones
+      for (const [dayOfWeek, daySlots] of slotsByDay) {
         try {
-          await nanniesDal.upsertAvailability(profile.id, slot)
+          await nanniesDal.deleteAvailabilityForDay(profile.id, dayOfWeek)
+          for (const slot of daySlots) {
+            await nanniesDal.upsertAvailability(profile.id, slot)
+          }
         } catch (err) {
-          logger.error('Failed to upsert availability slot', {
+          logger.error('Failed to update availability slots', {
             userId,
             profileId: profile.id,
-            dayOfWeek: slot.dayOfWeek,
+            dayOfWeek,
             error: err instanceof Error ? err.message : String(err),
           })
         }

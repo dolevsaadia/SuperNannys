@@ -54,6 +54,19 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     return
   }
 
+  // Prisma initialization / runtime errors
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    logger.error('Prisma init error', { requestId, message: err.message, path: req.path })
+    res.status(503).json({ success: false, message: 'Database temporarily unavailable' })
+    return
+  }
+
+  if (err instanceof Prisma.PrismaClientRustPanicError) {
+    logger.error('Prisma rust panic', { requestId, message: err.message, path: req.path })
+    res.status(500).json({ success: false, message: 'Database engine error' })
+    return
+  }
+
   // Unknown / unexpected errors — always log full stack
   logger.error('Unhandled error', { requestId, message: err.message, stack: err.stack, path: req.path, method: req.method })
   res.status(500).json({ success: false, message: 'Internal server error' })
