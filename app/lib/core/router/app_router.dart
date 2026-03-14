@@ -64,7 +64,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isPublic = publicRoutes.any((r) => loc.startsWith(r));
 
       if (!isAuth && !isPublic) return '/onboarding';
-      if (isAuth && isPublic) return '/home';
+      if (isAuth && isPublic) {
+        final user = authState.user;
+        if (user?.isNanny == true) return '/dashboard';
+        return '/home';
+      }
       return null;
     },
     routes: [

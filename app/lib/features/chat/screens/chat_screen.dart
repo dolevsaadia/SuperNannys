@@ -28,7 +28,7 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObserver {
   final List<MessageModel> _messages = [];
   final _msgController = TextEditingController();
   final _scrollController = ScrollController();
@@ -40,7 +40,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _init();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Reconnect socket and refresh messages when app comes back to foreground
+      _reconnectIfNeeded();
+      _loadMessages();
+    }
   }
 
   Future<void> _init() async {
@@ -49,20 +59,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await _connectSocket();
   }
 
+  Future<void> _reconnectIfNeeded() async {
+    if (_socket == null || _socket!.disconnected) {
+      _socket?.dispose();
+      _socket = null;
+      await _connectSocket();
+    }
+  }
+
   Future<void> _loadMessages() async {
     try {
       final resp = await apiClient.dio.get('/messages/${widget.bookingId}');
       final list = (resp.data['data']['messages'] as List<dynamic>)
           .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
           .toList();
+      if (!mounted) return;
+      final hadMessages = _messages.isNotEmpty;
       setState(() {
         _messages.clear();
         _messages.addAll(list);
         _isLoading = false;
       });
-      _scrollToBottom();
+      if (!hadMessages || list.length > _messages.length) {
+        _scrollToBottom();
+      }
     } catch (_) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -76,6 +98,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
+          .enableReconnection()
           .build(),
     );
 
@@ -84,14 +107,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _socket!.emit('booking:join', widget.bookingId);
     });
 
+    _socket!.onReconnect((_) {
+      _socket!.emit('booking:join', widget.bookingId);
+      _loadMessages(); // Refresh messages on reconnect
+    });
+
     _socket!.on('message:new', (data) {
+      if (!mounted) return;
       final msg = MessageModel.fromJson(data as Map<String, dynamic>);
+      // Avoid duplicates
+      if (_messages.any((m) => m.id == msg.id)) return;
       setState(() => _messages.add(msg));
       _scrollToBottom();
     });
 
-    _socket!.on('typing:start', (_) => setState(() => _otherTyping = true));
-    _socket!.on('typing:stop', (_) => setState(() => _otherTyping = false));
+    _socket!.on('typing:start', (_) { if (mounted) setState(() => _otherTyping = true); });
+    _socket!.on('typing:stop', (_) { if (mounted) setState(() => _otherTyping = false); });
   }
 
   void _scrollToBottom() {
@@ -123,8 +154,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _socket?.emit('booking:leave', widget.bookingId);
     _socket?.disconnect();
+    _socket?.dispose();
     _msgController.dispose();
     _scrollController.dispose();
     super.dispose();

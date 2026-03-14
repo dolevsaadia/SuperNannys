@@ -43,14 +43,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkBiometric() async {
-    // Show a biometric button for every available type so the user can choose.
-    // We always show buttons when hardware exists — enrollment errors are
-    // handled gracefully at login time with a friendly message.
+    // Only show biometric buttons if user has previously enabled biometric login
+    final isEnabled = await _biometric.isEnabled;
+    if (!isEnabled) return;
+
     final supported = await _biometric.isDeviceSupported;
     if (supported) {
       var types = await _biometric.getAvailableBiometrics();
-      // If no biometrics enrolled yet, infer the default type per platform
-      // so the button still shows (user sees the feature exists).
       if (types.isEmpty) {
         if (Platform.isIOS) {
           types = [BiometricType.face];
@@ -255,20 +254,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 48),
 
-                // ── Brand Logo with glow ─────────────
+                // ── Brand Logo ─────────────
                 Container(
-                  width: 88,
-                  height: 88,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: AppColors.gradientPrimary,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: AppShadows.primaryGlow(0.3),
                   ),
-                  child: const Icon(Icons.child_care_rounded, size: 44, color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Image.asset('assets/brand/app_icon.png', fit: BoxFit.cover),
+                  ),
                 ),
                 const SizedBox(height: 36),
 

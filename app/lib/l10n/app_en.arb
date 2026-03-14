@@ -1,0 +1,492 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "SuperNanny",
+  "@appTitle": { "description": "The application name" },
+
+  "welcomeBack": "Welcome back",
+  "@welcomeBack": { "description": "Greeting on login screen" },
+
+  "signIn": "Sign In",
+  "@signIn": { "description": "Sign in button" },
+
+  "signUp": "Sign Up",
+  "@signUp": { "description": "Sign up button" },
+
+  "email": "Email",
+  "@email": { "description": "Email field label" },
+
+  "password": "Password",
+  "@password": { "description": "Password field label" },
+
+  "confirmPassword": "Confirm Password",
+  "@confirmPassword": { "description": "Confirm password field label" },
+
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": { "description": "Forgot password link" },
+
+  "continueWithGoogle": "Continue with Google",
+  "@continueWithGoogle": { "description": "Google sign-in button" },
+
+  "signInWithBiometric": "Sign in with Biometric",
+  "@signInWithBiometric": { "description": "Biometric sign-in button" },
+
+  "signInWithFingerprint": "Sign in with Fingerprint",
+  "@signInWithFingerprint": { "description": "Fingerprint sign-in button" },
+
+  "signInWithFaceId": "Sign in with Face ID",
+  "@signInWithFaceId": { "description": "Face ID sign-in button" },
+
+  "dontHaveAccount": "Don't have an account?",
+  "@dontHaveAccount": { "description": "Sign up prompt" },
+
+  "alreadyHaveAccount": "Already have an account?",
+  "@alreadyHaveAccount": { "description": "Sign in prompt" },
+
+  "fullName": "Full Name",
+  "@fullName": { "description": "Full name field label" },
+
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": { "description": "Phone number field label" },
+
+  "createAccount": "Create Account",
+  "@createAccount": { "description": "Create account button" },
+
+  "orContinueWith": "Or continue with",
+  "@orContinueWith": { "description": "Social login separator text" },
+
+  "searchNanniesCities": "Search nannies, cities...",
+  "@searchNanniesCities": { "description": "Home search placeholder" },
+
+  "myLocation": "My Location",
+  "@myLocation": { "description": "Current location label" },
+
+  "topRated": "Top Rated",
+  "@topRated": { "description": "Top rated section title" },
+
+  "availableNow": "Available Now",
+  "@availableNow": { "description": "Available now section title" },
+
+  "newOnSuperNanny": "New on SuperNanny",
+  "@newOnSuperNanny": { "description": "New nannies section title" },
+
+  "allNannies": "All Nannies",
+  "@allNannies": { "description": "All nannies section title" },
+
+  "filter": "Filter",
+  "@filter": { "description": "Filter button" },
+
+  "filters": "Filters",
+  "@filters": { "description": "Filters title" },
+
+  "sortBy": "Sort By",
+  "@sortBy": { "description": "Sort by label" },
+
+  "rating": "Rating",
+  "@rating": { "description": "Rating label" },
+
+  "price": "Price",
+  "@price": { "description": "Price label" },
+
+  "distance": "Distance",
+  "@distance": { "description": "Distance label" },
+
+  "experience": "Experience",
+  "@experience": { "description": "Experience label" },
+
+  "skills": "Skills",
+  "@skills": { "description": "Skills label" },
+
+  "reviews": "Reviews",
+  "@reviews": { "description": "Reviews label" },
+
+  "seeAll": "See All",
+  "@seeAll": { "description": "See all link" },
+
+  "bookNow": "Book Now",
+  "@bookNow": { "description": "Book now button" },
+
+  "oneTime": "One-time",
+  "@oneTime": { "description": "One-time booking type" },
+
+  "recurring": "Recurring",
+  "@recurring": { "description": "Recurring booking type" },
+
+  "selectDate": "Select Date",
+  "@selectDate": { "description": "Date picker label" },
+
+  "startTime": "Start",
+  "@startTime": { "description": "Start time label" },
+
+  "endTime": "End",
+  "@endTime": { "description": "End time label" },
+
+  "numberOfChildren": "Number of Children",
+  "@numberOfChildren": { "description": "Children count field" },
+
+  "address": "Address",
+  "@address": { "description": "Address field label" },
+
+  "notes": "Notes",
+  "@notes": { "description": "Notes field label" },
+
+  "requestBooking": "Request Booking",
+  "@requestBooking": { "description": "Request booking button" },
+
+  "bookingSummary": "Booking Summary",
+  "@bookingSummary": { "description": "Booking summary title" },
+
+  "paymentAfterSession": "Payment after session",
+  "@paymentAfterSession": { "description": "Payment info text" },
+
+  "hourlyRate": "Hourly Rate",
+  "@hourlyRate": { "description": "Hourly rate label" },
+
+  "estimatedTotal": "Estimated Total",
+  "@estimatedTotal": { "description": "Estimated total label" },
+
+  "bookingConfirmed": "Booking Confirmed",
+  "@bookingConfirmed": { "description": "Booking confirmation title" },
+
+  "bookingPending": "Booking Pending",
+  "@bookingPending": { "description": "Booking pending status" },
+
+  "bookingCancelled": "Booking Cancelled",
+  "@bookingCancelled": { "description": "Booking cancelled status" },
+
+  "bookingCompleted": "Booking Completed",
+  "@bookingCompleted": { "description": "Booking completed status" },
+
+  "upcomingBookings": "Upcoming Bookings",
+  "@upcomingBookings": { "description": "Upcoming bookings section" },
+
+  "pastBookings": "Past Bookings",
+  "@pastBookings": { "description": "Past bookings section" },
+
+  "noBookingsYet": "No bookings yet",
+  "@noBookingsYet": { "description": "Empty bookings message" },
+
+  "typeAMessage": "Type a message...",
+  "@typeAMessage": { "description": "Chat input placeholder" },
+
+  "startTheConversation": "Start the conversation!",
+  "@startTheConversation": { "description": "Empty chat message" },
+
+  "typing": "typing...",
+  "@typing": { "description": "Chat typing indicator" },
+
+  "online": "Online",
+  "@online": { "description": "Online status" },
+
+  "offline": "Offline",
+  "@offline": { "description": "Offline status" },
+
+  "messages": "Messages",
+  "@messages": { "description": "Messages tab title" },
+
+  "noMessages": "No messages yet",
+  "@noMessages": { "description": "Empty messages state" },
+
+  "editProfile": "Edit Profile",
+  "@editProfile": { "description": "Edit profile button" },
+
+  "privacyAndSecurity": "Privacy & Security",
+  "@privacyAndSecurity": { "description": "Privacy settings" },
+
+  "about": "About",
+  "@about": { "description": "About section" },
+
+  "help": "Help",
+  "@help": { "description": "Help section" },
+
+  "notifications": "Notifications",
+  "@notifications": { "description": "Notifications settings" },
+
+  "logout": "Logout",
+  "@logout": { "description": "Logout button" },
+
+  "deleteAccount": "Delete Account",
+  "@deleteAccount": { "description": "Delete account button" },
+
+  "deleteAccountConfirmation": "Are you sure you want to delete your account? This action cannot be undone.",
+  "@deleteAccountConfirmation": { "description": "Delete account confirmation message" },
+
+  "pendingRequests": "Pending Requests",
+  "@pendingRequests": { "description": "Nanny dashboard pending requests" },
+
+  "totalEarned": "Total Earned",
+  "@totalEarned": { "description": "Nanny dashboard total earned" },
+
+  "totalJobs": "Total Jobs",
+  "@totalJobs": { "description": "Nanny dashboard total jobs" },
+
+  "quickActions": "Quick Actions",
+  "@quickActions": { "description": "Nanny dashboard quick actions" },
+
+  "availability": "Availability",
+  "@availability": { "description": "Nanny availability section" },
+
+  "earnings": "Earnings",
+  "@earnings": { "description": "Nanny earnings section" },
+
+  "profile": "Profile",
+  "@profile": { "description": "Profile tab" },
+
+  "home": "Home",
+  "@home": { "description": "Home tab" },
+
+  "bookings": "Bookings",
+  "@bookings": { "description": "Bookings tab" },
+
+  "chat": "Chat",
+  "@chat": { "description": "Chat tab" },
+
+  "settings": "Settings",
+  "@settings": { "description": "Settings page title" },
+
+  "termsOfService": "Terms of Service",
+  "@termsOfService": { "description": "Terms of service link" },
+
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": { "description": "Privacy policy link" },
+
+  "openSourceLicenses": "Open Source Licenses",
+  "@openSourceLicenses": { "description": "Open source licenses link" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Cancel button" },
+
+  "confirm": "Confirm",
+  "@confirm": { "description": "Confirm button" },
+
+  "save": "Save",
+  "@save": { "description": "Save button" },
+
+  "loading": "Loading...",
+  "@loading": { "description": "Loading indicator text" },
+
+  "error": "Error",
+  "@error": { "description": "Error title" },
+
+  "success": "Success",
+  "@success": { "description": "Success title" },
+
+  "noResults": "No results",
+  "@noResults": { "description": "Empty results message" },
+
+  "retry": "Retry",
+  "@retry": { "description": "Retry button" },
+
+  "ok": "OK",
+  "@ok": { "description": "OK button" },
+
+  "yes": "Yes",
+  "@yes": { "description": "Yes button" },
+
+  "no": "No",
+  "@no": { "description": "No button" },
+
+  "close": "Close",
+  "@close": { "description": "Close button" },
+
+  "done": "Done",
+  "@done": { "description": "Done button" },
+
+  "next": "Next",
+  "@next": { "description": "Next button" },
+
+  "back": "Back",
+  "@back": { "description": "Back button" },
+
+  "skip": "Skip",
+  "@skip": { "description": "Skip button" },
+
+  "apply": "Apply",
+  "@apply": { "description": "Apply button" },
+
+  "reset": "Reset",
+  "@reset": { "description": "Reset button" },
+
+  "delete": "Delete",
+  "@delete": { "description": "Delete button" },
+
+  "edit": "Edit",
+  "@edit": { "description": "Edit button" },
+
+  "add": "Add",
+  "@add": { "description": "Add button" },
+
+  "remove": "Remove",
+  "@remove": { "description": "Remove button" },
+
+  "search": "Search",
+  "@search": { "description": "Search button/label" },
+
+  "share": "Share",
+  "@share": { "description": "Share button" },
+
+  "favorites": "Favorites",
+  "@favorites": { "description": "Favorites section" },
+
+  "addToFavorites": "Add to Favorites",
+  "@addToFavorites": { "description": "Add to favorites action" },
+
+  "removeFromFavorites": "Remove from Favorites",
+  "@removeFromFavorites": { "description": "Remove from favorites action" },
+
+  "noFavoritesYet": "No favorites yet",
+  "@noFavoritesYet": { "description": "Empty favorites message" },
+
+  "perHour": "/hr",
+  "@perHour": { "description": "Per hour abbreviation" },
+
+  "yearsExperience": "{count} years experience",
+  "@yearsExperience": {
+    "description": "Years of experience",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "childrenCount": "{count, plural, =1{1 child} other{{count} children}}",
+  "@childrenCount": {
+    "description": "Number of children",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "reviewsCount": "{count, plural, =0{No reviews} =1{1 review} other{{count} reviews}}",
+  "@reviewsCount": {
+    "description": "Number of reviews",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "km": "km",
+  "@km": { "description": "Kilometers abbreviation" },
+
+  "today": "Today",
+  "@today": { "description": "Today label" },
+
+  "tomorrow": "Tomorrow",
+  "@tomorrow": { "description": "Tomorrow label" },
+
+  "yesterday": "Yesterday",
+  "@yesterday": { "description": "Yesterday label" },
+
+  "language": "Language",
+  "@language": { "description": "Language setting label" },
+
+  "selectLanguage": "Select Language",
+  "@selectLanguage": { "description": "Language selection title" },
+
+  "darkMode": "Dark Mode",
+  "@darkMode": { "description": "Dark mode setting" },
+
+  "locationPermission": "Location Permission",
+  "@locationPermission": { "description": "Location permission label" },
+
+  "locationPermissionDescription": "We need your location to find nannies near you",
+  "@locationPermissionDescription": { "description": "Location permission explanation" },
+
+  "notificationPermission": "Notification Permission",
+  "@notificationPermission": { "description": "Notification permission label" },
+
+  "notificationPermissionDescription": "Get notified about bookings and messages",
+  "@notificationPermissionDescription": { "description": "Notification permission explanation" },
+
+  "allow": "Allow",
+  "@allow": { "description": "Allow button" },
+
+  "deny": "Deny",
+  "@deny": { "description": "Deny button" },
+
+  "connectionError": "Connection error. Please check your internet.",
+  "@connectionError": { "description": "Connection error message" },
+
+  "somethingWentWrong": "Something went wrong. Please try again.",
+  "@somethingWentWrong": { "description": "Generic error message" },
+
+  "sessionExpired": "Session expired. Please sign in again.",
+  "@sessionExpired": { "description": "Session expired message" },
+
+  "noInternetConnection": "No internet connection",
+  "@noInternetConnection": { "description": "No internet message" },
+
+  "logoutConfirmation": "Are you sure you want to logout?",
+  "@logoutConfirmation": { "description": "Logout confirmation message" },
+
+  "accept": "Accept",
+  "@accept": { "description": "Accept button" },
+
+  "decline": "Decline",
+  "@decline": { "description": "Decline button" },
+
+  "pending": "Pending",
+  "@pending": { "description": "Pending status" },
+
+  "confirmed": "Confirmed",
+  "@confirmed": { "description": "Confirmed status" },
+
+  "completed": "Completed",
+  "@completed": { "description": "Completed status" },
+
+  "cancelled": "Cancelled",
+  "@cancelled": { "description": "Cancelled status" },
+
+  "inProgress": "In Progress",
+  "@inProgress": { "description": "In progress status" },
+
+  "map": "Map",
+  "@map": { "description": "Map view label" },
+
+  "list": "List",
+  "@list": { "description": "List view label" },
+
+  "gallery": "Gallery",
+  "@gallery": { "description": "Gallery label" },
+
+  "camera": "Camera",
+  "@camera": { "description": "Camera label" },
+
+  "choosePhoto": "Choose Photo",
+  "@choosePhoto": { "description": "Choose photo option" },
+
+  "takePhoto": "Take Photo",
+  "@takePhoto": { "description": "Take photo option" },
+
+  "bio": "Bio",
+  "@bio": { "description": "Bio field label" },
+
+  "age": "Age",
+  "@age": { "description": "Age field label" },
+
+  "city": "City",
+  "@city": { "description": "City field label" },
+
+  "startSession": "Start Session",
+  "@startSession": { "description": "Start session button" },
+
+  "endSession": "End Session",
+  "@endSession": { "description": "End session button" },
+
+  "sessionInProgress": "Session in Progress",
+  "@sessionInProgress": { "description": "Session in progress label" },
+
+  "rateYourExperience": "Rate your experience",
+  "@rateYourExperience": { "description": "Rating prompt" },
+
+  "writeAReview": "Write a review...",
+  "@writeAReview": { "description": "Review input placeholder" },
+
+  "submitReview": "Submit Review",
+  "@submitReview": { "description": "Submit review button" },
+
+  "thankYouForReview": "Thank you for your review!",
+  "@thankYouForReview": { "description": "Review submitted message" },
+
+  "version": "Version",
+  "@version": { "description": "App version label" }
+}
