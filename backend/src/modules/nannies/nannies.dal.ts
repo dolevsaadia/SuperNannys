@@ -56,4 +56,30 @@ export const nanniesDal = {
       create: { nannyProfileId, ...slot },
     })
   },
+
+  createDocument(nannyProfileId: string, type: string, url: string) {
+    return prisma.document.create({
+      data: { nannyProfileId, type: type as any, url },
+    })
+  },
+
+  getDocuments(nannyProfileId: string) {
+    return prisma.document.findMany({
+      where: { nannyProfileId },
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  deleteDocument(nannyProfileId: string, docId: string) {
+    return prisma.document.deleteMany({
+      where: { id: docId, nannyProfileId },
+    })
+  },
+
+  verifyDocument(docId: string) {
+    return prisma.document.update({
+      where: { id: docId },
+      data: { verifiedAt: new Date() },
+    })
+  },
 }

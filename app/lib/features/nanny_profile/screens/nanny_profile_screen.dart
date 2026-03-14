@@ -11,6 +11,7 @@ import '../../../core/widgets/badge_chip.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/rating_bar_widget.dart';
 import '../../../core/widgets/app_button.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final _nannyDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, id) async {
   final resp = await apiClient.dio.get('/nannies/$id');
@@ -87,6 +88,21 @@ class _ProfileBodyState extends State<_ProfileBody> {
       await apiClient.dio.post('/favorites/toggle', data: {'nannyUserId': profile.userId});
     } catch (_) {
       if (mounted) setState(() => _isFavorited = prev);
+    }
+  }
+
+  void _openMapsNavigation(NannyModel nanny) async {
+    String url;
+    if (nanny.latitude != null && nanny.longitude != null) {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
+    } else if (nanny.address.isNotEmpty) {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
+    } else {
+      url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
+    }
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -184,9 +200,19 @@ class _ProfileBodyState extends State<_ProfileBody> {
                             children: [
                               RatingDisplay(rating: profile.rating, count: profile.reviewsCount),
                               const SizedBox(width: 12),
-                              const Icon(Icons.location_on_rounded, size: 14, color: Colors.white70),
-                              const SizedBox(width: 2),
-                              Text(profile.city, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              GestureDetector(
+                                onTap: () => _openMapsNavigation(profile),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.location_on_rounded, size: 14, color: Colors.white70),
+                                    const SizedBox(width: 2),
+                                    Text(profile.city, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.navigation_rounded, size: 12, color: Colors.white70),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ],

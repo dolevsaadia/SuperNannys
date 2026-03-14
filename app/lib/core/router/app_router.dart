@@ -21,6 +21,7 @@ import '../../features/profile/screens/bookings_history_screen.dart';
 import '../../features/nanny_dashboard/screens/dashboard_screen.dart';
 import '../../features/nanny_dashboard/screens/availability_screen.dart';
 import '../../features/nanny_dashboard/screens/earnings_screen.dart';
+import '../../features/nanny_dashboard/screens/documents_screen.dart';
 import '../../features/nanny_onboarding/screens/nanny_onboarding_screen.dart';
 import '../../features/admin/screens/admin_screen.dart';
 import '../../features/admin/screens/admin_users_screen.dart';
@@ -176,6 +177,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(path: 'availability', builder: (_, __) => const AvailabilityScreen()),
               GoRoute(path: 'earnings', builder: (_, __) => const EarningsScreen()),
+              GoRoute(path: 'documents', builder: (_, __) => const DocumentsScreen()),
             ],
           ),
           GoRoute(

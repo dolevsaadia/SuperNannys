@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/nanny_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
@@ -179,6 +180,31 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                                   style: const TextStyle(fontSize: 12, color: AppColors.textHint),
                                 ),
                               ],
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: () async {
+                                  String url;
+                                  if (nanny.latitude != null && nanny.longitude != null) {
+                                    url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
+                                  } else if (nanny.address.isNotEmpty) {
+                                    url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
+                                  } else {
+                                    url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
+                                  }
+                                  final uri = Uri.parse(url);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(Icons.navigation_rounded, size: 12, color: AppColors.primary),
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -218,7 +244,28 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                     const SizedBox(width: 14),
                     _Stat(icon: Icons.check_circle_outline, label: '${nanny.completedJobs} jobs'),
                     const Spacer(),
-                    // Price tag
+                    // Price tags
+                    if (nanny.recurringHourlyRateNis != null)
+                      Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.repeat_rounded, size: 12, color: AppColors.accent),
+                            const SizedBox(width: 3),
+                            Text(
+                              '₪${nanny.recurringHourlyRateNis}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent),
+                            ),
+                          ],
+                        ),
+                      ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(

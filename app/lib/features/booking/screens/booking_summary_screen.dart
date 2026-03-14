@@ -118,7 +118,7 @@ class BookingSummaryScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Estimated Total', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
-                              Text('\u20AA$totalAmount', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                              Text('~\u20AA$totalAmount', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                             ],
                           ),
                         ],

@@ -83,4 +83,22 @@ export const nanniesService = {
     }
     return profile
   },
+
+  async addDocument(userId: string, type: string, url: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new AppError('Profile not found', 404)
+    return nanniesDal.createDocument(profile.id, type, url)
+  },
+
+  async getDocuments(userId: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new AppError('Profile not found', 404)
+    return nanniesDal.getDocuments(profile.id)
+  },
+
+  async deleteDocument(userId: string, docId: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new AppError('Profile not found', 404)
+    return nanniesDal.deleteDocument(profile.id, docId)
+  },
 }

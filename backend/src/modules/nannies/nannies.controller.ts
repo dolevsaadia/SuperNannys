@@ -25,4 +25,30 @@ export const nanniesController = {
     const profile = await nanniesService.updateMyProfile(req.user!.userId, data)
     ok(res, profile)
   },
+
+  async uploadDocument(req: Request, res: Response): Promise<void> {
+    if (!req.file) {
+      res.status(400).json({ message: 'No file uploaded' })
+      return
+    }
+    const type = req.body.type || 'OTHER'
+    const validTypes = ['ID_CARD', 'POLICE_CHECK', 'FIRST_AID_CERT', 'CHILDCARE_CERT', 'OTHER']
+    if (!validTypes.includes(type)) {
+      res.status(400).json({ message: `Invalid document type. Must be one of: ${validTypes.join(', ')}` })
+      return
+    }
+    const url = `/uploads/${req.file.filename}`
+    const doc = await nanniesService.addDocument(req.user!.userId, type, url)
+    ok(res, doc)
+  },
+
+  async getDocuments(req: Request, res: Response): Promise<void> {
+    const docs = await nanniesService.getDocuments(req.user!.userId)
+    ok(res, docs)
+  },
+
+  async deleteDocument(req: Request, res: Response): Promise<void> {
+    await nanniesService.deleteDocument(req.user!.userId, req.params.docId)
+    ok(res, { deleted: true })
+  },
 }

@@ -93,8 +93,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       setState(() => _isSearchMode = false);
       return;
     }
+    final backendCity = IsraeliCities.toBackendQuery(query);
     ref.read(nanniesProvider.notifier).applyFilter(
-      ref.read(nanniesProvider.notifier).currentFilter.copyWith(city: query),
+      ref.read(nanniesProvider.notifier).currentFilter.copyWith(city: backendCity),
     );
     setState(() => _isSearchMode = true);
   }
@@ -122,8 +123,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   );
                 } else {
                   _searchController.text = city;
+                  final backendCity = IsraeliCities.toBackendQuery(city);
                   ref.read(nanniesProvider.notifier).applyFilter(
-                    ref.read(nanniesProvider.notifier).currentFilter.copyWith(city: city),
+                    ref.read(nanniesProvider.notifier).currentFilter.copyWith(city: backendCity),
                   );
                   setState(() => _isSearchMode = true);
                 }

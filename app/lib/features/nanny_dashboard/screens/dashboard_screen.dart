@@ -37,59 +37,92 @@ class DashboardScreen extends ConsumerWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // ── Gradient Header ──────────────────
+            // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(28),
                     bottomRight: Radius.circular(28),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // Avatar
+                        AvatarWidget(
+                          imageUrl: user?.avatarUrl,
+                          name: user?.fullName,
+                          size: 48,
+                        ),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Welcome back,',
-                                style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
+                                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75)),
                               ),
-                              const SizedBox(height: 2),
                               Text(
                                 '${user?.fullName.split(' ').first ?? ''}!',
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
                         GestureDetector(
                           onTap: () => context.go('/bookings'),
                           child: Container(
-                            width: 44,
-                            height: 44,
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(14),
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(13),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                             ),
-                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 14),
+                    // Status pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8, height: 8,
+                            decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          Text('Active & Available', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.9))),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -150,6 +183,45 @@ class DashboardScreen extends ConsumerWidget {
                         // ── Quick Actions ──────────────────
                         const Text('Quick Actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
+                        // ── Verification Reminder ──────────────────
+                        if (user?.isVerified != true)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                            ),
+                            child: GestureDetector(
+                              onTap: () => context.go('/dashboard/documents'),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40, height: 40,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warning.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Icons.upload_file_rounded, color: AppColors.warning, size: 22),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Complete Your Verification', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                                        Text('Upload ID & ethics certificate to get verified',
+                                          style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.warning),
+                                ],
+                              ),
+                            ),
+                          ),
+
                         Row(
                           children: [
                             Expanded(
@@ -172,10 +244,10 @@ class DashboardScreen extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _PremiumActionCard(
-                                icon: Icons.person_outline_rounded,
-                                label: 'Profile',
-                                color: AppColors.accent,
-                                onTap: () => context.go('/profile'),
+                                icon: Icons.description_rounded,
+                                label: 'Documents',
+                                color: AppColors.info,
+                                onTap: () => context.go('/dashboard/documents'),
                               ),
                             ),
                           ],

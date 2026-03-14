@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/constants/israeli_cities.dart';
 
 class BookingFormScreen extends ConsumerStatefulWidget {
   final String nannyId;
@@ -387,14 +388,19 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                   ),
                                   if (!_isRecurring && _totalAmount > 0)
                                     Text(
-                                      '${_durationHours.toStringAsFixed(1)}h = \u20AA$_totalAmount total',
+                                      '~${_durationHours.toStringAsFixed(1)}h ≈ \u20AA$_totalAmount estimated',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
                                   if (_isRecurring && _weeklyEstimate > 0)
                                     Text(
-                                      '~\u20AA$_weeklyEstimate/week  (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
+                                      '~\u20AA$_weeklyEstimate/week estimated (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Final price based on actual session time',
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11, fontStyle: FontStyle.italic),
+                                  ),
                                 ],
                               ),
                             ),
@@ -603,15 +609,47 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Address ──────────────────
-                    GestureDetector(
-                      onTap: () => setState(() => _currentStep = 1),
-                      child: AppTextField(
-                        label: 'Address',
-                        hint: 'Where will the care take place?',
-                        controller: _addressCtrl,
-                        prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                    // ── Address with city autocomplete ──────────────────
+                    _FormSection(
+                      icon: Icons.location_on_outlined,
+                      title: 'Address',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppTextField(
+                            label: '',
+                            hint: 'Start typing a city name...',
+                            controller: _addressCtrl,
+                            prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          if (_addressCtrl.text.isNotEmpty && IsraeliCities.search(_addressCtrl.text).isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 6),
+                              constraints: const BoxConstraints(maxHeight: 120),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: AppShadows.sm,
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: ListView(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                children: IsraeliCities.search(_addressCtrl.text).take(5).map((city) => ListTile(
+                                  dense: true,
+                                  leading: const Icon(Icons.location_city_rounded, size: 18, color: AppColors.primary),
+                                  title: Text(city, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                  onTap: () {
+                                    _addressCtrl.text = city;
+                                    setState(() => _currentStep = 1);
+                                    FocusScope.of(context).unfocus();
+                                  },
+                                )).toList(),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

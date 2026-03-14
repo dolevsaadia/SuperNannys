@@ -78,11 +78,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return Scaffold(
       body: Column(
         children: [
-          // ── Persistent session banner ────────────────
-          SafeArea(
-            bottom: false,
-            child: const SessionBanner(),
-          ),
+          // ── Persistent session banner (no SafeArea — child screens handle their own) ──
+          const SessionBanner(),
           // ── Main content ─────────────────────────────
           Expanded(child: widget.child),
         ],

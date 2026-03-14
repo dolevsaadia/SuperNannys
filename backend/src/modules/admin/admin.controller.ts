@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { ok } from '../../shared/utils/response'
 import { adminService } from './admin.service'
 import { updateUserSchema } from './admin.validation'
+import { nanniesDal } from '../nannies/nannies.dal'
 
 export const adminController = {
   async getStats(_req: Request, res: Response): Promise<void> {
@@ -28,5 +29,10 @@ export const adminController = {
   async getBookings(req: Request, res: Response): Promise<void> {
     const result = await adminService.getBookings(req.query as Record<string, string>)
     ok(res, result)
+  },
+
+  async verifyDocument(req: Request, res: Response): Promise<void> {
+    const doc = await nanniesDal.verifyDocument(req.params.docId)
+    ok(res, doc)
   },
 }
