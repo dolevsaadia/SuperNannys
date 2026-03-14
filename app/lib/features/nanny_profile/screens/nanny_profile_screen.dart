@@ -40,12 +40,55 @@ class NannyProfileScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileBody extends StatelessWidget {
+class _ProfileBody extends StatefulWidget {
   final NannyModel profile;
   final List<dynamic> reviews;
   final String nannyId;
 
   const _ProfileBody({required this.profile, required this.reviews, required this.nannyId});
+
+  @override
+  State<_ProfileBody> createState() => _ProfileBodyState();
+}
+
+class _ProfileBodyState extends State<_ProfileBody> {
+  bool _isFavorited = false;
+  bool _favLoading = true;
+
+  NannyModel get profile => widget.profile;
+  List<dynamic> get reviews => widget.reviews;
+  String get nannyId => widget.nannyId;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavorite();
+  }
+
+  Future<void> _checkFavorite() async {
+    try {
+      final resp = await apiClient.dio.get('/favorites/check/${profile.userId}');
+      if (mounted) {
+        setState(() {
+          _isFavorited = resp.data['data']?['isFavorited'] == true;
+          _favLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _favLoading = false);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    HapticFeedback.mediumImpact();
+    final prev = _isFavorited;
+    setState(() => _isFavorited = !_isFavorited);
+    try {
+      await apiClient.dio.post('/favorites/toggle', data: {'nannyUserId': profile.userId});
+    } catch (_) {
+      if (mounted) setState(() => _isFavorited = prev);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +104,10 @@ class _ProfileBody extends StatelessWidget {
               leading: _CircleBackButton(),
               actions: [
                 _HeroActionButton(Icons.share_outlined, () {}),
-                _HeroActionButton(Icons.favorite_border_rounded, () {}),
+                _HeroActionButton(
+                  _isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  _favLoading ? () {} : _toggleFavorite,
+                ),
                 const SizedBox(width: 8),
               ],
               flexibleSpace: FlexibleSpaceBar(

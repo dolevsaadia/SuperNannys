@@ -128,6 +128,10 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       setState(() => _error = 'Please select days, time, and start date');
       return;
     }
+    if (_addressCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Please enter an address');
+      return;
+    }
 
     final startMin = _recurringStartTime!.hour * 60 + _recurringStartTime!.minute;
     final endMin = _recurringEndTime!.hour * 60 + _recurringEndTime!.minute;
@@ -151,7 +155,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         if (_recurringEndDate != null) 'endDate': _recurringEndDate!.toUtc().toIso8601String(),
         'childrenCount': _childrenCount,
         if (_notesCtrl.text.isNotEmpty) 'notes': _notesCtrl.text,
-        if (_addressCtrl.text.isNotEmpty) 'address': _addressCtrl.text,
+        'address': _addressCtrl.text.trim(),
       });
 
       if (mounted) {
@@ -168,6 +172,10 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   Future<void> _proceed() async {
     if (_startDate == null || _startTime == null || _endTime == null) {
       setState(() => _error = 'Please select date and time');
+      return;
+    }
+    if (_addressCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'Please enter an address');
       return;
     }
 
@@ -194,7 +202,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         'endTime': endDt.toUtc().toIso8601String(),
         'childrenCount': _childrenCount,
         if (_notesCtrl.text.isNotEmpty) 'notes': _notesCtrl.text,
-        if (_addressCtrl.text.isNotEmpty) 'address': _addressCtrl.text,
+        'address': _addressCtrl.text.trim(),
       });
 
       final booking = resp.data['data'] as Map<String, dynamic>;
@@ -599,10 +607,11 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     GestureDetector(
                       onTap: () => setState(() => _currentStep = 1),
                       child: AppTextField(
-                        label: 'Address (optional)',
+                        label: 'Address',
                         hint: 'Where will the care take place?',
                         controller: _addressCtrl,
                         prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
                       ),
                     ),
                     const SizedBox(height: 16),

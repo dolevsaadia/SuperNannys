@@ -77,7 +77,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     try {
       final resp = await apiClient.dio.post('/auth/verify-otp', data: {
-        'email': widget.email,
+        'email': widget.email.toLowerCase(),
         'code': code,
       });
       final data = resp.data['data'] as Map<String, dynamic>;
@@ -116,7 +116,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     try {
       await apiClient.dio.post('/auth/resend-otp', data: {
-        'email': widget.email,
+        'email': widget.email.toLowerCase(),
       });
       if (!mounted) return;
       _startCountdown();

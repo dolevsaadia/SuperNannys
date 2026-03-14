@@ -77,7 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     final success = await ref.read(authProvider.notifier).register(
-      _email.text.trim(),
+      _email.text.trim().toLowerCase(),
       _password.text,
       _name.text.trim(),
       _role,
@@ -134,6 +134,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Google sign-up failed'), backgroundColor: AppColors.error),
+        );
+      }
+    } on PlatformException catch (e) {
+      if (mounted) {
+        final String message;
+        if (e.code == 'sign_in_failed' && e.message != null && e.message!.contains('10')) {
+          message = 'Google Sign-In configuration error. Please check SHA-1 fingerprint in Firebase Console.';
+        } else if (e.code == 'sign_in_canceled') {
+          return;
+        } else if (e.code == 'network_error') {
+          message = 'Network error. Please check your internet connection.';
+        } else {
+          message = 'Google Sign-Up error: ${e.message ?? e.code}';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: AppColors.error, duration: const Duration(seconds: 4)),
         );
       }
     } catch (e) {

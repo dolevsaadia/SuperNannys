@@ -61,6 +61,14 @@ export const sessionsService = {
       updated = await sessionsDal.confirmNannyStart(bookingId)
     }
 
+    // If this is the first confirmation, start the auto-cancel timeout
+    const isFirstConfirmation =
+      (isParent && !booking.nannyConfirmedStart) ||
+      (isNanny && !booking.parentConfirmedStart)
+    if (isFirstConfirmation) {
+      this.scheduleStartTimeout(bookingId)
+    }
+
     // Emit who confirmed
     if (ioRef) {
       ioRef.to(`booking:${bookingId}`).emit('session:start-confirmed', {

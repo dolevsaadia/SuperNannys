@@ -188,6 +188,7 @@ export const recurringBookingsService = {
             isRecurring: true,
             recurringBookingId: rb.id,
             occurrenceDate,
+            status: 'ACCEPTED', // Nanny already approved the recurring arrangement
           })
           count++
         }
