@@ -203,34 +203,43 @@ export const recurringBookingsService = {
         // Check if occurrence already exists
         const existing = await recurringBookingsDal.findExistingOccurrence(recurringBookingId, occurrenceDate)
         if (!existing) {
-          const startTime = new Date(cursor)
-          startTime.setHours(startH, startM, 0, 0)
+          try {
+            const startTime = new Date(cursor)
+            startTime.setHours(startH, startM, 0, 0)
 
-          const endTime = new Date(cursor)
-          endTime.setHours(endH, endM, 0, 0)
+            const endTime = new Date(cursor)
+            endTime.setHours(endH, endM, 0, 0)
 
-          await bookingsDal.create({
-            parentUserId: rb.parentUserId,
-            nannyUserId: rb.nannyUserId,
-            startTime,
-            endTime,
-            hourlyRateNis: rate,
-            totalAmountNis,
-            notes: rb.notes || undefined,
-            childrenCount: rb.childrenCount,
-            childrenAges: rb.childrenAges,
-            address: rb.address || undefined,
-            isRecurring: true,
-            recurringBookingId: rb.id,
-            occurrenceDate,
-            status: 'ACCEPTED', // Nanny already approved the recurring arrangement
-          })
-          count++
-          logger.debug('Occurrence created', {
-            recurringBookingId,
-            occurrenceDate: occurrenceDate.toISOString(),
-            count,
-          })
+            await bookingsDal.create({
+              parentUserId: rb.parentUserId,
+              nannyUserId: rb.nannyUserId,
+              startTime,
+              endTime,
+              hourlyRateNis: rate,
+              totalAmountNis,
+              notes: rb.notes || undefined,
+              childrenCount: rb.childrenCount,
+              childrenAges: rb.childrenAges,
+              address: rb.address || undefined,
+              isRecurring: true,
+              recurringBookingId: rb.id,
+              occurrenceDate,
+              status: 'ACCEPTED', // Nanny already approved the recurring arrangement
+            })
+            count++
+            logger.debug('Occurrence created', {
+              recurringBookingId,
+              occurrenceDate: occurrenceDate.toISOString(),
+              count,
+            })
+          } catch (err) {
+            logger.error('Failed to create occurrence', {
+              recurringBookingId,
+              occurrenceDate: occurrenceDate.toISOString(),
+              error: err instanceof Error ? err.message : String(err),
+            })
+            // Continue with next date — don't fail entire generation
+          }
         }
       }
 

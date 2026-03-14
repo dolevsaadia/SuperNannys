@@ -204,9 +204,12 @@ export const sessionsService = {
     }
 
     // ── Price = actual time × rate, with minimum hours enforcement ──
+    // Protect against negative or zero durations
+    if (actualDurationMin < 0) actualDurationMin = 0
     const actualHours = actualDurationMin / 60
     const chargeableHours = Math.max(actualHours, minimumHours)
     finalAmountNis = Math.round(chargeableHours * bookingData.hourlyRateNis)
+    if (!isFinite(finalAmountNis) || finalAmountNis < 0) finalAmountNis = 0
 
     // Overtime = anything beyond the originally booked duration
     const bookedDurationMin = Math.round(
@@ -232,19 +235,25 @@ export const sessionsService = {
       overtimeAmountNis,
     })
 
-    // Create earning record
+    // Create earning record — wrap in try/catch so session completion is not lost
     const platformFee = Math.round(finalAmountNis * config.platformFeePercent / 100)
     const netAmountNis = finalAmountNis - platformFee
 
-    await sessionsDal.upsertEarning({
-      nannyUserId: completed.nannyUserId,
-      bookingId: completed.id,
-      amountNis: finalAmountNis,
-      platformFee,
-      netAmountNis,
-    })
+    try {
+      await sessionsDal.upsertEarning({
+        nannyUserId: completed.nannyUserId,
+        bookingId: completed.id,
+        amountNis: finalAmountNis,
+        platformFee,
+        netAmountNis,
+      })
 
-    await sessionsDal.updateNannyStats(completed.nannyUserId, netAmountNis)
+      await sessionsDal.updateNannyStats(completed.nannyUserId, netAmountNis)
+    } catch (err) {
+      logger.error('Failed to create earning/update stats — session still completed', {
+        bookingId, nannyUserId: completed.nannyUserId, err,
+      })
+    }
 
     // Emit session ended
     if (ioRef) {

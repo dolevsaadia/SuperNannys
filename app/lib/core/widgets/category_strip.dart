@@ -19,7 +19,7 @@ class NannyCategory {
 /// Default nanny categories
 const kNannyCategories = [
   NannyCategory(id: 'all', label: 'All', icon: Icons.grid_view_rounded, bgColor: AppColors.catAll),
-  NannyCategory(id: 'regular', label: 'Regular', icon: Icons.repeat_rounded, bgColor: AppColors.catRegular),
+  NannyCategory(id: 'ongoing', label: 'Ongoing Care', icon: Icons.repeat_rounded, bgColor: AppColors.catOngoing),
   NannyCategory(id: 'infant', label: 'Infant', icon: Icons.child_friendly_rounded, bgColor: AppColors.catInfant),
   NannyCategory(id: 'toddler', label: 'Toddler', icon: Icons.child_care_rounded, bgColor: AppColors.catToddler),
   NannyCategory(id: 'school', label: 'School Age', icon: Icons.school_rounded, bgColor: AppColors.catSchool),

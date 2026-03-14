@@ -27,7 +27,7 @@ class ProfileScreen extends ConsumerWidget {
               decoration: const BoxDecoration(
                 gradient: LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: Column(
                 children: [
                   Stack(

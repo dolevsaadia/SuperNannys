@@ -39,7 +39,7 @@ class DashboardScreen extends ConsumerWidget {
             // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,
@@ -67,9 +67,9 @@ class DashboardScreen extends ConsumerWidget {
                         AvatarWidget(
                           imageUrl: user?.avatarUrl,
                           name: user?.fullName,
-                          size: 48,
+                          size: 42,
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +80,7 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                               Text(
                                 '${user?.fullName.split(' ').first ?? ''}!',
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -90,14 +90,14 @@ class DashboardScreen extends ConsumerWidget {
                         GestureDetector(
                           onTap: () => context.go('/bookings'),
                           child: Container(
-                            width: 42,
-                            height: 42,
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(13),
+                              borderRadius: BorderRadius.circular(11),
                               border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                             ),
-                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
+                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 18),
                           ),
                         ),
                       ],

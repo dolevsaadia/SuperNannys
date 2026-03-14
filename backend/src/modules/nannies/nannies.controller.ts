@@ -59,8 +59,18 @@ export const nanniesController = {
       res.status(400).json({ message: 'date, startTime, and endTime are required' })
       return
     }
+    const parsedDate = new Date(date)
+    if (isNaN(parsedDate.getTime())) {
+      res.status(400).json({ message: 'Invalid date format' })
+      return
+    }
+    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      res.status(400).json({ message: 'Invalid time format. Expected HH:mm' })
+      return
+    }
     const result = await nanniesService.upsertDateAvailability(req.user!.userId, {
-      date: new Date(date),
+      date: parsedDate,
       startTime,
       endTime,
       isBlocked: isBlocked ?? false,
@@ -79,7 +89,12 @@ export const nanniesController = {
       res.status(400).json({ message: 'date is required' })
       return
     }
-    const result = await nanniesService.blockDate(req.user!.userId, new Date(date))
+    const parsedDate = new Date(date)
+    if (isNaN(parsedDate.getTime())) {
+      res.status(400).json({ message: 'Invalid date format' })
+      return
+    }
+    const result = await nanniesService.blockDate(req.user!.userId, parsedDate)
     ok(res, result)
   },
 
