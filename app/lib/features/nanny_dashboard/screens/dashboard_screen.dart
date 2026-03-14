@@ -39,7 +39,7 @@ class DashboardScreen extends ConsumerWidget {
             // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,

@@ -263,7 +263,7 @@ class _StickyHeaderState extends State<_StickyHeader> {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
       child: Row(
         children: [
           _CircleButton(icon: Icons.notifications_outlined, onTap: widget.onNotification),
