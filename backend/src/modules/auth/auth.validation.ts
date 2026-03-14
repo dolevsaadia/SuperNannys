@@ -34,8 +34,19 @@ export const resendOTPSchema = z.object({
   email: z.string().email(),
 })
 
+export const sendPhoneCodeSchema = z.object({
+  phone: z.string().min(9).max(15),
+})
+
+export const verifyPhoneSchema = z.object({
+  phone: z.string().min(9).max(15),
+  code: z.string().length(6, 'Code must be 6 digits'),
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type GoogleSignInInput = z.infer<typeof googleSignInSchema>
 export type VerifyOTPInput = z.infer<typeof verifyOTPSchema>
 export type ResendOTPInput = z.infer<typeof resendOTPSchema>
+export type SendPhoneCodeInput = z.infer<typeof sendPhoneCodeSchema>
+export type VerifyPhoneInput = z.infer<typeof verifyPhoneSchema>

@@ -4,6 +4,8 @@ import { logger } from '../shared/utils/logger'
 import { messagesDal } from '../modules/messages/messages.dal'
 import { sessionsService } from '../modules/sessions/sessions.service'
 import { sessionTimer } from '../modules/sessions/session-timer'
+import { emailService } from '../shared/services/email.service'
+import { prisma } from '../db'
 
 interface AuthSocket extends Socket {
   userId?: string
@@ -19,6 +21,13 @@ const onlineUsers = new Set<string>()
  */
 const MESSAGE_RATE_LIMIT = { maxMessages: 30, windowMs: 60_000 }
 const messageCounts = new Map<string, { count: number; resetAt: number }>()
+
+/**
+ * Throttle email notifications per recipient: at most one email per 2 minutes.
+ * Key = recipientUserId, value = timestamp of last email sent.
+ */
+const EMAIL_THROTTLE_MS = 2 * 60_000
+const lastEmailSent = new Map<string, number>()
 
 function isRateLimited(socketId: string): boolean {
   const now = Date.now()
@@ -105,6 +114,28 @@ export function initSocketIO(io: SocketIOServer): void {
 
         const recipientId = booking.parentUserId === userId ? booking.nannyUserId : booking.parentUserId
         io.to(`user:${recipientId}`).emit('notification:badge')
+
+        // Send email notification if recipient is offline (throttled: max 1 per 2min per recipient)
+        if (!onlineUsers.has(recipientId)) {
+          const now = Date.now()
+          const lastSent = lastEmailSent.get(recipientId) || 0
+          if (now - lastSent > EMAIL_THROTTLE_MS) {
+            lastEmailSent.set(recipientId, now)
+            // Fire-and-forget — don't await
+            prisma.user.findUnique({ where: { id: recipientId }, select: { email: true } })
+              .then(async (recipient) => {
+                if (!recipient?.email) return
+                const sender = await prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } })
+                await emailService.sendChatNotification(
+                  recipient.email,
+                  sender?.fullName || 'Someone',
+                  text,
+                  payload.bookingId,
+                )
+              })
+              .catch((err) => logger.error('Chat email notification failed', { err }))
+          }
+        }
       } catch (err) {
         logger.error('Socket message error', { userId, bookingId: payload?.bookingId, err })
       }

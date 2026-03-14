@@ -344,14 +344,37 @@ class _BookingDetailBody extends ConsumerWidget {
                         children: [
                           const Icon(Icons.place_rounded, size: 16, color: AppColors.primary),
                           const SizedBox(width: 4),
-                          Text(
-                            booking.nanny?.city ?? 'See on map',
-                            style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: Text(
+                              booking.nanny?.city ?? 'See on map',
+                              style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                          const Spacer(),
-                          const Text('Tap to expand', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.open_in_full_rounded, size: 14, color: AppColors.textHint),
+                          GestureDetector(
+                            onTap: () async {
+                              final url = Uri.parse(
+                                'https://www.google.com/maps/dir/?api=1&destination=${booking.nanny!.latitude},${booking.nanny!.longitude}&travelmode=driving',
+                              );
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.navigation_rounded, size: 14, color: AppColors.success),
+                                  SizedBox(width: 4),
+                                  Text('Navigate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.success)),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

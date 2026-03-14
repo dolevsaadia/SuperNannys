@@ -11,5 +11,7 @@ router.post('/google',      asyncHandler(authController.googleSignIn))
 router.post('/verify-otp',  asyncHandler(authController.verifyOTP))
 router.post('/resend-otp',  asyncHandler(authController.resendOTP))
 router.get('/me',           requireAuth, asyncHandler(authController.getMe))
+router.post('/send-phone-code', requireAuth, asyncHandler(authController.sendPhoneCode))
+router.post('/verify-phone',    requireAuth, asyncHandler(authController.verifyPhone))
 
 export default router

@@ -45,6 +45,13 @@ export const authDal = {
     })
   },
 
+  updatePhone(userId: string, phone: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { phone, phoneVerified: true },
+    })
+  },
+
   findUserWithProfile(userId: string) {
     return prisma.user.findUnique({
       where: { id: userId },

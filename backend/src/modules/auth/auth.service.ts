@@ -223,4 +223,47 @@ export const authService = {
     if (!user) throw new AppError('User not found', 404)
     return user
   },
+
+  /**
+   * Send a phone verification code.
+   * Uses the existing OTP infra (code stored in VerificationCode table).
+   * In production, replace email fallback with a real SMS provider (Twilio).
+   */
+  async sendPhoneCode(userId: string, phone: string) {
+    const user = await authDal.findUserWithProfile(userId)
+    if (!user) throw new AppError('User not found', 404)
+
+    // Invalidate any existing phone codes
+    await verificationDal.invalidateExisting(`phone:${phone}`)
+    const code = generateOTP()
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
+    await verificationDal.createCode({
+      email: `phone:${phone}`,
+      code,
+      userId,
+      expiresAt,
+    })
+
+    // Send via email as SMS fallback + log to console
+    await emailService.sendPhoneVerificationCode(phone, code, user.email)
+    logger.info('Phone verification code sent', { userId, phone })
+    return { message: 'Verification code sent' }
+  },
+
+  /**
+   * Verify phone code and mark user's phone as verified.
+   */
+  async verifyPhone(userId: string, phone: string, code: string) {
+    const record = await verificationDal.findValidCode(`phone:${phone}`, code)
+    if (!record) {
+      throw new AppError('Invalid or expired verification code', 400)
+    }
+
+    await verificationDal.markUsed(record.id)
+
+    // Update user's phone and mark as verified
+    await authDal.updatePhone(userId, phone)
+    logger.info('Phone verified', { userId, phone })
+    return { message: 'Phone verified successfully' }
+  },
 }

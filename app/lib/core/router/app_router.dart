@@ -38,6 +38,9 @@ import '../../features/profile/screens/help_screen.dart';
 import '../../features/profile/screens/about_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
 import '../../features/verification/screens/verification_request_screen.dart';
+import '../../features/profile/screens/language_screen.dart';
+import '../../features/auth/screens/phone_verification_screen.dart';
+import '../../features/splash/screens/splash_screen.dart';
 
 /// Bridges Riverpod [AuthState] changes into a [Listenable] that GoRouter can
 /// use via [refreshListenable] — this re-evaluates the redirect function
@@ -52,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthNotifierBridge(ref);
 
   return GoRouter(
-    initialLocation: '/onboarding',
+    initialLocation: '/splash',
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
@@ -60,7 +63,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoading = authState.isLoading;
       final loc = state.matchedLocation;
 
-      if (isLoading) return null;
+      // Show splash screen while auth state is loading
+      if (isLoading) {
+        if (loc != '/splash') return '/splash';
+        return null;
+      }
+      // After loading, redirect away from splash
+      if (loc == '/splash') {
+        if (isAuth) {
+          final user = authState.user;
+          return user?.isNanny == true ? '/dashboard' : '/home';
+        }
+        return '/onboarding';
+      }
 
       final publicRoutes = ['/login', '/register', '/role-select', '/onboarding', '/verify-otp'];
       final isPublic = publicRoutes.any((r) => loc.startsWith(r));
@@ -74,6 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
@@ -154,6 +170,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(path: 'edit', builder: (_, __) => const EditProfileScreen()),
               GoRoute(path: 'notifications', builder: (_, __) => const NotificationsSettingsScreen()),
+              GoRoute(path: 'language', builder: (_, __) => const LanguageScreen()),
               GoRoute(path: 'privacy', builder: (_, __) => const PrivacyScreen()),
               GoRoute(path: 'help', builder: (_, __) => const HelpScreen()),
               GoRoute(path: 'about', builder: (_, __) => const AboutScreen()),
@@ -195,6 +212,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(path: '/nanny-onboarding', builder: (_, __) => const NannyOnboardingScreen()),
+
+      // Phone verification — full screen
+      GoRoute(
+        path: '/verify-phone',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return PhoneVerificationScreen(phone: extra?['phone'] as String? ?? '');
+        },
+      ),
 
       // Live session — full screen, no bottom nav
       GoRoute(
