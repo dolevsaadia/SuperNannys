@@ -40,6 +40,12 @@ export const authService = {
       phone: data.phone,
       idNumber: data.idNumber,
       role: data.role,
+      // Structured address
+      city: data.city,
+      streetName: data.streetName,
+      houseNumber: data.houseNumber,
+      postalCode: data.postalCode,
+      apartmentFloor: data.apartmentFloor,
     })
 
     if (data.role === 'NANNY') {

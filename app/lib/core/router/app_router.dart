@@ -37,6 +37,7 @@ import '../../features/profile/screens/privacy_screen.dart';
 import '../../features/profile/screens/help_screen.dart';
 import '../../features/profile/screens/about_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
+import '../../features/verification/screens/verification_request_screen.dart';
 
 /// Bridges Riverpod [AuthState] changes into a [Listenable] that GoRouter can
 /// use via [refreshListenable] — this re-evaluates the redirect function
@@ -178,6 +179,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'availability', builder: (_, __) => const AvailabilityScreen()),
               GoRoute(path: 'earnings', builder: (_, __) => const EarningsScreen()),
               GoRoute(path: 'documents', builder: (_, __) => const DocumentsScreen()),
+              GoRoute(path: 'verification', builder: (_, __) => const VerificationRequestScreen()),
             ],
           ),
           GoRoute(

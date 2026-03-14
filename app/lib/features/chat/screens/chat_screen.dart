@@ -35,7 +35,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   io.Socket? _socket;
   bool _isLoading = true;
   bool _otherTyping = false;
+  bool _otherOnline = false;
   String? _currentUserId;
+  String? _otherUserId;
 
   @override
   void initState() {
@@ -55,8 +57,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
 
   Future<void> _init() async {
     _currentUserId = ref.read(currentUserProvider)?.id;
+    await _loadBookingInfo();
     await _loadMessages();
     await _connectSocket();
+  }
+
+  Future<void> _loadBookingInfo() async {
+    try {
+      final resp = await apiClient.dio.get('/bookings/${widget.bookingId}');
+      final booking = resp.data['data'] as Map<String, dynamic>;
+      final parentId = booking['parentUserId'] as String?;
+      final nannyId = booking['nannyUserId'] as String?;
+      _otherUserId = _currentUserId == parentId ? nannyId : parentId;
+    } catch (_) {}
   }
 
   Future<void> _reconnectIfNeeded() async {
@@ -123,6 +136,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
 
     _socket!.on('typing:start', (_) { if (mounted) setState(() => _otherTyping = true); });
     _socket!.on('typing:stop', (_) { if (mounted) setState(() => _otherTyping = false); });
+
+    // Online status tracking
+    _socket!.on('user:online-status', (data) {
+      if (!mounted || data is! Map) return;
+      final targetId = data['userId'] as String?;
+      if (targetId == _otherUserId) {
+        setState(() => _otherOnline = data['online'] == true);
+      }
+    });
+    _socket!.on('user:online', (data) {
+      if (!mounted || data is! Map) return;
+      if (data['userId'] == _otherUserId) setState(() => _otherOnline = true);
+    });
+    _socket!.on('user:offline', (data) {
+      if (!mounted || data is! Map) return;
+      if (data['userId'] == _otherUserId) setState(() => _otherOnline = false);
+    });
+
+    // Check if other user is online
+    _socket!.emit('user:check-online', _otherUserId);
   }
 
   void _scrollToBottom() {
@@ -184,7 +217,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                   duration: const Duration(milliseconds: 200),
                   child: _otherTyping
                       ? const Text('typing...', key: ValueKey('typing'), style: TextStyle(fontSize: 11, color: AppColors.accent, fontWeight: FontWeight.w500))
-                      : const Text('Online', key: ValueKey('online'), style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w500)),
+                      : _otherOnline
+                          ? Row(
+                              key: const ValueKey('online'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+                                const SizedBox(width: 4),
+                                const Text('Online', style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w500)),
+                              ],
+                            )
+                          : Row(
+                              key: const ValueKey('offline'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(width: 7, height: 7, decoration: BoxDecoration(color: AppColors.textHint.withValues(alpha: 0.5), shape: BoxShape.circle)),
+                                const SizedBox(width: 4),
+                                const Text('Offline', style: TextStyle(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
                 ),
               ],
             ),

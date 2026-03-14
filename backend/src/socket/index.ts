@@ -10,6 +10,9 @@ interface AuthSocket extends Socket {
   role?: string
 }
 
+/** Track which userIds are currently connected (at least one socket). */
+const onlineUsers = new Set<string>()
+
 export function initSocketIO(io: SocketIOServer): void {
   // Give IO reference to sessions module
   sessionsService.setIO(io)
@@ -38,9 +41,19 @@ export function initSocketIO(io: SocketIOServer): void {
     const userId = socket.userId!
     logger.debug(`Socket connected: ${userId}`)
     socket.join(`user:${userId}`)
+    onlineUsers.add(userId)
+
+    // Broadcast online status to anyone in shared booking rooms
+    socket.broadcast.emit('user:online', { userId })
 
     socket.on('booking:join', (bookingId: string) => socket.join(`booking:${bookingId}`))
     socket.on('booking:leave', (bookingId: string) => socket.leave(`booking:${bookingId}`))
+
+    // ── Online Status Check ──────────────────────────────
+    socket.on('user:check-online', (targetUserId: string) => {
+      if (typeof targetUserId !== 'string' || !targetUserId) return
+      socket.emit('user:online-status', { userId: targetUserId, online: onlineUsers.has(targetUserId) })
+    })
 
     // ── Chat Messages ────────────────────────────────────
     socket.on('message:send', async (payload: { bookingId: string; text: string }) => {
@@ -109,6 +122,14 @@ export function initSocketIO(io: SocketIOServer): void {
       }
     })
 
-    socket.on('disconnect', () => logger.debug(`Socket disconnected: ${userId}`))
+    socket.on('disconnect', () => {
+      // Check if user has any other connected sockets
+      const userRoom = io.sockets.adapter.rooms.get(`user:${userId}`)
+      if (!userRoom || userRoom.size === 0) {
+        onlineUsers.delete(userId)
+        socket.broadcast.emit('user:offline', { userId })
+      }
+      logger.debug(`Socket disconnected: ${userId}`)
+    })
   })
 }

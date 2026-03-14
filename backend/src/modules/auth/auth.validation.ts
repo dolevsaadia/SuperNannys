@@ -7,6 +7,12 @@ export const registerSchema = z.object({
   phone: z.string().optional(),
   idNumber: z.string().min(5).max(9).optional(),
   role: z.enum(['PARENT', 'NANNY']),
+  // Structured address fields
+  city: z.string().optional(),
+  streetName: z.string().optional(),
+  houseNumber: z.string().optional(),
+  postalCode: z.string().optional(),
+  apartmentFloor: z.string().optional(),
 })
 
 export const loginSchema = z.object({

@@ -194,7 +194,7 @@ class DashboardScreen extends ConsumerWidget {
                               border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                             ),
                             child: GestureDetector(
-                              onTap: () => context.go('/dashboard/documents'),
+                              onTap: () => context.go('/dashboard/verification'),
                               child: Row(
                                 children: [
                                   Container(
@@ -203,7 +203,7 @@ class DashboardScreen extends ConsumerWidget {
                                       color: AppColors.warning.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(Icons.upload_file_rounded, color: AppColors.warning, size: 22),
+                                    child: const Icon(Icons.verified_user_rounded, color: AppColors.warning, size: 22),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(

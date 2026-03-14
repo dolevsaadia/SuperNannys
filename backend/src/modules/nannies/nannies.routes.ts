@@ -33,4 +33,10 @@ router.post('/me/documents', requireAuth, requireRole('NANNY'), upload.single('f
 router.get('/me/documents',  requireAuth, requireRole('NANNY'), asyncHandler(nanniesController.getDocuments))
 router.delete('/me/documents/:docId', requireAuth, requireRole('NANNY'), asyncHandler(nanniesController.deleteDocument))
 
+// Date-based availability management
+router.post('/me/availability/dates',   requireAuth, requireRole('NANNY'), asyncHandler(nanniesController.upsertDateAvailability))
+router.delete('/me/availability/dates/:slotId', requireAuth, requireRole('NANNY'), asyncHandler(nanniesController.deleteDateAvailability))
+router.post('/me/availability/block',   requireAuth, requireRole('NANNY'), asyncHandler(nanniesController.blockDate))
+router.get('/:id/availability/calendar', asyncHandler(nanniesController.getAvailabilityCalendar))
+
 export default router

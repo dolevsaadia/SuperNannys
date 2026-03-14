@@ -12,8 +12,18 @@ export const bookingsService = {
     const nannyProfile = await bookingsDal.findNannyProfile(data.nannyUserId)
     if (!nannyProfile) throw new AppError('Nanny not found', 404)
 
+    // ── Conflict detection: existing bookings ─────────────
     const conflict = await bookingsDal.findConflict(data.nannyUserId, start, end)
     if (conflict) throw new AppError('Nanny is not available for this time slot', 409)
+
+    // ── Conflict detection: date-specific blocked slots ───
+    const dateBlock = await bookingsDal.findDateBlock(
+      nannyProfile.id,
+      start, // date
+      `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`,
+      `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`,
+    )
+    if (dateBlock) throw new AppError('Nanny has blocked this date/time in her calendar', 409)
 
     const durationHours = (end.getTime() - start.getTime()) / 3_600_000
 
@@ -22,7 +32,25 @@ export const bookingsService = {
     const rate = isRecurring && nannyProfile.recurringHourlyRateNis
       ? nannyProfile.recurringHourlyRateNis
       : nannyProfile.hourlyRateNis
-    const totalAmountNis = Math.round(durationHours * rate)
+
+    // Estimated price based on booked hours (actual price determined by timer)
+    const estimatedPriceNis = Math.round(durationHours * rate)
+
+    // If nanny has minimum hours, ensure estimate reflects at least the minimum
+    const minHours = nannyProfile.minimumHoursPerBooking || 0
+    const chargeableHours = Math.max(durationHours, minHours)
+    const totalAmountNis = Math.round(chargeableHours * rate)
+
+    // Build structured address data
+    const addressData: Record<string, any> = {}
+    if (data.address) addressData.address = data.address
+    if ((data as any).bookingCity) addressData.bookingCity = (data as any).bookingCity
+    if ((data as any).bookingStreet) addressData.bookingStreet = (data as any).bookingStreet
+    if ((data as any).bookingHouseNum) addressData.bookingHouseNum = (data as any).bookingHouseNum
+    if ((data as any).bookingPostalCode) addressData.bookingPostalCode = (data as any).bookingPostalCode
+    if ((data as any).bookingLat) addressData.bookingLat = (data as any).bookingLat
+    if ((data as any).bookingLng) addressData.bookingLng = (data as any).bookingLng
+    if ((data as any).locationType) addressData.locationType = (data as any).locationType
 
     return bookingsDal.create({
       parentUserId,
@@ -31,11 +59,12 @@ export const bookingsService = {
       endTime: end,
       hourlyRateNis: rate,
       totalAmountNis,
+      estimatedPriceNis,
       notes: data.notes,
       childrenCount: data.childrenCount,
       childrenAges: data.childrenAges,
-      address: data.address,
       isRecurring,
+      ...addressData,
     })
   },
 

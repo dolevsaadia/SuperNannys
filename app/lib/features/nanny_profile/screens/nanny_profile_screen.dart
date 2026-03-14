@@ -12,6 +12,7 @@ import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/rating_bar_widget.dart';
 import '../../../core/widgets/app_button.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/widgets/availability_calendar.dart';
 
 final _nannyDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, id) async {
   final resp = await apiClient.dio.get('/nannies/$id');
@@ -200,20 +201,32 @@ class _ProfileBodyState extends State<_ProfileBody> {
                             children: [
                               RatingDisplay(rating: profile.rating, count: profile.reviewsCount),
                               const SizedBox(width: 12),
-                              GestureDetector(
-                                onTap: () => _openMapsNavigation(profile),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.location_on_rounded, size: 14, color: Colors.white70),
-                                    const SizedBox(width: 2),
-                                    Text(profile.city, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.navigation_rounded, size: 12, color: Colors.white70),
-                                  ],
-                                ),
-                              ),
+                              const Icon(Icons.location_on_rounded, size: 14, color: Colors.white70),
+                              const SizedBox(width: 2),
+                              Flexible(child: Text(profile.city, style: const TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)),
                             ],
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _openMapsNavigation(profile),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(0, 2)),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.navigation_rounded, size: 16, color: Colors.white),
+                                  SizedBox(width: 6),
+                                  Text('Navigate', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -381,9 +394,15 @@ class _ProfileBodyState extends State<_ProfileBody> {
                       const SizedBox(height: 24),
                     ],
 
-                    // Availability grid
+                    // Date-based availability calendar
+                    _SectionTitle('Availability Calendar'),
+                    const SizedBox(height: 12),
+                    AvailabilityCalendar(nannyProfileId: nannyId),
+                    const SizedBox(height: 24),
+
+                    // Weekly availability grid
                     if (profile.availability.isNotEmpty) ...[
-                      _SectionTitle('Availability'),
+                      _SectionTitle('Weekly Schedule'),
                       const SizedBox(height: 12),
                       _AvailabilityGrid(slots: profile.availability),
                       const SizedBox(height: 24),

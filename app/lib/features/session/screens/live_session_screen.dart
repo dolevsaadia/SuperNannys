@@ -79,19 +79,14 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
       }
     });
 
-    final canPop = session.phase == SessionPhase.ended ||
-        session.phase == SessionPhase.idle;
-
-    return PopScope(
-      canPop: canPop,
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: AppColors.bg,
         body: SafeArea(
           child: Column(
             children: [
-              // ── Top bar ──────────────────────────
+              // ── Top bar (always allow back — session continues in background) ──
               _TopBar(
-                canPop: canPop,
+                canPop: true,
                 phase: session.phase,
               ),
 
@@ -105,8 +100,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildPhaseContent(SessionState session) {

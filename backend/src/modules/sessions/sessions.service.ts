@@ -162,40 +162,45 @@ export const sessionsService = {
 
   // ── Finalize Session ──────────────────────────────────────
   async finalizeSession(bookingId: string) {
+    // Get booking data for minimum hours enforcement
+    const bookingData = await sessionsDal.findBookingById(bookingId)
+    if (!bookingData || !bookingData.actualStartTime) {
+      throw new AppError('Cannot finalize session — no start time found', 500)
+    }
+
+    // Get nanny's minimum hours setting
+    const nannyProfile = bookingData.nanny?.nannyProfile
+    const minimumHours = nannyProfile?.minimumHoursPerBooking || 0
+
     const calcResult = sessionTimer.calculateFinal(bookingId)
 
     let actualDurationMin: number
     let finalAmountNis: number
     let overtimeAmountNis: number
 
+    const now = new Date()
+
     if (calcResult) {
       actualDurationMin = calcResult.actualDurationMin
-      finalAmountNis = calcResult.finalAmountNis
-      overtimeAmountNis = calcResult.overtimeAmountNis
     } else {
       // Fallback: calculate from DB if timer not found (server restart edge case)
-      const booking = await sessionsDal.findBookingByIdSimple(bookingId)
-      if (!booking || !booking.actualStartTime) {
-        throw new AppError('Cannot finalize session — no start time found', 500)
-      }
-      const now = new Date()
-      const elapsedMs = now.getTime() - new Date(booking.actualStartTime).getTime()
+      const elapsedMs = now.getTime() - new Date(bookingData.actualStartTime).getTime()
       actualDurationMin = Math.round(elapsedMs / 60_000)
+    }
 
-      const bookedDurationMin = Math.round(
-        (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60_000,
-      )
-      const baseAmount = booking.totalAmountNis
+    // ── Price = actual time × rate, with minimum hours enforcement ──
+    const actualHours = actualDurationMin / 60
+    const chargeableHours = Math.max(actualHours, minimumHours)
+    finalAmountNis = Math.round(chargeableHours * bookingData.hourlyRateNis)
 
-      if (actualDurationMin <= bookedDurationMin) {
-        finalAmountNis = baseAmount
-        overtimeAmountNis = 0
-      } else {
-        const overtimeMin = actualDurationMin - bookedDurationMin
-        const overtimeBlocks = Math.ceil(overtimeMin / 15)
-        overtimeAmountNis = Math.round((overtimeBlocks * 15 / 60) * booking.hourlyRateNis)
-        finalAmountNis = baseAmount + overtimeAmountNis
-      }
+    // Overtime = anything beyond the originally booked duration
+    const bookedDurationMin = Math.round(
+      (new Date(bookingData.endTime).getTime() - new Date(bookingData.startTime).getTime()) / 60_000,
+    )
+    if (actualDurationMin > bookedDurationMin) {
+      overtimeAmountNis = Math.round(((actualDurationMin - bookedDurationMin) / 60) * bookingData.hourlyRateNis)
+    } else {
+      overtimeAmountNis = 0
     }
 
     // Stop the timer

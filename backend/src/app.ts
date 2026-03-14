@@ -24,6 +24,7 @@ import adminRoutes   from './modules/admin/admin.routes'
 import sessionRoutes   from './modules/sessions/sessions.routes'
 import recurringRoutes from './modules/recurring-bookings/recurring-bookings.routes'
 import favoritesRoutes from './modules/favorites/favorites.routes'
+import verificationRoutes from './modules/verification/verification.routes'
 
 export function createApp() {
   const app = express()
@@ -69,6 +70,7 @@ export function createApp() {
   app.use('/api/sessions', sessionRoutes)
   app.use('/api/recurring-bookings', recurringRoutes)
   app.use('/api/favorites', favoritesRoutes)
+  app.use('/api/verification-requests', verificationRoutes)
 
   // ── Socket.IO ──────────────────────────────────────────
   initSocketIO(io)

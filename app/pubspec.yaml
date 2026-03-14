@@ -60,6 +60,8 @@ dependencies:
   permission_handler: ^11.3.1
   uuid: ^4.4.0
   local_auth: ^3.0.1
+  google_maps_flutter: ^2.15.0
+  table_calendar: ^3.2.0
 
 dev_dependencies:
   flutter_test:
