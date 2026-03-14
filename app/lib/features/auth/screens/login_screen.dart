@@ -59,6 +59,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
       if (mounted) {
         setState(() => _availableBiometrics = types);
+        // Auto-trigger biometric login after a short delay so the UI renders first
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted && types.isNotEmpty) {
+            _biometricLogin(types.first);
+          }
+        });
       }
     }
   }

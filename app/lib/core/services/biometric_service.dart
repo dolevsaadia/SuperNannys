@@ -57,13 +57,17 @@ class BiometricService {
 
   /// Authenticate user with biometrics.
   /// Returns true on success, throws [String] on error for UI display.
+  /// Includes a 30-second timeout to prevent indefinite hanging.
   Future<bool> authenticate({String reason = 'Authenticate to sign in'}) async {
+    // Cancel any stale authentication sessions first
+    try { await _auth.stopAuthentication(); } catch (_) {}
+
     try {
       return await _auth.authenticate(
         localizedReason: reason,
         biometricOnly: true,
         persistAcrossBackgrounding: true,
-      );
+      ).timeout(const Duration(seconds: 30), onTimeout: () => false);
     } catch (e) {
       // Re-throw with a user-friendly message
       throw e.toString();
