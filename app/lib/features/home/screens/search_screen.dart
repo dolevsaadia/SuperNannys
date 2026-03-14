@@ -115,8 +115,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Column(
+      body: Column(
           children: [
             // ═══ STICKY HEADER ═══
             _StickyHeader(
@@ -165,7 +164,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

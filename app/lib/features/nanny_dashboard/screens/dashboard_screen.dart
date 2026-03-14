@@ -34,13 +34,12 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: CustomScrollView(
+      body: CustomScrollView(
           slivers: [
             // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,
@@ -286,7 +285,6 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

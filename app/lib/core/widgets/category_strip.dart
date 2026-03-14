@@ -45,7 +45,7 @@ class CategoryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 88,
+      height: 76,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -56,15 +56,15 @@ class CategoryStrip extends StatelessWidget {
           return GestureDetector(
             onTap: () => onSelected(cat.id),
             child: Container(
-              width: 70,
+              width: 66,
               margin: const EdgeInsets.only(right: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    width: 54,
-                    height: 54,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
                       color: isSelected ? AppColors.primary : cat.bgColor,
                       shape: BoxShape.circle,
@@ -87,7 +87,7 @@ class CategoryStrip extends StatelessWidget {
                       color: isSelected ? Colors.white : AppColors.textPrimary.withValues(alpha:0.7),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     cat.label,
                     style: TextStyle(
