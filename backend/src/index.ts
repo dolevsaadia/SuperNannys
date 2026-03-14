@@ -46,9 +46,12 @@ async function main() {
     logger.error('Uncaught exception — process will exit', { message: err.message, stack: err.stack })
     process.exit(1)
   })
-  process.on('unhandledRejection', (err) => {
-    logger.error('Unhandled rejection — process will exit', { err })
-    process.exit(1)
+  process.on('unhandledRejection', (reason) => {
+    // Log but do NOT exit — unhandled rejections are recoverable.
+    // Exiting on every rejection causes unnecessary downtime.
+    logger.error('Unhandled promise rejection', {
+      reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+    })
   })
 }
 

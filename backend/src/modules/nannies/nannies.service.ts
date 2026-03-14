@@ -16,7 +16,7 @@ const orderByMap: Record<string, Record<string, string>> = {
 
 export const nanniesService = {
   async search(params: SearchNanniesInput) {
-    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating' } = params
+    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params as any
 
     const where: Record<string, unknown> = {}
     if (city) where.city = { contains: city, mode: 'insensitive' }
@@ -30,6 +30,7 @@ export const nanniesService = {
     if (language) where.languages = { has: language }
     if (skill) where.skills = { has: skill }
     if (minRating) { const v = parseFloat(minRating); if (!isNaN(v)) where.rating = { gte: v } }
+    if (hasRecurringRate === 'true') where.recurringHourlyRateNis = { not: null }
 
     const orderBy = orderByMap[sortBy] || orderByMap['rating']
     const { page, limit, skip } = parsePagination({ page: params.page, limit: params.limit })

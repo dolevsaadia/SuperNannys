@@ -69,12 +69,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     setState(() => _selectedCategory = catId);
     if (catId == 'all') {
       setState(() => _isSearchMode = false);
+      ref.read(nanniesProvider.notifier).applyFilter(const NannyFilter());
+    } else if (catId == 'regular') {
+      // Filter for nannies who offer recurring/regular rates
+      ref.read(nanniesProvider.notifier).applyFilter(
+        ref.read(nanniesProvider.notifier).currentFilter.copyWith(hasRecurringRate: true),
+      );
+      setState(() => _isSearchMode = true);
     } else {
       final skillMap = {
         'infant': 'Infant Care',
         'toddler': 'Toddler Care',
         'school': 'School Age Care',
         'special': 'Special Needs Care',
+        'first_aid': 'First Aid Certified',
         'night': 'Overnight Care',
         'weekend': 'Weekend Care',
       };
@@ -257,7 +265,7 @@ class _StickyHeaderState extends State<_StickyHeader> {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
       child: Row(
         children: [
           _CircleButton(icon: Icons.notifications_outlined, onTap: widget.onNotification),
@@ -272,7 +280,10 @@ class _StickyHeaderState extends State<_StickyHeader> {
                 children: [
                   const Icon(Icons.location_on_rounded, size: 16, color: AppColors.primary),
                   const SizedBox(width: 4),
-                  Text(_selectedLocation, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 150),
+                    child: Text(_selectedLocation, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
+                  ),
                   const SizedBox(width: 2),
                   const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textPrimary),
                 ],
@@ -420,7 +431,7 @@ class _SearchBarState extends State<_SearchBar> {
       link: _layerLink,
       child: Container(
         color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
         child: Row(
           children: [
             Expanded(

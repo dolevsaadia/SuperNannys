@@ -14,17 +14,19 @@ class NannyFilter {
   final double? lng;
   final double? radiusKm;
   final String sortBy;
+  final bool? hasRecurringRate;
 
   const NannyFilter({
     this.city, this.minRate, this.maxRate, this.minYears,
     this.language, this.skill, this.minRating, this.lat, this.lng,
-    this.radiusKm, this.sortBy = 'rating',
+    this.radiusKm, this.sortBy = 'rating', this.hasRecurringRate,
   });
 
   NannyFilter copyWith({
     String? city, int? minRate, int? maxRate, int? minYears,
     String? language, String? skill, double? minRating,
     double? lat, double? lng, double? radiusKm, String? sortBy,
+    bool? hasRecurringRate,
     bool clearCity = false, bool clearLanguage = false, bool clearSkill = false,
   }) => NannyFilter(
         city: clearCity ? null : city ?? this.city,
@@ -38,6 +40,7 @@ class NannyFilter {
         lng: lng ?? this.lng,
         radiusKm: radiusKm ?? this.radiusKm,
         sortBy: sortBy ?? this.sortBy,
+        hasRecurringRate: hasRecurringRate ?? this.hasRecurringRate,
       );
 
   Map<String, dynamic> toQueryParams() {
@@ -52,12 +55,13 @@ class NannyFilter {
     if (lat != null) m['lat'] = lat.toString();
     if (lng != null) m['lng'] = lng.toString();
     if (radiusKm != null) m['radiusKm'] = radiusKm.toString();
+    if (hasRecurringRate == true) m['hasRecurringRate'] = 'true';
     return m;
   }
 
   bool get hasFilters =>
       city != null || minRate != null || maxRate != null || minYears != null ||
-      language != null || skill != null || minRating != null;
+      language != null || skill != null || minRating != null || hasRecurringRate == true;
 }
 
 class NanniesState {

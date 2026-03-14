@@ -228,19 +228,37 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
               ),
 
               // ── Badges row ───────────────────────────
-              if (nanny.badges.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    height: 28,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: nanny.badges.take(4).length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 6),
-                      itemBuilder: (_, i) => BadgeChip(badge: nanny.badges[i]),
+              Builder(
+                builder: (_) {
+                  // Build effective badge list from badges + derived from skills/verification
+                  final effectiveBadges = <String>[...nanny.badges];
+                  if (nanny.isVerified && !effectiveBadges.contains('VERIFIED')) {
+                    effectiveBadges.insert(0, 'VERIFIED');
+                  }
+                  if (nanny.skills.any((s) => s.toLowerCase().contains('first aid')) && !effectiveBadges.contains('FIRST_AID')) {
+                    effectiveBadges.add('FIRST_AID');
+                  }
+                  if (nanny.rating >= 4.5 && nanny.reviewsCount >= 3 && !effectiveBadges.contains('TOP_RATED')) {
+                    effectiveBadges.add('TOP_RATED');
+                  }
+                  if (nanny.yearsExperience >= 5 && !effectiveBadges.contains('EXPERIENCE_5_PLUS')) {
+                    effectiveBadges.add('EXPERIENCE_5_PLUS');
+                  }
+                  if (effectiveBadges.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      height: 28,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: effectiveBadges.take(4).length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 6),
+                        itemBuilder: (_, i) => BadgeChip(badge: effectiveBadges[i]),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
+              ),
 
               const SizedBox(height: 12),
 

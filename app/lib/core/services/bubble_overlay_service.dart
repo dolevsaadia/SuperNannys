@@ -94,8 +94,6 @@ class BubbleOverlayService {
           nannyLng = (nannyProfile?['longitude'] as num?)?.toDouble();
         } catch (_) {}
 
-        if (nannyLat == null || nannyLng == null) return;
-
         final startTime = DateTime.parse(upcomingBooking['startTime'] as String);
 
         _showBubble(
@@ -103,8 +101,8 @@ class BubbleOverlayService {
           bookingId: bookingId,
           nannyName: nannyName,
           startTime: startTime,
-          nannyLat: nannyLat,
-          nannyLng: nannyLng,
+          nannyLat: nannyLat ?? 0,
+          nannyLng: nannyLng ?? 0,
         );
       } else {
         // No upcoming booking, remove bubble

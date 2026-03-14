@@ -144,6 +144,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final success = await ref.read(authProvider.notifier).restoreWithToken(token);
     if (!mounted) return;
     if (success) {
+      // Refresh the stored biometric token with the current valid token
+      final freshToken = await ref.read(authProvider.notifier).getStoredToken();
+      if (freshToken != null) {
+        await _biometric.saveToken(freshToken);
+      }
       context.go('/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
