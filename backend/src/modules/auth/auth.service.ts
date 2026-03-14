@@ -28,12 +28,13 @@ async function sendOTP(email: string, userId?: string) {
 
 export const authService = {
   async register(data: RegisterInput) {
-    const existing = await authDal.findUserByEmail(data.email)
+    const email = data.email.toLowerCase()
+    const existing = await authDal.findUserByEmail(email)
     if (existing) throw new AppError('Email already in use', 409)
 
     const passwordHash = await bcrypt.hash(data.password, 12)
     const user = await authDal.createUser({
-      email: data.email,
+      email,
       passwordHash,
       fullName: data.fullName,
       phone: data.phone,
@@ -50,7 +51,7 @@ export const authService = {
   },
 
   async login(data: LoginInput) {
-    const user = await authDal.findUserByEmail(data.email)
+    const user = await authDal.findUserByEmail(data.email.toLowerCase())
     if (!user || !user.passwordHash) throw new AppError('Invalid credentials', 401)
     if (!user.isActive) throw new AppError('Account deactivated', 403)
 
@@ -145,14 +146,15 @@ export const authService = {
   },
 
   async verifyOTP(data: { email: string; code: string }) {
-    const record = await verificationDal.findValidCode(data.email, data.code)
+    const email = data.email.toLowerCase()
+    const record = await verificationDal.findValidCode(email, data.code)
     if (!record) {
       throw new AppError('Invalid or expired verification code', 400)
     }
 
     await verificationDal.markUsed(record.id)
 
-    const user = await authDal.findUserByEmail(data.email)
+    const user = await authDal.findUserByEmail(email)
     if (!user) throw new AppError('User not found', 404)
 
     const token = signToken({ userId: user.id, email: user.email, role: user.role })
@@ -166,10 +168,11 @@ export const authService = {
   },
 
   async resendOTP(email: string) {
-    const user = await authDal.findUserByEmail(email)
+    const normalizedEmail = email.toLowerCase()
+    const user = await authDal.findUserByEmail(normalizedEmail)
     if (!user) throw new AppError('User not found', 404)
 
-    await sendOTP(email, user.id)
+    await sendOTP(normalizedEmail, user.id)
     return { message: 'Verification code sent' }
   },
 

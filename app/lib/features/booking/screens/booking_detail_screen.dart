@@ -115,6 +115,38 @@ class _BookingDetailBody extends ConsumerWidget {
               ],
             ),
           ),
+          // ── Recurring badge ──────────────────
+          if (booking.isRecurring) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: booking.recurringBookingId != null
+                  ? () => context.push('/recurring-bookings/${booking.recurringBookingId}')
+                  : null,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.repeat_rounded, color: AppColors.accent, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Part of Recurring Booking',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent),
+                      ),
+                    ),
+                    if (booking.recurringBookingId != null)
+                      Icon(Icons.chevron_right_rounded, color: AppColors.accent, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // ── Person card with gradient header ──────────────────
