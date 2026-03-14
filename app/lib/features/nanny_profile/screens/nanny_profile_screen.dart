@@ -109,9 +109,19 @@ class _ProfileBodyState extends State<_ProfileBody> {
 
   @override
   Widget build(BuildContext context) {
+    // Inside HomeShell, SafeArea is applied and MediaQuery.removePadding
+    // zeros out padding.top. Restore it so SliverAppBar correctly offsets
+    // its toolbar buttons below the status bar area.
+    final mq = MediaQuery.of(context);
+    final restoredTop = mq.padding.top > 0 ? mq.padding.top : mq.viewPadding.top;
+
     return Stack(
       children: [
-        CustomScrollView(
+        MediaQuery(
+          data: mq.copyWith(
+            padding: mq.padding.copyWith(top: restoredTop),
+          ),
+          child: CustomScrollView(
           slivers: [
             // ── Parallax Hero ──────────────────────
             SliverAppBar(
@@ -442,7 +452,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
               ),
             ),
           ],
-        ),
+        )),
 
         // ── Sticky Book Now Bar ──────────────────
         Positioned(
