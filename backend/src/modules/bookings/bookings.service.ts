@@ -7,6 +7,14 @@ import type { CreateBookingInput } from './bookings.validation'
 
 export const bookingsService = {
   async create(parentUserId: string, data: CreateBookingInput) {
+    logger.info('booking:create:start', {
+      module: 'bookings',
+      parentUserId,
+      nannyUserId: data.nannyUserId,
+      startTime: data.startTime,
+      endTime: data.endTime,
+    })
+
     if (parentUserId === data.nannyUserId) {
       throw new AppError('Cannot book yourself', 400)
     }

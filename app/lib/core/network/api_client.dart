@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
+import '../services/app_logger.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -46,13 +47,65 @@ class ApiClient {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+
+          // Store start time for duration measurement
+          options.extra['_reqStartMs'] = DateTime.now().millisecondsSinceEpoch;
+
+          appLog.debug('api', 'request_start', '${options.method} ${options.path}',
+            endpoint: '${options.method} ${options.path}',
+          );
+
           handler.next(options);
         },
+        onResponse: (response, handler) {
+          final startMs = response.requestOptions.extra['_reqStartMs'] as int? ?? 0;
+          final durationMs = DateTime.now().millisecondsSinceEpoch - startMs;
+          final path = response.requestOptions.path;
+          final method = response.requestOptions.method;
+          final status = response.statusCode ?? 0;
+          final requestId = response.headers.value('x-request-id');
+
+          appLog.info('api', 'request_end', '$method $path → $status (${durationMs}ms)',
+            endpoint: '$method $path',
+            requestId: requestId,
+            extra: {'status': status, 'durationMs': durationMs},
+          );
+
+          handler.next(response);
+        },
         onError: (error, handler) {
+          final startMs = error.requestOptions.extra['_reqStartMs'] as int? ?? 0;
+          final durationMs = DateTime.now().millisecondsSinceEpoch - startMs;
+          final path = error.requestOptions.path;
+          final method = error.requestOptions.method;
+          final status = error.response?.statusCode ?? 0;
+          final requestId = error.response?.headers.value('x-request-id');
+          final serverMsg = _extractServerMessage(error);
+
+          appLog.error('api', 'request_failed', '$method $path → $status (${durationMs}ms)',
+            endpoint: '$method $path',
+            requestId: requestId,
+            errorCode: '$status',
+            extra: {
+              'status': status,
+              'durationMs': durationMs,
+              'type': error.type.name,
+              if (serverMsg != null) 'serverMessage': serverMsg,
+            },
+          );
+
           handler.next(error);
         },
       ),
     );
+  }
+
+  String? _extractServerMessage(DioException error) {
+    try {
+      final data = error.response?.data;
+      if (data is Map) return data['message'] as String?;
+    } catch (_) {}
+    return null;
   }
 
   Future<String?> getToken() async {

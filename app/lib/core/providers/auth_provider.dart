@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
 import '../network/api_client.dart';
 import '../constants/app_constants.dart';
+import '../services/app_logger.dart';
 
 class AuthState {
   final UserModel? user;
@@ -77,14 +78,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> login(String email, String password) async {
+    appLog.info('auth', 'login_start', 'Email login attempt', extra: {'email': email.toLowerCase()});
     state = state.copyWith(isLoading: true, error: null);
     try {
       final resp = await apiClient.dio.post('/auth/login', data: {'email': email.toLowerCase(), 'password': password});
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      appLog.info('auth', 'login_success', 'Email login succeeded');
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _extractError(e));
+      final err = _extractError(e);
+      appLog.warn('auth', 'login_failed', 'Email login failed: $err');
+      state = state.copyWith(isLoading: false, error: err);
       return false;
     }
   }
@@ -143,6 +148,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Restore session from a saved JWT token (used for biometric login)
   Future<bool> restoreWithToken(String token) async {
+    appLog.info('auth', 'biometric_restore_start', 'Restoring session from biometric token');
     state = state.copyWith(isLoading: true, error: null);
     try {
       await apiClient.setToken(token);
@@ -151,8 +157,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = UserModel.fromJson(resp.data['data'] as Map<String, dynamic>);
       await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
       state = AuthState(user: user);
+      appLog.info('auth', 'biometric_restore_success', 'Biometric session restored',
+        extra: {'userId': user.id},
+      );
+      appLog.setUserId(user.id);
       return true;
-    } catch (_) {
+    } catch (e) {
+      appLog.warn('auth', 'biometric_restore_failed', 'Failed to restore biometric session',
+        extra: {'error': e.toString()},
+      );
       await apiClient.clearToken();
       state = state.copyWith(isLoading: false);
       return false;
@@ -202,9 +215,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
     } catch (_) {}
     state = AuthState(user: user);
+    appLog.setUserId(user.id);
+    appLog.info('auth', 'session_saved', 'Session saved', extra: {'userId': user.id, 'role': user.role});
   }
 
   Future<void> logout() async {
+    appLog.info('auth', 'logout', 'User logged out');
+    appLog.setUserId(null);
     await apiClient.clearToken();
     try {
       await _storage.delete(key: AppConstants.userKey);

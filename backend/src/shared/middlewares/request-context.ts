@@ -33,6 +33,8 @@ export function requestContext(req: Request, res: Response, next: NextFunction):
     userId,
     role,
     ip: req.ip,
+    userAgent: req.headers['user-agent']?.substring(0, 80),
+    contentLength: req.headers['content-length'],
   })
 
   // Log when response finishes
@@ -47,7 +49,20 @@ export function requestContext(req: Request, res: Response, next: NextFunction):
       status: res.statusCode,
       durationMs,
       userId: req.user?.userId ?? 'anon',
+      role: req.user?.role ?? '-',
+      contentLength: res.getHeader('content-length'),
     })
+
+    // Warn on slow requests (> 3 seconds)
+    if (durationMs > 3000) {
+      logger.warn('req:slow', {
+        requestId,
+        method: req.method,
+        path: req.path,
+        durationMs,
+        userId: req.user?.userId ?? 'anon',
+      })
+    }
   })
 
   next()
