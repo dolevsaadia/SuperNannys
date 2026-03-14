@@ -56,6 +56,7 @@ class DashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
                           child: Column(
@@ -65,21 +66,28 @@ class DashboardScreen extends ConsumerWidget {
                                 'Welcome back,',
                                 style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
                               ),
+                              const SizedBox(height: 2),
                               Text(
                                 '${user?.fullName.split(' ').first ?? ''}!',
-                                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(14),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: () => context.go('/bookings'),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
                           ),
-                          child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
                         ),
                       ],
                     ),

@@ -5,6 +5,7 @@ import '../../../core/models/nanny_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/constants/israeli_cities.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/nanny_card.dart';
 import '../../../core/widgets/nanny_card_horizontal.dart';
@@ -111,8 +112,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             // ═══ STICKY HEADER ═══
             _StickyHeader(
               userName: user?.fullName.split(' ').first ?? 'there',
-              onNotification: () {},
+              onNotification: () => context.go('/bookings'),
               onProfile: () => context.go('/profile'),
+              onLocationSelected: (city) {
+                if (city.isEmpty) {
+                  // Use current location - clear city filter
+                  ref.read(nanniesProvider.notifier).applyFilter(
+                    ref.read(nanniesProvider.notifier).currentFilter.copyWith(city: ''),
+                  );
+                } else {
+                  _searchController.text = city;
+                  ref.read(nanniesProvider.notifier).applyFilter(
+                    ref.read(nanniesProvider.notifier).currentFilter.copyWith(city: city),
+                  );
+                  setState(() => _isSearchMode = true);
+                }
+              },
             ),
 
             // ═══ SEARCH BAR ═══
@@ -148,12 +163,93 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 // ══════════════════════════════════════════════════════════
 // STICKY HEADER
 // ══════════════════════════════════════════════════════════
-class _StickyHeader extends StatelessWidget {
+class _StickyHeader extends StatefulWidget {
   final String userName;
   final VoidCallback onNotification;
   final VoidCallback onProfile;
+  final ValueChanged<String>? onLocationSelected;
 
-  const _StickyHeader({required this.userName, required this.onNotification, required this.onProfile});
+  const _StickyHeader({required this.userName, required this.onNotification, required this.onProfile, this.onLocationSelected});
+
+  @override
+  State<_StickyHeader> createState() => _StickyHeaderState();
+}
+
+class _StickyHeaderState extends State<_StickyHeader> {
+  String _selectedLocation = 'My Location';
+
+  void _showLocationPicker() {
+    final searchController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final suggestions = IsraeliCities.search(searchController.text).take(15).toList();
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.6,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 16),
+                const Text('Select Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 46,
+                    decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+                    child: TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      onChanged: (_) => setSheetState(() {}),
+                      decoration: const InputDecoration(
+                        hintText: 'Search city...',
+                        prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textHint),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+                // Use current location option
+                ListTile(
+                  leading: const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 20),
+                  title: const Text('Use My Location', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary, fontSize: 14)),
+                  onTap: () {
+                    setState(() => _selectedLocation = 'My Location');
+                    widget.onLocationSelected?.call('');
+                    Navigator.pop(ctx);
+                  },
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: suggestions.length,
+                    itemBuilder: (_, i) => ListTile(
+                      leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
+                      title: Text(suggestions[i], style: const TextStyle(fontSize: 14)),
+                      onTap: () {
+                        setState(() => _selectedLocation = suggestions[i]);
+                        widget.onLocationSelected?.call(suggestions[i]);
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,22 +258,27 @@ class _StickyHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Row(
         children: [
-          _CircleButton(icon: Icons.notifications_outlined, onTap: onNotification),
+          _CircleButton(icon: Icons.notifications_outlined, onTap: widget.onNotification),
           const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(20)),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textPrimary),
-                SizedBox(width: 4),
-                Text('My Location', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-              ],
+          GestureDetector(
+            onTap: _showLocationPicker,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(20)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_rounded, size: 16, color: AppColors.primary),
+                  const SizedBox(width: 4),
+                  Text(_selectedLocation, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textPrimary),
+                ],
+              ),
             ),
           ),
           const Spacer(),
-          _CircleButton(icon: Icons.person_outline_rounded, onTap: onProfile),
+          _CircleButton(icon: Icons.person_outline_rounded, onTap: widget.onProfile),
         ],
       ),
     );
@@ -208,7 +309,7 @@ class _CircleButton extends StatelessWidget {
 // ══════════════════════════════════════════════════════════
 // SEARCH BAR
 // ══════════════════════════════════════════════════════════
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends StatefulWidget {
   final TextEditingController controller;
   final bool hasFilters;
   final ValueChanged<String> onSubmitted;
@@ -218,68 +319,178 @@ class _SearchBar extends StatelessWidget {
   const _SearchBar({required this.controller, required this.hasFilters, required this.onSubmitted, required this.onFilterTap, required this.onClear});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(14)),
-              child: Row(
-                children: [
-                  const SizedBox(width: 14),
-                  const Icon(Icons.search_rounded, color: AppColors.textHint, size: 22),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Search nannies, cities...',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        isDense: true,
-                      ),
-                      onSubmitted: onSubmitted,
-                      onChanged: (v) { if (v.isEmpty) onClear(); },
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  final _focusNode = FocusNode();
+  final _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  List<String> _suggestions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        _updateSuggestions(widget.controller.text);
+        _showOverlay();
+      } else {
+        _hideOverlay();
+      }
+    });
+  }
+
+  void _updateSuggestions(String query) {
+    _suggestions = IsraeliCities.search(query).take(6).toList();
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _showOverlay() {
+    _hideOverlay();
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    _overlayEntry = OverlayEntry(
+      builder: (_) => Positioned(
+        width: renderBox.size.width - 74, // account for filter button
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 52),
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+            child: _suggestions.isEmpty
+                ? const SizedBox.shrink()
+                : ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 240),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: _suggestions.length,
+                      itemBuilder: (_, i) {
+                        final city = _suggestions[i];
+                        return InkWell(
+                          onTap: () {
+                            widget.controller.text = city;
+                            widget.onSubmitted(city);
+                            _hideOverlay();
+                            _focusNode.unfocus();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
+                                const SizedBox(width: 10),
+                                Text(city, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  if (controller.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: onClear,
-                      child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.close_rounded, size: 18, color: AppColors.textHint)),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  void dispose() {
+    _hideOverlay();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(14)),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 14),
+                    const Icon(Icons.search_rounded, color: AppColors.textHint, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: widget.controller,
+                        focusNode: _focusNode,
+                        decoration: const InputDecoration(
+                          hintText: 'Search nannies, cities...',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
+                        ),
+                        onSubmitted: (v) {
+                          widget.onSubmitted(v);
+                          _hideOverlay();
+                        },
+                        onChanged: (v) {
+                          if (v.isEmpty) {
+                            widget.onClear();
+                          }
+                          _updateSuggestions(v);
+                          if (_overlayEntry == null && _focusNode.hasFocus) _showOverlay();
+                        },
+                      ),
                     ),
-                  const SizedBox(width: 4),
-                ],
+                    if (widget.controller.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          widget.onClear();
+                          _hideOverlay();
+                        },
+                        child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.close_rounded, size: 18, color: AppColors.textHint)),
+                      ),
+                    const SizedBox(width: 4),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: onFilterTap,
-            child: Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: hasFilters ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: hasFilters ? null : Border.all(color: AppColors.divider),
-                boxShadow: hasFilters ? AppShadows.primaryGlow(0.15) : null,
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(Icons.tune_rounded, color: hasFilters ? Colors.white : AppColors.textPrimary, size: 20),
-                  if (hasFilters)
-                    Positioned(top: 10, right: 10, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))),
-                ],
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: widget.onFilterTap,
+              child: Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: widget.hasFilters ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: widget.hasFilters ? null : Border.all(color: AppColors.divider),
+                  boxShadow: widget.hasFilters ? AppShadows.primaryGlow(0.15) : null,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(Icons.tune_rounded, color: widget.hasFilters ? Colors.white : AppColors.textPrimary, size: 20),
+                    if (widget.hasFilters)
+                      Positioned(top: 10, right: 10, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

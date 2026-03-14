@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 
@@ -27,15 +28,17 @@ class AboutScreen extends StatelessWidget {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(Icons.child_care_rounded, size: 44, color: Colors.white),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset('assets/brand/app_icon.png', fit: BoxFit.cover),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text('SuperNanny', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
-                const Text('Version 1.3.0', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                const Text('Version 1.4.0', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
                 const Text('Find trusted babysitters near you', style: TextStyle(fontSize: 14, color: AppColors.textHint)),
               ],
@@ -68,9 +71,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                   title: const Text('Terms of Service', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
-                  onTap: () {
-                    // TODO: open Terms of Service URL
-                  },
+                  onTap: () => launchUrl(Uri.parse('https://supernanny.net/terms'), mode: LaunchMode.externalApplication),
                 ),
                 const Divider(indent: 64, height: 1),
                 ListTile(
@@ -86,9 +87,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                   title: const Text('Privacy Policy', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
-                  onTap: () {
-                    // TODO: open Privacy Policy URL
-                  },
+                  onTap: () => launchUrl(Uri.parse('https://supernanny.net/privacy'), mode: LaunchMode.externalApplication),
                 ),
                 const Divider(indent: 64, height: 1),
                 ListTile(
@@ -107,10 +106,13 @@ class AboutScreen extends StatelessWidget {
                   onTap: () => showLicensePage(
                     context: context,
                     applicationName: 'SuperNanny',
-                    applicationVersion: '1.3.0',
+                    applicationVersion: '1.4.0',
                     applicationIcon: Padding(
                       padding: const EdgeInsets.all(8),
-                      child: Icon(Icons.child_care_rounded, size: 48, color: AppColors.primary),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset('assets/brand/app_icon.png', width: 48, height: 48),
+                      ),
                     ),
                   ),
                 ),

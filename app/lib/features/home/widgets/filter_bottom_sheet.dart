@@ -20,6 +20,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   String? _skill;
   int? _minYears;
   double? _minRating;
+  bool _showRecurringRate = false;
 
   static const double _minRate = 20;
   static const double _maxRate = 200;
@@ -99,8 +100,29 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 controller: controller,
                 padding: const EdgeInsets.all(20),
                 children: [
+                  // Booking type toggle
+                  _Section(title: 'Booking Type', child: Row(
+                    children: [
+                      Expanded(
+                        child: _FilterChip(
+                          label: 'One-time Rate',
+                          selected: !_showRecurringRate,
+                          onTap: () => setState(() => _showRecurringRate = false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FilterChip(
+                          label: 'Recurring Rate',
+                          selected: _showRecurringRate,
+                          onTap: () => setState(() => _showRecurringRate = true),
+                        ),
+                      ),
+                    ],
+                  )),
+
                   // Price range
-                  _Section(title: 'Hourly Rate (₪)', child: Column(
+                  _Section(title: _showRecurringRate ? 'Recurring Rate (₪)' : 'Hourly Rate (₪)', child: Column(
                     children: [
                       RangeSlider(
                         values: _rateRange,
