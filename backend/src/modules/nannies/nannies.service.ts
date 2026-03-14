@@ -155,7 +155,16 @@ export const nanniesService = {
     let startDate: Date
     let endDate: Date
     if (month) {
-      const [year, m] = month.split('-').map(Number)
+      // Validate month format "YYYY-MM"
+      const parts = month.split('-')
+      if (parts.length !== 2) {
+        throw new AppError('Invalid month format. Expected YYYY-MM', 400)
+      }
+      const year = Number(parts[0])
+      const m = Number(parts[1])
+      if (isNaN(year) || isNaN(m) || m < 1 || m > 12 || year < 2000 || year > 2100) {
+        throw new AppError('Invalid month value', 400)
+      }
       startDate = new Date(year, m - 1, 1)
       endDate = new Date(year, m, 0, 23, 59, 59) // last day of month
     } else {

@@ -45,11 +45,17 @@ export const bookingsService = {
 
     // Estimated price based on booked hours (actual price determined by timer)
     const estimatedPriceNis = Math.round(durationHours * rate)
+    if (!isFinite(estimatedPriceNis) || estimatedPriceNis < 0) {
+      throw new AppError('Invalid price calculation — check rate and duration', 400)
+    }
 
     // If nanny has minimum hours, ensure estimate reflects at least the minimum
     const minHours = nannyProfile.minimumHoursPerBooking || 0
     const chargeableHours = Math.max(durationHours, minHours)
     const totalAmountNis = Math.round(chargeableHours * rate)
+    if (!isFinite(totalAmountNis) || totalAmountNis < 0) {
+      throw new AppError('Invalid total price calculation', 400)
+    }
 
     // Build structured address data
     const addressData: Record<string, any> = {}

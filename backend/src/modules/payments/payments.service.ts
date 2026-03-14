@@ -103,16 +103,30 @@ export const paymentsService = {
   },
 
   async handleWebhook(rawBody: Buffer, signature: string) {
+    if (!signature) {
+      throw new AppError('Missing Stripe signature header', 400)
+    }
+
     const stripe = await getStripe()
 
-    const event = stripe.webhooks.constructEvent(rawBody, signature, config.payments.stripeWebhookSecret)
+    let event: any
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, config.payments.stripeWebhookSecret)
+    } catch (err: any) {
+      logger.error('Stripe webhook signature verification failed', { error: err.message })
+      throw new AppError('Invalid webhook signature', 400)
+    }
 
     logger.info('Stripe webhook received', { type: event.type })
 
     if (event.type === 'payment_intent.succeeded') {
       const intent = event.data.object as { id: string }
-      await paymentsDal.markBookingPaid(intent.id)
-      logger.info('Booking marked as paid', { paymentIntentId: intent.id })
+      try {
+        await paymentsDal.markBookingPaid(intent.id)
+        logger.info('Booking marked as paid', { paymentIntentId: intent.id })
+      } catch (err) {
+        logger.error('Failed to mark booking as paid', { paymentIntentId: intent.id, err })
+      }
     }
 
     return { received: true }

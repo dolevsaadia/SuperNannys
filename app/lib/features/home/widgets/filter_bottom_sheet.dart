@@ -36,6 +36,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     _skill = widget.currentFilter.skill;
     _minYears = widget.currentFilter.minYears;
     _minRating = widget.currentFilter.minRating;
+    _showRecurringRate = widget.currentFilter.hasRecurringRate == true;
   }
 
   void _apply() {
@@ -46,6 +47,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       skill: _skill,
       minYears: _minYears,
       minRating: _minRating,
+      hasRecurringRate: _showRecurringRate ? true : null,
     );
     widget.onApply(filter);
     Navigator.pop(context);
@@ -58,6 +60,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _skill = null;
       _minYears = null;
       _minRating = null;
+      _showRecurringRate = false;
     });
     widget.onApply(const NannyFilter());
     Navigator.pop(context);
@@ -101,11 +104,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   // Booking type toggle
-                  _Section(title: 'Booking Type', child: Row(
+                  _Section(title: 'Care Type', child: Row(
                     children: [
                       Expanded(
                         child: _FilterChip(
-                          label: 'One-time Rate',
+                          label: 'One-time',
                           selected: !_showRecurringRate,
                           onTap: () => setState(() => _showRecurringRate = false),
                         ),
@@ -113,7 +116,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _FilterChip(
-                          label: 'Recurring Rate',
+                          label: 'Ongoing Care',
                           selected: _showRecurringRate,
                           onTap: () => setState(() => _showRecurringRate = true),
                         ),
