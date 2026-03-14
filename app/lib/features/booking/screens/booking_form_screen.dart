@@ -129,7 +129,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       return;
     }
     if (_addressCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter an address');
+      setState(() => _error = 'Address is required');
       return;
     }
 
@@ -175,7 +175,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       return;
     }
     if (_addressCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter an address');
+      setState(() => _error = 'Address is required');
       return;
     }
 

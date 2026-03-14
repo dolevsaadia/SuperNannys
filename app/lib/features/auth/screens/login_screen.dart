@@ -199,7 +199,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (e.code == 'sign_in_failed' && e.message != null && e.message!.contains('10')) {
           message = 'Google Sign-In configuration error. Please check SHA-1 fingerprint in Firebase Console.';
         } else if (e.code == 'sign_in_canceled') {
-          return; // User cancelled — no error needed
+          return;
         } else if (e.code == 'network_error') {
           message = 'Network error. Please check your internet connection.';
         } else {
