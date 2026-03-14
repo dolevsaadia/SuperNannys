@@ -51,9 +51,15 @@ export const nanniesDal = {
 
   upsertAvailability(nannyProfileId: string, slot: { dayOfWeek: number; fromTime: string; toTime: string; isAvailable: boolean }) {
     return prisma.availability.upsert({
-      where: { nannyProfileId_dayOfWeek: { nannyProfileId, dayOfWeek: slot.dayOfWeek } },
-      update: { fromTime: slot.fromTime, toTime: slot.toTime, isAvailable: slot.isAvailable },
+      where: { nannyProfileId_dayOfWeek_fromTime: { nannyProfileId, dayOfWeek: slot.dayOfWeek, fromTime: slot.fromTime } },
+      update: { toTime: slot.toTime, isAvailable: slot.isAvailable },
       create: { nannyProfileId, ...slot },
+    })
+  },
+
+  deleteAvailabilityForDay(nannyProfileId: string, dayOfWeek: number) {
+    return prisma.availability.deleteMany({
+      where: { nannyProfileId, dayOfWeek },
     })
   },
 

@@ -128,6 +128,57 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
 
+            // ── Verification Reminder (always visible, not inside async) ──
+            if (user?.isVerified != true)
+              SliverToBoxAdapter(
+                child: GestureDetector(
+                  onTap: () => context.go('/dashboard/verification'),
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.warning.withValues(alpha: 0.12), AppColors.warning.withValues(alpha: 0.04)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: const Icon(Icons.verified_user_rounded, color: AppColors.warning, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Verification Required', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 2),
+                              Text('Upload your documents and send a verification request to increase trust.',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
             SliverToBoxAdapter(
               child: async.when(
                 loading: () => const Padding(
@@ -182,44 +233,6 @@ class DashboardScreen extends ConsumerWidget {
                         // ── Quick Actions ──────────────────
                         const Text('Quick Actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
-                        // ── Verification Reminder ──────────────────
-                        if (user?.isVerified != true)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-                            ),
-                            child: GestureDetector(
-                              onTap: () => context.go('/dashboard/verification'),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 40, height: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.warning.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(Icons.verified_user_rounded, color: AppColors.warning, size: 22),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Complete Your Verification', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                                        Text('Upload ID & ethics certificate to get verified',
-                                          style: TextStyle(fontSize: 12, color: AppColors.textHint)),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.warning),
-                                ],
-                              ),
-                            ),
-                          ),
 
                         Row(
                           children: [

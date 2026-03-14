@@ -129,16 +129,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    if (!authenticated) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$label authentication cancelled.'),
-          backgroundColor: AppColors.textSecondary,
-        ),
-      );
-      return;
-    }
+    if (!authenticated) return; // User cancelled — allow manual login silently
 
     // Restore session with saved token
     final success = await ref.read(authProvider.notifier).restoreWithToken(token);

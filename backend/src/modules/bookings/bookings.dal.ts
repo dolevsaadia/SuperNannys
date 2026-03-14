@@ -81,7 +81,7 @@ export const bookingsDal = {
     })
   },
 
-  // Check date availability blocks for conflict
+  // Check date availability blocks for conflict (hour-level, not day-level)
   findDateBlock(nannyProfileId: string, date: Date, startTime: string, endTime: string) {
     return prisma.nannyDateAvailability.findFirst({
       where: {
@@ -91,6 +91,9 @@ export const bookingsDal = {
           lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
         },
         isBlocked: true,
+        // Only block if the blocked slot actually overlaps the requested time
+        startTime: { lte: endTime },
+        endTime: { gte: startTime },
       },
     })
   },

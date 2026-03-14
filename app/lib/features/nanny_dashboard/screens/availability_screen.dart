@@ -16,7 +16,9 @@ class AvailabilityScreen extends ConsumerStatefulWidget {
 }
 
 class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
-  List<Map<String, dynamic>> _slots = [];
+  /// Each day maps to a list of time slots: [{fromTime, toTime}]
+  Map<int, List<Map<String, String>>> _daySlots = {};
+  Set<int> _enabledDays = {};
   bool _isLoading = true;
   bool _isSaving = false;
   bool _enableRecurring = false;
@@ -39,14 +41,37 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
       final avail = (profile['availability'] as List<dynamic>?) ?? [];
       final recurringRate = profile['recurringHourlyRateNis'] as int?;
       final hourlyRate = profile['hourlyRateNis'] as int? ?? 55;
+
+      final daySlots = <int, List<Map<String, String>>>{};
+      final enabledDays = <int>{};
+
+      for (int day = 0; day < 7; day++) {
+        daySlots[day] = [];
+      }
+
+      for (final a in avail) {
+        final slot = a as Map<String, dynamic>;
+        final day = slot['dayOfWeek'] as int;
+        final isAvailable = slot['isAvailable'] as bool? ?? true;
+        if (isAvailable) {
+          enabledDays.add(day);
+          daySlots[day]!.add({
+            'fromTime': slot['fromTime'] as String? ?? '09:00',
+            'toTime': slot['toTime'] as String? ?? '18:00',
+          });
+        }
+      }
+
+      // Ensure every enabled day has at least one slot
+      for (final day in enabledDays) {
+        if (daySlots[day]!.isEmpty) {
+          daySlots[day]!.add({'fromTime': '09:00', 'toTime': '18:00'});
+        }
+      }
+
       setState(() {
-        _slots = List.generate(7, (day) {
-          final existing = avail.firstWhere(
-            (a) => (a as Map<String, dynamic>)['dayOfWeek'] == day,
-            orElse: () => {'dayOfWeek': day, 'fromTime': '09:00', 'toTime': '18:00', 'isAvailable': false},
-          ) as Map<String, dynamic>;
-          return Map<String, dynamic>.from(existing);
-        });
+        _daySlots = daySlots;
+        _enabledDays = enabledDays;
         _enableRecurring = recurringRate != null;
         _recurringRate = recurringRate ?? (hourlyRate * 0.8).round();
         _hourlyRate = hourlyRate;
@@ -57,11 +82,64 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
     }
   }
 
+  List<Map<String, dynamic>> _buildAvailabilityPayload() {
+    final slots = <Map<String, dynamic>>[];
+    for (int day = 0; day < 7; day++) {
+      if (_enabledDays.contains(day) && _daySlots[day]!.isNotEmpty) {
+        for (final slot in _daySlots[day]!) {
+          slots.add({
+            'dayOfWeek': day,
+            'fromTime': slot['fromTime']!,
+            'toTime': slot['toTime']!,
+            'isAvailable': true,
+          });
+        }
+      } else {
+        // Send one disabled slot so the backend knows this day is off
+        slots.add({
+          'dayOfWeek': day,
+          'fromTime': '09:00',
+          'toTime': '18:00',
+          'isAvailable': false,
+        });
+      }
+    }
+    return slots;
+  }
+
+  bool _hasOverlap(int day) {
+    final slots = _daySlots[day]!;
+    for (int i = 0; i < slots.length; i++) {
+      for (int j = i + 1; j < slots.length; j++) {
+        final a = slots[i];
+        final b = slots[j];
+        if (a['fromTime']!.compareTo(b['toTime']!) < 0 &&
+            b['fromTime']!.compareTo(a['toTime']!) < 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   Future<void> _save() async {
+    // Check for overlaps
+    for (int day = 0; day < 7; day++) {
+      if (_enabledDays.contains(day) && _hasOverlap(day)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${_daysFull[day]} has overlapping time slots. Please fix before saving.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
     try {
       await apiClient.dio.put('/nannies/me', data: {
-        'availability': _slots,
+        'availability': _buildAvailabilityPayload(),
         'recurringHourlyRateNis': _enableRecurring ? _recurringRate : null,
       });
       if (mounted) {
@@ -74,11 +152,26 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
     }
   }
 
+  void _addSlot(int day) {
+    setState(() {
+      _daySlots[day]!.add({'fromTime': '09:00', 'toTime': '18:00'});
+    });
+  }
+
+  void _removeSlot(int day, int index) {
+    setState(() {
+      _daySlots[day]!.removeAt(index);
+      if (_daySlots[day]!.isEmpty) {
+        _enabledDays.remove(day);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(body: Center(child: LoadingIndicator()));
 
-    final availableCount = _slots.where((s) => s['isAvailable'] as bool).length;
+    final availableCount = _enabledDays.length;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -233,19 +326,25 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               itemCount: 7,
               itemBuilder: (_, day) {
-                final slot = _slots[day];
-                final isAvailable = slot['isAvailable'] as bool;
+                final isEnabled = _enabledDays.contains(day);
+                final slots = _daySlots[day]!;
+                final hasOverlap = isEnabled && _hasOverlap(day);
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: isAvailable ? AppShadows.md : AppShadows.sm,
-                    border: isAvailable ? Border.all(color: AppColors.primary.withValues(alpha: 0.2)) : null,
+                    boxShadow: isEnabled ? AppShadows.md : AppShadows.sm,
+                    border: hasOverlap
+                        ? Border.all(color: AppColors.error.withValues(alpha: 0.5), width: 1.5)
+                        : isEnabled
+                            ? Border.all(color: AppColors.primary.withValues(alpha: 0.2))
+                            : null,
                   ),
                   child: Column(
                     children: [
+                      // ── Day header with toggle ──
                       Padding(
                         padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                         child: Row(
@@ -254,7 +353,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: isAvailable ? AppColors.primary.withValues(alpha: 0.1) : AppColors.bg,
+                                color: isEnabled ? AppColors.primary.withValues(alpha: 0.1) : AppColors.bg,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Center(
@@ -263,7 +362,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 13,
-                                    color: isAvailable ? AppColors.primary : AppColors.textHint,
+                                    color: isEnabled ? AppColors.primary : AppColors.textHint,
                                   ),
                                 ),
                               ),
@@ -277,44 +376,102 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                                     _daysFull[day],
                                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                                   ),
-                                  if (isAvailable)
+                                  if (isEnabled)
                                     Text(
-                                      '${slot['fromTime']} - ${slot['toTime']}',
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+                                      '${slots.length} time slot${slots.length == 1 ? '' : 's'}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: hasOverlap ? AppColors.error : AppColors.textHint,
+                                      ),
                                     ),
                                 ],
                               ),
                             ),
                             Switch.adaptive(
-                              value: isAvailable,
+                              value: isEnabled,
                               activeTrackColor: AppColors.primary,
                               onChanged: (v) {
                                 HapticFeedback.lightImpact();
-                                setState(() => _slots[day]['isAvailable'] = v);
+                                setState(() {
+                                  if (v) {
+                                    _enabledDays.add(day);
+                                    if (_daySlots[day]!.isEmpty) {
+                                      _daySlots[day]!.add({'fromTime': '09:00', 'toTime': '18:00'});
+                                    }
+                                  } else {
+                                    _enabledDays.remove(day);
+                                  }
+                                });
                               },
                             ),
                           ],
                         ),
                       ),
-                      if (isAvailable) ...[
+
+                      // ── Time slots ──
+                      if (isEnabled) ...[
                         Divider(height: 1, color: AppColors.divider.withValues(alpha: 0.5)),
                         Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                          child: Column(
                             children: [
-                              const Icon(Icons.schedule_rounded, size: 16, color: AppColors.textHint),
-                              const SizedBox(width: 8),
-                              _TimePill(
-                                label: slot['fromTime'] as String,
-                                onTap: () => _pickTime(day, 'fromTime'),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                child: Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.textHint.withValues(alpha: 0.5)),
-                              ),
-                              _TimePill(
-                                label: slot['toTime'] as String,
-                                onTap: () => _pickTime(day, 'toTime'),
+                              for (int i = 0; i < slots.length; i++)
+                                Padding(
+                                  padding: EdgeInsets.only(bottom: i < slots.length - 1 ? 8 : 0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.schedule_rounded, size: 16, color: AppColors.textHint),
+                                      const SizedBox(width: 8),
+                                      _TimePill(
+                                        label: slots[i]['fromTime']!,
+                                        onTap: () => _pickTime(day, i, 'fromTime'),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        child: Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.textHint.withValues(alpha: 0.5)),
+                                      ),
+                                      _TimePill(
+                                        label: slots[i]['toTime']!,
+                                        onTap: () => _pickTime(day, i, 'toTime'),
+                                      ),
+                                      const Spacer(),
+                                      if (slots.length > 1)
+                                        GestureDetector(
+                                          onTap: () => _removeSlot(day, i),
+                                          child: Container(
+                                            width: 28,
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.error.withValues(alpha: 0.08),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Icon(Icons.remove_rounded, size: 16, color: AppColors.error),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              // ── Add slot button ──
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () => _addSlot(day),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.04),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.15), style: BorderStyle.solid),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_rounded, size: 16, color: AppColors.primary),
+                                      SizedBox(width: 4),
+                                      Text('Add time slot', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -344,12 +501,14 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
     );
   }
 
-  Future<void> _pickTime(int day, String key) async {
-    final parts = (_slots[day][key] as String).split(':');
+  Future<void> _pickTime(int day, int slotIndex, String key) async {
+    final parts = (_daySlots[day]![slotIndex][key]!).split(':');
     final initial = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
     final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked != null) {
-      setState(() => _slots[day][key] = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+      setState(() {
+        _daySlots[day]![slotIndex][key] = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      });
     }
   }
 }
