@@ -601,7 +601,14 @@ class _TopBar extends StatelessWidget {
         children: [
           if (canPop)
             IconButton(
-              onPressed: () => context.pop(),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  // Fallback: go to dashboard/home if no route to pop to
+                  context.go('/home');
+                }
+              },
               icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
             )
           else
