@@ -47,6 +47,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   );
 
   AuthNotifier() : super(const AuthState(isLoading: true)) {
+    // Hook into ApiClient so any 401 response auto-triggers logout.
+    // This prevents the "could not load" state on every screen when
+    // the token expires — instead the user is sent straight to login.
+    apiClient.onUnauthorized = () {
+      if (state.isAuthenticated) {
+        appLog.warn('auth', 'auto_logout', 'Token expired — logging out automatically');
+        logout();
+      }
+    };
     _loadStoredUser();
   }
 
@@ -187,8 +196,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = UserModel.fromJson(resp.data['data'] as Map<String, dynamic>);
       await _storage.write(key: AppConstants.userKey, value: jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isLoading: false);
-    } catch (_) {
-      // If token invalid, logout
+    } catch (e) {
+      // /auth/me is excluded from the interceptor's 401 handler (it starts
+      // with /auth/), so we handle it explicitly here.
+      appLog.warn('auth', 'refresh_me_failed', 'Token validation failed — logging out',
+        extra: {'error': e.toString()},
+      );
       await logout();
     }
   }
