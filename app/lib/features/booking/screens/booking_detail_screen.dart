@@ -39,6 +39,7 @@ class BookingDetailScreen extends ConsumerWidget {
       ),
       body: async.authAwareWhen(
         ref,
+        loading: () => const FullScreenLoader(),
         errorTitle: 'Could not load booking',
         onRetry: () => ref.invalidate(_bookingDetailProvider(bookingId)),
         data: (booking) => _BookingDetailBody(booking: booking),

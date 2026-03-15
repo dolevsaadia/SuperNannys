@@ -83,6 +83,11 @@ export function createApp() {
     } catch (err) {
       logger.error('Deep health: DB unreachable', { error: String(err) })
     }
+
+    const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024)
+    const heapTotalMB = Math.round(mem.heapTotal / 1024 / 1024)
+    const heapUsagePercent = heapTotalMB > 0 ? Math.round((heapUsedMB / heapTotalMB) * 100) : 0
+
     res.status(dbOk ? 200 : 503).json({
       status: dbOk ? 'ok' : 'degraded',
       version: '2.0.0',
@@ -91,10 +96,12 @@ export function createApp() {
       database: { connected: dbOk, latencyMs: dbLatencyMs },
       memory: {
         rssMB: Math.round(mem.rss / 1024 / 1024),
-        heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
-        heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
+        heapUsedMB,
+        heapTotalMB,
+        heapUsagePercent,
       },
       payments: config.payments.enabled,
+      pid: process.pid,
     })
   })
 

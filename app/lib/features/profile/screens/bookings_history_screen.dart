@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
+import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/utils/async_value_ui.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose.family<List<BookingModel>, String?>((ref, status) async {
@@ -96,6 +97,7 @@ class _BookingsList extends ConsumerWidget {
 
     return async.authAwareWhen(
       ref,
+      loading: () => const SkeletonList(count: 4, skeleton: BookingCardSkeleton()),
       errorTitle: 'Could not load bookings',
       onRetry: () => ref.invalidate(_bookingsProvider(status)),
       data: (bookings) {

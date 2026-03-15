@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/badge_chip.dart';
 import '../../../core/utils/async_value_ui.dart';
+import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/rating_bar_widget.dart';
 import '../../../core/widgets/app_button.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,6 +32,7 @@ class NannyProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       body: async.authAwareWhen(
         ref,
+        loading: () => const FullScreenLoader(),
         errorTitle: 'Could not load profile',
         onRetry: () => ref.invalidate(_nannyDetailProvider(nannyId)),
         data: (data) {

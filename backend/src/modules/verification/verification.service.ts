@@ -1,5 +1,5 @@
 import { prisma } from '../../db'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ConflictError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { verificationRequestsDal } from './verification.dal'
 
@@ -8,7 +8,7 @@ export const verificationService = {
     // Check if there's already a pending request
     const existing = await verificationRequestsDal.findByUserId(userId)
     if (existing && existing.status === 'pending') {
-      throw new AppError('You already have a pending verification request', 400)
+      throw new ConflictError('You already have a pending verification request')
     }
 
     return verificationRequestsDal.create({ userId, ...data })
@@ -24,7 +24,7 @@ export const verificationService = {
 
   async review(requestId: string, adminUserId: string, status: string, adminNotes?: string) {
     const request = await verificationRequestsDal.findById(requestId)
-    if (!request) throw new AppError('Verification request not found', 404)
+    if (!request) throw new NotFoundError('Verification request')
 
     const updated = await verificationRequestsDal.updateStatus(requestId, {
       status,
