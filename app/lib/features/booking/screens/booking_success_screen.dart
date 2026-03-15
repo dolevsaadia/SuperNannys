@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 
-class BookingSuccessScreen extends StatefulWidget {
+class BookingSuccessScreen extends ConsumerStatefulWidget {
   final String bookingId;
   const BookingSuccessScreen({super.key, required this.bookingId});
 
   @override
-  State<BookingSuccessScreen> createState() => _BookingSuccessScreenState();
+  ConsumerState<BookingSuccessScreen> createState() => _BookingSuccessScreenState();
 }
 
-class _BookingSuccessScreenState extends State<BookingSuccessScreen> with TickerProviderStateMixin {
+class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> with TickerProviderStateMixin {
   late final AnimationController _scaleCtrl;
   late final AnimationController _fadeCtrl;
   late final Animation<double> _scaleAnim;
@@ -142,13 +144,19 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> with Ticker
                     AppButton(
                       label: 'View Booking',
                       variant: AppButtonVariant.gradient,
-                      onTap: () => context.go('/bookings/${widget.bookingId}'),
+                      onTap: () {
+                        triggerDataRefresh(ref);
+                        context.go('/bookings/${widget.bookingId}');
+                      },
                     ),
                     const SizedBox(height: 12),
                     AppButton(
                       label: 'Back to Home',
                       variant: AppButtonVariant.outline,
-                      onTap: () => context.go('/home'),
+                      onTap: () {
+                        triggerDataRefresh(ref);
+                        context.go('/home');
+                      },
                     ),
                   ],
                 ),

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/services/app_logger.dart';
 
 class NannyFilter {
@@ -167,4 +168,9 @@ class NanniesNotifier extends StateNotifier<NanniesState> {
   NannyFilter get currentFilter => _filter;
 }
 
-final nanniesProvider = StateNotifierProvider<NanniesNotifier, NanniesState>((ref) => NanniesNotifier());
+final nanniesProvider = StateNotifierProvider<NanniesNotifier, NanniesState>((ref) {
+  final notifier = NanniesNotifier();
+  // Re-fetch when data changes elsewhere (booking created, favorite toggled, etc.)
+  ref.listen(dataRefreshProvider, (_, __) => notifier.loadNannies());
+  return notifier;
+});

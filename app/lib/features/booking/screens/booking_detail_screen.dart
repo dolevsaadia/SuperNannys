@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 
@@ -488,7 +489,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   child: AppButton(
                     label: 'Decline',
                     variant: AppButtonVariant.outline,
-                    onTap: () => _updateStatus(context, 'DECLINED'),
+                    onTap: () => _updateStatus(context, ref, 'DECLINED'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -496,7 +497,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   child: AppButton(
                     label: 'Accept',
                     variant: AppButtonVariant.gradient,
-                    onTap: () => _updateStatus(context, 'ACCEPTED'),
+                    onTap: () => _updateStatus(context, ref, 'ACCEPTED'),
                   ),
                 ),
               ],
@@ -508,7 +509,7 @@ class _BookingDetailBody extends ConsumerWidget {
               child: AppButton(
                 label: 'Cancel Booking',
                 variant: AppButtonVariant.danger,
-                onTap: () => _updateStatus(context, 'CANCELLED'),
+                onTap: () => _updateStatus(context, ref, 'CANCELLED'),
               ),
             ),
           if ((isParent || isNanny) && booking.isAccepted)
@@ -546,7 +547,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 label: 'Leave a Review',
                 variant: AppButtonVariant.outline,
                 prefixIcon: const Icon(Icons.star_outline_rounded, color: AppColors.primary, size: 20),
-                onTap: () => _showReviewDialog(context, booking.id),
+                onTap: () => _showReviewDialog(context, ref, booking.id),
               ),
             ),
           const SizedBox(height: 20),
@@ -570,13 +571,16 @@ class _BookingDetailBody extends ConsumerWidget {
         child: Divider(height: 1, color: AppColors.divider.withValues(alpha: 0.5)),
       );
 
-  Future<void> _updateStatus(BuildContext context, String status) async {
+  Future<void> _updateStatus(BuildContext context, WidgetRef ref, String status) async {
     try {
       await apiClient.dio.patch('/bookings/${booking.id}/status', data: {'status': status});
 
       if (status == 'CANCELLED' || status == 'DECLINED') {
         await BookingReminderService.instance.cancelReminders(booking.id);
       }
+
+      // Trigger global data refresh so bookings list + dashboard update
+      triggerDataRefresh(ref);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking $status')));
@@ -591,7 +595,7 @@ class _BookingDetailBody extends ConsumerWidget {
     }
   }
 
-  void _showReviewDialog(BuildContext context, String bookingId) {
+  void _showReviewDialog(BuildContext context, WidgetRef ref, String bookingId) {
     int rating = 5;
     final controller = TextEditingController();
 
@@ -648,6 +652,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   'rating': rating,
                   if (controller.text.isNotEmpty) 'comment': controller.text,
                 });
+                triggerDataRefresh(ref);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Submit'),

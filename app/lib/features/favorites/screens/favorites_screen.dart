@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/nanny_card.dart';
@@ -10,6 +11,7 @@ import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _favoritesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  ref.watch(dataRefreshProvider); // re-fetch when favorites toggled elsewhere
   final resp = await apiClient.dio.get('/favorites');
   final list = resp.data['data']['favorites'] as List<dynamic>? ?? [];
   return list.cast<Map<String, dynamic>>();

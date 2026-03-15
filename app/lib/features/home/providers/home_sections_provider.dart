@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 
 /// Fetches nannies for a specific home section with custom params
 Future<List<NannyModel>> _fetchSection(Map<String, dynamic> params) async {
@@ -35,8 +36,9 @@ Future<List<NannyModel>> _fetchSection(Map<String, dynamic> params) async {
 
 /// Top Rated nannies (sorted by rating, limit 10)
 final topRatedNanniesProvider = FutureProvider<List<NannyModel>>((ref) async {
-  // ── Auto-refresh on auth change (login/logout/token refresh) ──
+  // ── Auto-refresh on auth change OR data mutation ──
   final auth = ref.watch(authProvider);
+  ref.watch(dataRefreshProvider); // re-fetch when data changes elsewhere
   if (!auth.isAuthenticated) return []; // Don't fetch when logged out
 
   try {
@@ -52,6 +54,7 @@ final topRatedNanniesProvider = FutureProvider<List<NannyModel>>((ref) async {
 /// Available Now nannies (only available, limit 10)
 final availableNowNanniesProvider = FutureProvider<List<NannyModel>>((ref) async {
   final auth = ref.watch(authProvider);
+  ref.watch(dataRefreshProvider);
   if (!auth.isAuthenticated) return [];
 
   try {
@@ -66,6 +69,7 @@ final availableNowNanniesProvider = FutureProvider<List<NannyModel>>((ref) async
 /// New nannies (sorted by newest, limit 10)
 final newNanniesProvider = FutureProvider<List<NannyModel>>((ref) async {
   final auth = ref.watch(authProvider);
+  ref.watch(dataRefreshProvider);
   if (!auth.isAuthenticated) return [];
 
   try {
@@ -81,6 +85,7 @@ final newNanniesProvider = FutureProvider<List<NannyModel>>((ref) async {
 final nearbyNanniesProvider = FutureProvider.family<List<NannyModel>, ({double lat, double lng})>(
   (ref, coords) async {
     final auth = ref.watch(authProvider);
+    ref.watch(dataRefreshProvider);
     if (!auth.isAuthenticated) return [];
 
     try {
