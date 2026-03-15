@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import { config } from '../../config'
-import { signToken } from '../../shared/utils/jwt'
+import { signToken, signRefreshToken, generateTokenPair, verifyRefreshToken } from '../../shared/utils/jwt'
 import { AppError } from '../../shared/errors/app-error'
 import { generateOTP } from '../../shared/utils/otp'
 import { emailService } from '../../shared/services/email.service'
@@ -44,7 +44,7 @@ export const authService = {
     if (existing) throw new AppError('Email already in use', 409)
 
     const passwordHash = await bcrypt.hash(data.password, 12)
-    const user = await authDal.createUser({
+    const userData = {
       email,
       passwordHash,
       fullName: data.fullName,
@@ -57,16 +57,17 @@ export const authService = {
       houseNumber: data.houseNumber,
       postalCode: data.postalCode,
       apartmentFloor: data.apartmentFloor,
-    })
-
-    if (data.role === 'NANNY') {
-      await authDal.createNannyProfile(user.id)
     }
+
+    // Atomic: create user + nanny profile in a single transaction if NANNY role
+    const user = data.role === 'NANNY'
+      ? await authDal.createUserWithNannyProfile(userData)
+      : await authDal.createUser(userData)
 
     logger.info('User registered', { userId: user.id, email, role: data.role })
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role })
-    return { token, user }
+    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    return { ...tokens, user }
   },
 
   async login(data: LoginInput) {
@@ -90,9 +91,9 @@ export const authService = {
 
     logger.info('User logged in', { userId: user.id, email })
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
     return {
-      token,
+      ...tokens,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
@@ -145,24 +146,25 @@ export const authService = {
       // New user with role — create account.
       // Google already verified the email, so sign in directly (no OTP needed).
       isNewUser = true
-      const created = await authDal.createUser({
+      const googleUserData = {
         email: payload.email,
         fullName: payload.name || payload.email,
         avatarUrl: payload.picture,
         role: data.role,
-        authProvider: 'GOOGLE',
+        authProvider: 'GOOGLE' as const,
         googleSub: payload.sub,
         isVerified: true,
-      })
-      if (data.role === 'NANNY') {
-        await authDal.createNannyProfile(created.id)
       }
+      // Atomic: create user + nanny profile in a single transaction if NANNY role
+      const created = data.role === 'NANNY'
+        ? await authDal.createUserWithNannyProfile(googleUserData)
+        : await authDal.createUser(googleUserData)
 
       logger.info('Google sign-in', { email: payload.email, isNewUser: true, userId: created.id })
 
-      const newToken = signToken({ userId: created.id, email: created.email, role: created.role })
+      const newTokens = generateTokenPair({ userId: created.id, email: created.email, role: created.role })
       return {
-        token: newToken,
+        ...newTokens,
         isNewUser: true,
         user: {
           id: created.id, email: created.email, fullName: created.fullName,
@@ -179,9 +181,9 @@ export const authService = {
     logger.info('Google sign-in', { email: payload.email, isNewUser: false, userId: user.id })
 
     // Google already verified the email, so sign in directly (no OTP needed).
-    const existingToken = signToken({ userId: user.id, email: user.email, role: user.role })
+    const existingTokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
     return {
-      token: existingToken,
+      ...existingTokens,
       isNewUser: false,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
@@ -204,9 +206,9 @@ export const authService = {
 
     logger.info('OTP verified', { userId: user.id, email })
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
     return {
-      token,
+      ...tokens,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
@@ -222,6 +224,39 @@ export const authService = {
     await sendOTP(normalizedEmail, user.id)
     logger.info('OTP resent', { userId: user.id, email: normalizedEmail })
     return { message: 'Verification code sent' }
+  },
+
+  /**
+   * Refresh access token using a valid refresh token.
+   * Returns a new access token + new refresh token (rotation).
+   */
+  async refreshToken(refreshTokenStr: string) {
+    let payload
+    try {
+      payload = verifyRefreshToken(refreshTokenStr)
+    } catch (err) {
+      logger.warn('Refresh token invalid', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      throw new AppError('Invalid or expired refresh token', 401)
+    }
+
+    // Verify user still exists and is active
+    const user = await authDal.findUserWithProfile(payload.userId)
+    if (!user) throw new AppError('User not found', 404)
+    if (!user.isActive) throw new AppError('Account deactivated', 403)
+
+    logger.info('Token refreshed', { userId: user.id })
+
+    // Issue new token pair (refresh token rotation)
+    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    return {
+      ...tokens,
+      user: {
+        id: user.id, email: user.email, fullName: user.fullName,
+        role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+      },
+    }
   },
 
   // Note: req.user! non-null assertion in controllers is safe —

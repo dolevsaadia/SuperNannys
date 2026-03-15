@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit'
 import { Server as SocketIOServer } from 'socket.io'
 
 import { config } from './config'
+import { prisma } from './db'
 import { logger } from './shared/utils/logger'
 import { requestContext } from './shared/middlewares/request-context'
 import { errorHandler, notFoundMiddleware } from './shared/middlewares/error.middleware'
@@ -40,6 +41,13 @@ export function createApp() {
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
   app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))
+  // Prevent caching of API responses (stale auth tokens, booking data, etc.)
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
+    next()
+  })
 
   // ── Middleware ─────────────────────────────────────────
   app.use(compression())
@@ -56,9 +64,39 @@ export function createApp() {
   app.use('/uploads', express.static(config.upload.uploadDir))
 
   // ── Health ─────────────────────────────────────────────
+  // Basic health — fast, no DB call (used by mobile connectivity checks)
   app.get('/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.5.1', payments: config.payments.enabled, ts: new Date().toISOString() })
+    res.json({ status: 'ok', version: '2.0.0', payments: config.payments.enabled, ts: new Date().toISOString() })
   )
+
+  // Deep health — checks DB, memory, uptime (for monitoring dashboards)
+  app.get('/health/deep', async (_req, res) => {
+    const mem = process.memoryUsage()
+    const uptimeSec = process.uptime()
+    let dbOk = false
+    let dbLatencyMs = 0
+    try {
+      const start = Date.now()
+      await prisma.$queryRaw`SELECT 1`
+      dbLatencyMs = Date.now() - start
+      dbOk = true
+    } catch (err) {
+      logger.error('Deep health: DB unreachable', { error: String(err) })
+    }
+    res.status(dbOk ? 200 : 503).json({
+      status: dbOk ? 'ok' : 'degraded',
+      version: '2.0.0',
+      ts: new Date().toISOString(),
+      uptime: { seconds: Math.floor(uptimeSec), human: `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m` },
+      database: { connected: dbOk, latencyMs: dbLatencyMs },
+      memory: {
+        rssMB: Math.round(mem.rss / 1024 / 1024),
+        heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
+      },
+      payments: config.payments.enabled,
+    })
+  })
 
   // ── API Routes ─────────────────────────────────────────
   app.use('/api/auth',     authRoutes)

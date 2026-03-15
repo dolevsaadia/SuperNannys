@@ -83,8 +83,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       final data = resp.data['data'] as Map<String, dynamic>;
       final token = data['token'] as String;
       final user = data['user'] as Map<String, dynamic>;
+      final refreshToken = data['refreshToken'] as String?;
 
-      await ref.read(authProvider.notifier).loginWithVerifiedToken(token, user);
+      await ref.read(authProvider.notifier).loginWithVerifiedToken(token, user, refreshToken: refreshToken);
       if (!mounted) return;
       context.go('/home');
     } catch (e) {

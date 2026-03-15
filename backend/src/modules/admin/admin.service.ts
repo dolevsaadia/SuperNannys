@@ -1,3 +1,4 @@
+import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { adminDal } from './admin.dal'
 import type { UpdateUserInput } from './admin.validation'
 
@@ -27,16 +28,14 @@ export const adminService = {
       ]
     }
 
-    const pageNum = Math.max(1, parseInt(filters.page || '1'))
-    const limitNum = Math.min(100, parseInt(filters.limit || '20'))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination(filters, 100)
 
     const [users, total] = await Promise.all([
-      adminDal.searchUsers(where, skip, limitNum),
+      adminDal.searchUsers(where, skip, limit),
       adminDal.countUsers(where),
     ])
 
-    return { users, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } }
+    return { users, pagination: paginationMeta(total, page, limit) }
   },
 
   async updateUser(userId: string, data: UpdateUserInput) {
@@ -45,31 +44,27 @@ export const adminService = {
 
   async getPendingNannies(filters: { page?: string; limit?: string }) {
     const where = { role: 'NANNY' as const, isVerified: false, isActive: true }
-    const pageNum = Math.max(1, parseInt(filters.page || '1'))
-    const limitNum = Math.min(100, parseInt(filters.limit || '20'))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination(filters, 100)
 
     const [nannies, total] = await Promise.all([
-      adminDal.getPendingNannies(where, skip, limitNum),
+      adminDal.getPendingNannies(where, skip, limit),
       adminDal.countPendingNannies(where),
     ])
 
-    return { nannies, pagination: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) } }
+    return { nannies, pagination: paginationMeta(total, page, limit) }
   },
 
   async getBookings(filters: { status?: string; page?: string; limit?: string }) {
     const where: Record<string, unknown> = {}
     if (filters.status) where.status = filters.status
 
-    const pageNum = Math.max(1, parseInt(filters.page || '1'))
-    const limitNum = Math.min(100, parseInt(filters.limit || '20'))
-    const skip = (pageNum - 1) * limitNum
+    const { page, limit, skip } = parsePagination(filters, 100)
 
     const [bookings, total] = await Promise.all([
-      adminDal.getBookings(where, skip, limitNum),
+      adminDal.getBookings(where, skip, limit),
       adminDal.countBookings(where),
     ])
 
-    return { bookings, pagination: { total, page: pageNum, limit: limitNum } }
+    return { bookings, pagination: paginationMeta(total, page, limit) }
   },
 }

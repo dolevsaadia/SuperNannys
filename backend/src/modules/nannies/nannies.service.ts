@@ -1,3 +1,4 @@
+import type { DocumentType } from '@prisma/client'
 import { AppError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
@@ -16,7 +17,7 @@ const orderByMap: Record<string, Record<string, string>> = {
 
 export const nanniesService = {
   async search(params: SearchNanniesInput) {
-    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params as any
+    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params
 
     const where: Record<string, unknown> = {}
     if (city) where.city = { contains: city, mode: 'insensitive' }
@@ -98,7 +99,7 @@ export const nanniesService = {
     return profile
   },
 
-  async addDocument(userId: string, type: string, url: string) {
+  async addDocument(userId: string, type: DocumentType, url: string) {
     const profile = await nanniesDal.findByUserId(userId)
     if (!profile) throw new AppError('Profile not found', 404)
     return nanniesDal.createDocument(profile.id, type, url)

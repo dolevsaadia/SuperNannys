@@ -82,7 +82,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                           color: Colors.white,
                           padding: const EdgeInsets.all(1.5),
                           child: ClipOval(
-                            child: nanny.user?.avatarUrl != null && nanny.user!.avatarUrl!.isNotEmpty
+                            child: (nanny.user?.avatarUrl ?? '').isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: nanny.user!.avatarUrl!,
                                     width: 64,

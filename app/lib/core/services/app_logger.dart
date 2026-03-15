@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Severity levels for structured logging.
 enum LogLevel { debug, info, warn, error }
@@ -61,7 +64,7 @@ class LogEntry {
 ///
 /// Provides structured logging with consistent fields for traceability.
 /// In debug mode, logs go to console. In production, logs are stored
-/// in a ring buffer and can be flushed to a remote service.
+/// in a ring buffer and errors are persisted to disk for crash analysis.
 class AppLogger {
   AppLogger._();
   static final AppLogger instance = AppLogger._();
@@ -76,6 +79,44 @@ class AppLogger {
   final List<LogEntry> _recentLogs = [];
   static const _maxRecentLogs = 200;
 
+  /// Crash log file for persistent error storage
+  File? _crashLogFile;
+  bool _crashLogReady = false;
+
+  /// Initialize persistent crash log storage.
+  /// Call once during app startup after WidgetsFlutterBinding.ensureInitialized().
+  Future<void> initPersistentStorage() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final logDir = Directory('${dir.path}/logs');
+      if (!logDir.existsSync()) {
+        logDir.createSync(recursive: true);
+      }
+      _crashLogFile = File('${logDir.path}/crash_log.jsonl');
+
+      // Rotate: keep last 500KB max (trim older entries)
+      if (_crashLogFile!.existsSync()) {
+        final size = _crashLogFile!.lengthSync();
+        if (size > 500 * 1024) {
+          // Keep only last 200KB
+          final content = _crashLogFile!.readAsStringSync();
+          final keepFrom = content.length - (200 * 1024);
+          final trimmed = content.substring(keepFrom > 0 ? keepFrom : 0);
+          // Find first complete line
+          final firstNewline = trimmed.indexOf('\n');
+          _crashLogFile!.writeAsStringSync(
+            firstNewline >= 0 ? trimmed.substring(firstNewline + 1) : trimmed,
+          );
+        }
+      }
+
+      _crashLogReady = true;
+    } catch (e) {
+      // Can't persist logs — fallback to in-memory only
+      debugPrint('[AppLogger] Failed to init persistent storage: $e');
+    }
+  }
+
   /// Set after login for automatic user correlation
   void setUserId(String? userId) => _userId = userId;
 
@@ -87,6 +128,17 @@ class AppLogger {
 
   /// Get recent logs (for crash reports or diagnostics)
   List<LogEntry> get recentLogs => List.unmodifiable(_recentLogs);
+
+  /// Get crash log file contents for sharing/debugging
+  Future<String> getCrashLogContents() async {
+    if (_crashLogFile != null && _crashLogFile!.existsSync()) {
+      return _crashLogFile!.readAsString();
+    }
+    return '';
+  }
+
+  /// Get crash log file path (for attaching to bug reports)
+  String? get crashLogPath => _crashLogFile?.path;
 
   // ── Convenience methods ──────────────────────────────────
 
@@ -152,6 +204,21 @@ class AppLogger {
     // Console output in debug mode
     if (kDebugMode) {
       debugPrint(entry.toString());
+    }
+
+    // Persist errors and warnings to disk (fire-and-forget)
+    if (_crashLogReady && (level == LogLevel.error || level == LogLevel.warn)) {
+      _persistEntry(entry);
+    }
+  }
+
+  /// Write a log entry to the crash log file (JSONL format).
+  void _persistEntry(LogEntry entry) {
+    try {
+      final line = '${jsonEncode(entry.toJson())}\n';
+      _crashLogFile?.writeAsStringSync(line, mode: FileMode.append, flush: false);
+    } catch (_) {
+      // Silently fail — don't crash the app over logging
     }
   }
 }

@@ -27,14 +27,19 @@ class ApiClient {
   /// In-memory token cache — avoids reading secure storage on every request
   /// and prevents crashes if the keychain is temporarily locked on app restart.
   String? _cachedToken;
+  String? _cachedRefreshToken;
 
-  /// Callback invoked when any API call returns 401 Unauthorized.
+  /// Callback invoked when token refresh also fails — true logout.
   /// Set by AuthNotifier to trigger automatic logout + redirect to login.
   void Function()? onUnauthorized;
 
   /// Prevents firing onUnauthorized multiple times when several requests
   /// fail with 401 simultaneously (e.g. expired token).
   bool _handlingUnauthorized = false;
+
+  /// Guards concurrent refresh: only one refresh call at a time.
+  /// Other 401'd requests wait for this completer.
+  Completer<bool>? _refreshCompleter;
 
   void init() {
     dio = Dio(BaseOptions(
@@ -100,7 +105,7 @@ class ApiClient {
 
           handler.next(response);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
           final startMs = error.requestOptions.extra['_reqStartMs'] as int? ?? 0;
           final durationMs = DateTime.now().millisecondsSinceEpoch - startMs;
           final path = error.requestOptions.path;
@@ -122,26 +127,41 @@ class ApiClient {
           );
 
           // ── Report to connectivity ──────────────────────────────
-          // If the server returned ANY HTTP response (even 401/500),
-          // the network is working. Only genuine network failures
-          // (timeout, DNS, socket) indicate connectivity loss.
           if (error.response != null) {
             connectivityNotifier?.reportApiResult(networkReachable: true);
           } else if (_isNetworkError(error)) {
             connectivityNotifier?.reportApiResult(networkReachable: false);
           }
 
-          // Auto-logout on 401 — skip for auth endpoints (login/register/etc.)
-          // to avoid logout loops during login attempts.
-          if (status == 401 && !path.startsWith('/auth/')) {
-            if (!_handlingUnauthorized && onUnauthorized != null) {
-              _handlingUnauthorized = true;
-              appLog.warn('api', 'token_expired', 'Got 401 — triggering auto-logout');
-              onUnauthorized!();
-              // Reset after a short delay so future 401s (after re-login) work
-              Future.delayed(const Duration(seconds: 2), () {
-                _handlingUnauthorized = false;
-              });
+          // ── 401 Token Refresh Logic ─────────────────────────────
+          // Skip for auth endpoints (login/register/refresh) to avoid loops.
+          // Skip if this request was already a retry after refresh.
+          if (status == 401 &&
+              !path.startsWith('/auth/') &&
+              error.requestOptions.extra['_isRetryAfterRefresh'] != true) {
+
+            final refreshed = await _attemptTokenRefresh();
+            if (refreshed) {
+              // Retry the original request with the new token
+              try {
+                final opts = error.requestOptions;
+                opts.headers['Authorization'] = 'Bearer $_cachedToken';
+                opts.extra['_isRetryAfterRefresh'] = true;
+                final response = await dio.fetch(opts);
+                return handler.resolve(response);
+              } on DioException catch (retryError) {
+                return handler.next(retryError);
+              }
+            } else {
+              // Refresh failed — truly unauthorized, logout
+              if (!_handlingUnauthorized && onUnauthorized != null) {
+                _handlingUnauthorized = true;
+                appLog.warn('api', 'token_expired', 'Refresh failed — triggering auto-logout');
+                onUnauthorized!();
+                Future.delayed(const Duration(seconds: 2), () {
+                  _handlingUnauthorized = false;
+                });
+              }
             }
           }
 
@@ -149,6 +169,59 @@ class ApiClient {
         },
       ),
     );
+  }
+
+  /// Attempts to refresh the access token using the stored refresh token.
+  /// Returns true if refresh succeeded, false otherwise.
+  /// Ensures only one refresh request runs at a time — concurrent 401s
+  /// wait for the same refresh call.
+  Future<bool> _attemptTokenRefresh() async {
+    // If already refreshing, wait for that to finish
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
+    }
+
+    _refreshCompleter = Completer<bool>();
+
+    try {
+      final refreshToken = await _getRefreshToken();
+      if (refreshToken == null) {
+        appLog.warn('api', 'refresh_no_token', 'No refresh token available');
+        _refreshCompleter!.complete(false);
+        return false;
+      }
+
+      appLog.info('api', 'token_refresh_start', 'Attempting token refresh');
+
+      // Use a separate Dio instance to avoid interceptor loops
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: AppConstants.apiBaseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {'Content-Type': 'application/json'},
+      ));
+
+      final resp = await refreshDio.post('/auth/refresh', data: {
+        'refreshToken': refreshToken,
+      });
+
+      final data = resp.data['data'] as Map<String, dynamic>;
+      final newToken = data['token'] as String;
+      final newRefreshToken = data['refreshToken'] as String;
+
+      await setToken(newToken);
+      await setRefreshToken(newRefreshToken);
+
+      appLog.info('api', 'token_refresh_success', 'Token refreshed successfully');
+      _refreshCompleter!.complete(true);
+      return true;
+    } catch (e) {
+      appLog.warn('api', 'token_refresh_failed', 'Token refresh failed: $e');
+      _refreshCompleter!.complete(false);
+      return false;
+    } finally {
+      _refreshCompleter = null;
+    }
   }
 
   /// Returns true if the error is a genuine network failure
@@ -190,11 +263,29 @@ class ApiClient {
 
   Future<void> clearToken() async {
     _cachedToken = null;
+    _cachedRefreshToken = null;
     try {
       await _storage.delete(key: AppConstants.tokenKey);
+      await _storage.delete(key: AppConstants.refreshTokenKey);
     } catch (_) {
-      // Keychain may be temporarily locked — token already cleared from memory.
+      // Keychain may be temporarily locked — tokens already cleared from memory.
     }
+  }
+
+  Future<String?> _getRefreshToken() async {
+    if (_cachedRefreshToken != null) return _cachedRefreshToken;
+    try {
+      _cachedRefreshToken = await _storage.read(key: AppConstants.refreshTokenKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
+    } catch (_) {}
+    return _cachedRefreshToken;
+  }
+
+  Future<void> setRefreshToken(String token) async {
+    _cachedRefreshToken = token;
+    try {
+      await _storage.write(key: AppConstants.refreshTokenKey, value: token);
+    } catch (_) {}
   }
 }
 

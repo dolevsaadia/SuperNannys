@@ -34,6 +34,15 @@ export const authDal = {
     return prisma.user.create({ data, select: userPublicSelect })
   },
 
+  /** Create user + nanny profile atomically in a single transaction */
+  createUserWithNannyProfile(data: Prisma.UserCreateInput) {
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data, select: userPublicSelect })
+      await tx.nannyProfile.create({ data: { userId: user.id } })
+      return user
+    })
+  },
+
   createNannyProfile(userId: string) {
     return prisma.nannyProfile.create({ data: { userId } })
   },
@@ -57,7 +66,7 @@ export const authDal = {
       where: { id: userId },
       select: {
         id: true, email: true, fullName: true, phone: true, phoneVerified: true, role: true,
-        avatarUrl: true, isVerified: true, createdAt: true,
+        avatarUrl: true, isVerified: true, isActive: true, createdAt: true,
         city: true, streetName: true, houseNumber: true, postalCode: true, apartmentFloor: true,
         latitude: true, longitude: true, isOnline: true, lastSeenAt: true,
         nannyProfile: {

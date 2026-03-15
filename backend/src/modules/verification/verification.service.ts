@@ -1,4 +1,6 @@
+import { prisma } from '../../db'
 import { AppError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
 import { verificationRequestsDal } from './verification.dal'
 
 export const verificationService = {
@@ -32,11 +34,11 @@ export const verificationService = {
 
     // If approved, mark user as verified
     if (status === 'approved') {
-      const { prisma } = await import('../../db')
       await prisma.user.update({
         where: { id: request.userId },
         data: { isVerified: true },
       })
+      logger.info('User verified via admin review', { userId: request.userId, requestId })
     }
 
     return updated

@@ -67,10 +67,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .timeout(const Duration(seconds: 3), onTimeout: () => null);
       final userData = await _storage.read(key: AppConstants.userKey)
           .timeout(const Duration(seconds: 3), onTimeout: () => null);
+      final refreshToken = await _storage.read(key: AppConstants.refreshTokenKey)
+          .timeout(const Duration(seconds: 3), onTimeout: () => null);
       if (token != null && userData != null) {
         // Sync the in-memory cache in ApiClient so the interceptor has the
         // token immediately without needing another storage read.
         await apiClient.setToken(token);
+        if (refreshToken != null) {
+          await apiClient.setRefreshToken(refreshToken);
+        }
         final user = UserModel.fromJson(jsonDecode(userData) as Map<String, dynamic>);
         state = AuthState(user: user);
         // Verify token is still valid
@@ -92,7 +97,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final resp = await apiClient.dio.post('/auth/login', data: {'email': email.toLowerCase(), 'password': password});
       final data = resp.data['data'] as Map<String, dynamic>;
-      await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
+          refreshToken: data['refreshToken'] as String?);
       appLog.info('auth', 'login_success', 'Email login succeeded');
       return true;
     } catch (e) {
@@ -112,7 +118,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (idNumber != null) 'idNumber': idNumber,
       });
       final data = resp.data['data'] as Map<String, dynamic>;
-      await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
+          refreshToken: data['refreshToken'] as String?);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _extractError(e));
@@ -146,7 +153,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return GoogleLoginResult(success: true, isNewUser: true);
       }
 
-      await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>);
+      await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
+          refreshToken: data['refreshToken'] as String?);
       return GoogleLoginResult(success: true, isNewUser: isNewUser);
     } catch (e) {
       final err = _extractError(e);
@@ -214,12 +222,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Complete login after OTP verification (called from OTP screen)
-  Future<void> loginWithVerifiedToken(String token, Map<String, dynamic> userData) async {
-    await _saveSession(token, userData);
+  Future<void> loginWithVerifiedToken(String token, Map<String, dynamic> userData, {String? refreshToken}) async {
+    await _saveSession(token, userData, refreshToken: refreshToken);
   }
 
-  Future<void> _saveSession(String token, Map<String, dynamic> userData) async {
+  Future<void> _saveSession(String token, Map<String, dynamic> userData, {String? refreshToken}) async {
     await apiClient.setToken(token);
+    if (refreshToken != null) {
+      await apiClient.setRefreshToken(refreshToken);
+    }
     try {
       await _storage.write(key: AppConstants.tokenKey, value: token);
     } catch (_) {}
@@ -238,6 +249,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await apiClient.clearToken();
     try {
       await _storage.delete(key: AppConstants.userKey);
+      await _storage.delete(key: AppConstants.refreshTokenKey);
     } catch (_) {}
     state = const AuthState();
   }
