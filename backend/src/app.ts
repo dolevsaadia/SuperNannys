@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit'
 import { Server as SocketIOServer } from 'socket.io'
 
 import { config } from './config'
+import { prisma } from './db'
 import { logger } from './shared/utils/logger'
 import { requestContext } from './shared/middlewares/request-context'
 import { errorHandler, notFoundMiddleware } from './shared/middlewares/error.middleware'
@@ -40,6 +41,13 @@ export function createApp() {
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
   app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))
+  // Prevent caching of API responses (stale auth tokens, booking data, etc.)
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
+    next()
+  })
 
   // ── Middleware ─────────────────────────────────────────
   app.use(compression())
@@ -68,7 +76,6 @@ export function createApp() {
     let dbOk = false
     let dbLatencyMs = 0
     try {
-      const { prisma } = await import('./db')
       const start = Date.now()
       await prisma.$queryRaw`SELECT 1`
       dbLatencyMs = Date.now() - start
