@@ -29,7 +29,22 @@ class RecurringBookingsScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const FullScreenLoader(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+              const SizedBox(height: 12),
+              const Text('Could not load recurring bookings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(_recurringListProvider),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
         data: (items) {
           if (items.isEmpty) {
             return Center(

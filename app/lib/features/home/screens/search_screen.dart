@@ -64,7 +64,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _isSearchMode = filter.hasFilters;
             if (filter.hasRecurringRate == true) {
               _selectedCategory = 'ongoing';
-            } else if (filter.skill == null && filter.hasRecurringRate != true) {
+            } else if (filter.skill != null) {
+              // Reverse-map skill name back to category ID
+              _selectedCategory = _skillToCategoryId(filter.skill!) ?? 'all';
+            } else {
               _selectedCategory = 'all';
             }
           });
@@ -73,19 +76,37 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  /// Maps a skill name back to its category ID for syncing the category bar
+  static String? _skillToCategoryId(String skill) {
+    const reverseSkillMap = {
+      'Infant Care': 'infant',
+      'Toddler Care': 'toddler',
+      'School Age Care': 'school',
+      'Special Needs Care': 'special',
+      'First Aid Certified': 'first_aid',
+      'Overnight Care': 'night',
+      'Weekend Care': 'weekend',
+    };
+    return reverseSkillMap[skill];
+  }
+
   void _onCategorySelected(String catId) {
     setState(() => _selectedCategory = catId);
+    final notifier = ref.read(nanniesProvider.notifier);
+
     if (catId == 'all') {
+      // Reset all filters and go back to discovery feed
+      notifier.applyFilter(const NannyFilter());
       setState(() => _isSearchMode = false);
-      ref.read(nanniesProvider.notifier).applyFilter(const NannyFilter());
     } else if (catId == 'ongoing') {
       // Filter for nannies who offer recurring/ongoing care rates
-      ref.read(nanniesProvider.notifier).applyFilter(
-        ref.read(nanniesProvider.notifier).currentFilter.copyWith(hasRecurringRate: true),
+      // Clear any previous skill filter when switching to ongoing
+      notifier.applyFilter(
+        notifier.currentFilter.copyWith(hasRecurringRate: true, clearSkill: true),
       );
       setState(() => _isSearchMode = true);
     } else {
-      final skillMap = {
+      const skillMap = {
         'infant': 'Infant Care',
         'toddler': 'Toddler Care',
         'school': 'School Age Care',
@@ -96,8 +117,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       };
       final skill = skillMap[catId];
       if (skill != null) {
-        ref.read(nanniesProvider.notifier).applyFilter(
-          ref.read(nanniesProvider.notifier).currentFilter.copyWith(skill: skill),
+        // Clear hasRecurringRate when switching to a skill-based category
+        notifier.applyFilter(
+          NannyFilter(
+            city: notifier.currentFilter.city,
+            minRate: notifier.currentFilter.minRate,
+            maxRate: notifier.currentFilter.maxRate,
+            minYears: notifier.currentFilter.minYears,
+            language: notifier.currentFilter.language,
+            minRating: notifier.currentFilter.minRating,
+            lat: notifier.currentFilter.lat,
+            lng: notifier.currentFilter.lng,
+            radiusKm: notifier.currentFilter.radiusKm,
+            skill: skill,
+          ),
         );
         setState(() => _isSearchMode = true);
       }

@@ -515,7 +515,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
       setState(() => _reviewSubmitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit review: $e'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Could not submit review. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }

@@ -29,7 +29,22 @@ class EarningsScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+              const SizedBox(height: 12),
+              const Text('Could not load earnings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(_earningsProvider),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
         data: (data) {
           final summary = data['summary'] as Map<String, dynamic>;
           final earnings = data['earnings'] as List<dynamic>;

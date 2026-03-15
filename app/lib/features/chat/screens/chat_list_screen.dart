@@ -32,7 +32,13 @@ class ChatListScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => EmptyState(title: 'Error', subtitle: e.toString()),
+        error: (e, _) => EmptyState(
+          title: 'Could not load messages',
+          subtitle: 'Check your connection and try again',
+          icon: Icons.wifi_off_rounded,
+          actionLabel: 'Retry',
+          onAction: () => ref.invalidate(_conversationsProvider),
+        ),
         data: (conversations) {
           if (conversations.isEmpty) {
             return Center(

@@ -96,7 +96,13 @@ class _BookingsList extends ConsumerWidget {
 
     return async.when(
       loading: () => const Center(child: LoadingIndicator()),
-      error: (e, _) => EmptyState(title: 'Error', subtitle: e.toString()),
+      error: (e, _) => EmptyState(
+        title: 'Could not load bookings',
+        subtitle: 'Check your connection and try again',
+        icon: Icons.wifi_off_rounded,
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(_bookingsProvider(status)),
+      ),
       data: (bookings) {
         if (bookings.isEmpty) {
           return Center(

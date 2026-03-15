@@ -37,8 +37,28 @@ class BookingDetailScreen extends ConsumerWidget {
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: async.when(
-        loading: () => const LoadingIndicator(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        loading: () => const Center(child: LoadingIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+                const SizedBox(height: 12),
+                const Text('Could not load booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text('Please check your connection and try again', style: TextStyle(fontSize: 13, color: AppColors.textSecondary), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: () => ref.invalidate(_bookingDetailProvider(bookingId)),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
         data: (booking) => _BookingDetailBody(booking: booking),
       ),
     );
@@ -582,7 +602,7 @@ class _BookingDetailBody extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: const Text('Action failed. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }
