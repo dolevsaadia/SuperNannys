@@ -90,6 +90,29 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 phase: session.phase,
               ),
 
+              // ── Connection lost indicator ────────
+              if (!session.socketConnected && session.phase == SessionPhase.active)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  color: AppColors.warning.withValues(alpha: 0.15),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.warning),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Reconnecting to session...',
+                        style: TextStyle(fontSize: 12, color: AppColors.warning, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+
               // ── Progress indicator ───────────────
               SessionProgressIndicator(phase: session.phase),
 

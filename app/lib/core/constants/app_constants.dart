@@ -5,6 +5,7 @@ class AppConstants {
   static const String socketUrl = 'https://api.supernanny.net';
 
   static const String tokenKey = 'auth_token';
+  static const String refreshTokenKey = 'refresh_token';
   static const String userKey = 'user_data';
   // Web client ID (type 3) from google-services.json — required for both iOS & Android
   static const String googleServerClientId =
