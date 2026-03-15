@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import ms, { type StringValue } from 'ms'
 import { config } from '../../config'
 
 export interface JwtPayload {
@@ -36,5 +37,23 @@ export function generateTokenPair(payload: JwtPayload) {
   return {
     token: signToken(payload),
     refreshToken: signRefreshToken(payload),
+  }
+}
+
+/**
+ * Generate token pair WITH expiry timestamps.
+ * The client uses expiresAt to schedule proactive refresh
+ * before the token actually expires — no more silent logouts.
+ */
+export function generateTokenPairWithExpiry(payload: JwtPayload) {
+  const now = Date.now()
+  const expiresInMs = ms(config.jwt.expiresIn as StringValue)
+  const refreshExpiresInMs = ms(config.jwt.refreshExpiresIn as StringValue)
+
+  return {
+    token: signToken(payload),
+    refreshToken: signRefreshToken(payload),
+    expiresAt: now + expiresInMs,
+    refreshExpiresAt: now + refreshExpiresInMs,
   }
 }

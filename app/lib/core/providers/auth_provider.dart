@@ -1,10 +1,16 @@
 import 'dart:convert';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
 import '../network/api_client.dart';
 import '../constants/app_constants.dart';
 import '../services/app_logger.dart';
+import '../widgets/session_expired_dialog.dart';
+
+/// Global navigator key — shared with GoRouter so we can show dialogs
+/// from AuthNotifier without needing a BuildContext from the widget tree.
+final navigatorKey = GlobalKey<NavigatorState>();
 
 class AuthState {
   final UserModel? user;
@@ -46,17 +52,61 @@ class AuthNotifier extends StateNotifier<AuthState> {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
+  late final _LifecycleObserver _lifecycleObserver;
+  bool _isShowingSessionDialog = false;
+
   AuthNotifier() : super(const AuthState(isLoading: true)) {
-    // Hook into ApiClient so any 401 response auto-triggers logout.
-    // This prevents the "could not load" state on every screen when
-    // the token expires — instead the user is sent straight to login.
+    // Hook session-expired: show friendly dialog, then logout
+    apiClient.onSessionExpired = _showSessionExpiredAndLogout;
+
+    // Fallback for legacy behavior
     apiClient.onUnauthorized = () {
       if (state.isAuthenticated) {
         appLog.warn('auth', 'auto_logout', 'Token expired — logging out automatically');
         logout();
       }
     };
+
+    // Observe app lifecycle so we validate tokens on resume
+    _lifecycleObserver = _LifecycleObserver(onResumed: _onAppResumed);
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
+
     _loadStoredUser();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
+    apiClient.cancelProactiveRefresh();
+    super.dispose();
+  }
+
+  /// Called when app comes back from background.
+  Future<void> _onAppResumed() async {
+    if (!state.isAuthenticated) return;
+    appLog.debug('auth', 'app_resumed', 'Validating token after app resume');
+    final valid = await apiClient.validateTokenOrRefresh();
+    if (!valid) {
+      _showSessionExpiredAndLogout();
+    }
+  }
+
+  /// Show a friendly dialog, wait for dismissal, then logout.
+  void _showSessionExpiredAndLogout() {
+    if (_isShowingSessionDialog || !state.isAuthenticated) return;
+    _isShowingSessionDialog = true;
+
+    final ctx = navigatorKey.currentContext;
+    if (ctx != null) {
+      showSessionExpiredDialog(ctx).then((_) {
+        _isShowingSessionDialog = false;
+        logout();
+      });
+    } else {
+      // No context available — just logout silently
+      _isShowingSessionDialog = false;
+      logout();
+    }
   }
 
   Future<void> _loadStoredUser() async {
@@ -76,6 +126,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (refreshToken != null) {
           await apiClient.setRefreshToken(refreshToken);
         }
+
+        // Schedule proactive refresh based on JWT exp claim
+        final exp = ApiClient.extractExpFromJwt(token);
+        if (exp != null) {
+          apiClient.scheduleProactiveRefresh(exp * 1000);
+        }
+
         final user = UserModel.fromJson(jsonDecode(userData) as Map<String, dynamic>);
         state = AuthState(user: user);
         // Verify token is still valid
@@ -98,7 +155,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final resp = await apiClient.dio.post('/auth/login', data: {'email': email.toLowerCase(), 'password': password});
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
-          refreshToken: data['refreshToken'] as String?);
+          refreshToken: data['refreshToken'] as String?,
+          expiresAt: data['expiresAt'] as int?);
       appLog.info('auth', 'login_success', 'Email login succeeded');
       return true;
     } catch (e) {
@@ -119,7 +177,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
-          refreshToken: data['refreshToken'] as String?);
+          refreshToken: data['refreshToken'] as String?,
+          expiresAt: data['expiresAt'] as int?);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _extractError(e));
@@ -150,11 +209,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (isNewUser && data['token'] == null) {
         // New user needs role selection — don't save session yet
         state = state.copyWith(isLoading: false);
-        return GoogleLoginResult(success: true, isNewUser: true);
+        return const GoogleLoginResult(success: true, isNewUser: true);
       }
 
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
-          refreshToken: data['refreshToken'] as String?);
+          refreshToken: data['refreshToken'] as String?,
+          expiresAt: data['expiresAt'] as int?);
       return GoogleLoginResult(success: true, isNewUser: isNewUser);
     } catch (e) {
       final err = _extractError(e);
@@ -222,11 +282,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Complete login after OTP verification (called from OTP screen)
-  Future<void> loginWithVerifiedToken(String token, Map<String, dynamic> userData, {String? refreshToken}) async {
-    await _saveSession(token, userData, refreshToken: refreshToken);
+  Future<void> loginWithVerifiedToken(String token, Map<String, dynamic> userData, {String? refreshToken, int? expiresAt}) async {
+    await _saveSession(token, userData, refreshToken: refreshToken, expiresAt: expiresAt);
   }
 
-  Future<void> _saveSession(String token, Map<String, dynamic> userData, {String? refreshToken}) async {
+  Future<void> _saveSession(String token, Map<String, dynamic> userData, {String? refreshToken, int? expiresAt}) async {
     await apiClient.setToken(token);
     if (refreshToken != null) {
       await apiClient.setRefreshToken(refreshToken);
@@ -234,6 +294,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _storage.write(key: AppConstants.tokenKey, value: token);
     } catch (_) {}
+
+    // Schedule proactive refresh: prefer server-provided expiresAt, fallback to JWT decode
+    final expiresAtMs = expiresAt ?? ((ApiClient.extractExpFromJwt(token) ?? 0) * 1000);
+    if (expiresAtMs > 0) {
+      apiClient.scheduleProactiveRefresh(expiresAtMs);
+    }
+
     final user = UserModel.fromJson(userData);
     try {
       await _storage.write(key: AppConstants.userKey, value: jsonEncode(userData));
@@ -246,6 +313,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     appLog.info('auth', 'logout', 'User logged out');
     appLog.setUserId(null);
+    apiClient.cancelProactiveRefresh();
     await apiClient.clearToken();
     try {
       await _storage.delete(key: AppConstants.userKey);
@@ -266,3 +334,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
 final currentUserProvider = Provider<UserModel?>((ref) => ref.watch(authProvider).user);
+
+/// Observes app lifecycle transitions (background ↔ foreground).
+class _LifecycleObserver extends WidgetsBindingObserver {
+  final Future<void> Function() onResumed;
+  _LifecycleObserver({required this.onResumed});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResumed();
+    }
+  }
+}
