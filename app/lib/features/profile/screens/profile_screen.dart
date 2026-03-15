@@ -212,12 +212,22 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dc), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dc),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () async {
               Navigator.pop(dc);
               await Future.delayed(const Duration(milliseconds: 150));

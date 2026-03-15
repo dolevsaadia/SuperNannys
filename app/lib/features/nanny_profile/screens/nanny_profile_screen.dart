@@ -125,7 +125,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
           slivers: [
             // ── Parallax Hero ──────────────────────
             SliverAppBar(
-              expandedHeight: 300,
+              expandedHeight: 320,
               pinned: true,
               backgroundColor: AppColors.primary,
               leading: _CircleBackButton(),
@@ -249,7 +249,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
             // ── Floating Stats Card ──────────────────
             SliverToBoxAdapter(
               child: Transform.translate(
-                offset: const Offset(0, -24),
+                offset: const Offset(0, -16),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(

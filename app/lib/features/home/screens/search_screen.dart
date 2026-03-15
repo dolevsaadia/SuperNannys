@@ -154,7 +154,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final user = ref.watch(currentUserProvider);
     final hasFilters = ref.read(nanniesProvider.notifier).currentFilter.hasFilters;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: AppColors.bg,
       body: Column(
           children: [
@@ -205,6 +207,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ],
         ),
+      ),
     );
   }
 }
