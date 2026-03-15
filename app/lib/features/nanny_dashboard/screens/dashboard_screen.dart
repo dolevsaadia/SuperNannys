@@ -39,7 +39,7 @@ class DashboardScreen extends ConsumerWidget {
             // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,
@@ -198,31 +198,37 @@ class DashboardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 12),
-                        // ── Stats Cards ──────────────────
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _GradientStatCard(
-                                title: 'Total Earned',
-                                value: '\u20AA${earnings['totalEarned'] ?? 0}',
-                                icon: Icons.account_balance_wallet_rounded,
-                                gradient: AppColors.gradientSuccess,
+                        // ── Floating Stats Cards ──────────────────
+                        Transform.translate(
+                          offset: const Offset(0, -14),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _GradientStatCard(
+                                      title: 'Total Earned',
+                                      value: '\u20AA${earnings['totalEarned'] ?? 0}',
+                                      icon: Icons.account_balance_wallet_rounded,
+                                      gradient: AppColors.gradientSuccess,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _GradientStatCard(
+                                      title: 'Total Jobs',
+                                      value: '${earnings['totalJobs'] ?? 0}',
+                                      icon: Icons.work_rounded,
+                                      gradient: AppColors.gradientAccent,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _GradientStatCard(
-                                title: 'Total Jobs',
-                                value: '${earnings['totalJobs'] ?? 0}',
-                                icon: Icons.work_rounded,
-                                gradient: AppColors.gradientAccent,
-                              ),
-                            ),
-                          ],
+                              const SizedBox(height: 10),
+                              _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
 
                         const SizedBox(height: 16),
 
