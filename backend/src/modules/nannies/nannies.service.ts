@@ -80,29 +80,17 @@ export const nanniesService = {
     const profile = await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
-      // Group slots by day to support multiple time ranges per day
-      const slotsByDay = new Map<number, typeof availability>()
-      for (const slot of availability) {
-        const existing = slotsByDay.get(slot.dayOfWeek) ?? []
-        existing.push(slot)
-        slotsByDay.set(slot.dayOfWeek, existing)
-      }
-
-      // For each day, delete old slots then create new ones
-      for (const [dayOfWeek, daySlots] of slotsByDay) {
-        try {
-          await nanniesDal.deleteAvailabilityForDay(profile.id, dayOfWeek)
-          for (const slot of daySlots) {
-            await nanniesDal.upsertAvailability(profile.id, slot)
-          }
-        } catch (err) {
-          logger.error('Failed to update availability slots', {
-            userId,
-            profileId: profile.id,
-            dayOfWeek,
-            error: err instanceof Error ? err.message : String(err),
-          })
-        }
+      try {
+        // Atomically replace all availability slots in a single transaction
+        await nanniesDal.replaceAllAvailability(profile.id, availability)
+      } catch (err) {
+        logger.error('Failed to update availability slots', {
+          userId,
+          profileId: profile.id,
+          slotCount: availability.length,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        // Don't throw — availability update failure shouldn't block profile save
       }
     }
 
