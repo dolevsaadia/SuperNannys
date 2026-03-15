@@ -39,7 +39,7 @@ class DashboardScreen extends ConsumerWidget {
             // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,
@@ -211,14 +211,12 @@ class DashboardScreen extends ConsumerWidget {
                   final pending = data['pendingBookings'] as List<BookingModel>;
 
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Floating Stats Cards ──────────────────
-                        Transform.translate(
-                          offset: const Offset(0, -14),
-                          child: Column(
+                        // ── Stats Cards ──────────────────
+                        Column(
                             children: [
                               Row(
                                 children: [
@@ -245,9 +243,8 @@ class DashboardScreen extends ConsumerWidget {
                               _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
                             ],
                           ),
-                        ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
 
                         // ── Quick Actions ──────────────────
                         const Text('Quick Actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
