@@ -32,8 +32,11 @@ export function createApp() {
   const httpServer = http.createServer(app)
 
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: config.clientUrl, methods: ['GET', 'POST'], credentials: true },
-    pingTimeout: 60000,
+    cors: { origin: '*', methods: ['GET', 'POST'] },
+    pingInterval: 25000,    // send ping every 25s (keep alive through nginx)
+    pingTimeout: 20000,     // wait 20s for pong before declaring dead
+    connectTimeout: 10000,  // 10s to complete handshake
+    transports: ['websocket', 'polling'], // prefer websocket, fallback to polling
   })
 
   // ── Security ───────────────────────────────────────────
