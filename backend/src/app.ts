@@ -43,7 +43,24 @@ export function createApp() {
   app.set('trust proxy', 1)
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
-  app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))
+
+  // Rate limiter — only on /api routes, NOT on /health (health checks are frequent)
+  const limiter = rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.max,
+    standardHeaders: true,
+    skip: (req) => req.path === '/health' || req.path === '/health/deep',
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        userAgent: req.get('user-agent'),
+      })
+      res.status(429).json({ error: 'Too many requests, please try again later.' })
+    },
+  })
+  app.use(limiter)
   // Prevent caching of API responses (stale auth tokens, booking data, etc.)
   app.use('/api', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')

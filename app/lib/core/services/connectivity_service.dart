@@ -47,7 +47,7 @@ class ConnectivityNotifier extends StateNotifier<ConnectivityState> {
   static const _failureThreshold = 3;
 
   /// Health check interval.
-  static const _checkInterval = Duration(seconds: 10);
+  static const _checkInterval = Duration(seconds: 30);
 
   /// Health endpoint timeout — short so it doesn't block.
   static const _healthTimeout = Duration(seconds: 6);
