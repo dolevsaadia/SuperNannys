@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _earningsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -27,24 +28,10 @@ class EarningsScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      body: async.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-              const SizedBox(height: 12),
-              const Text('Could not load earnings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => ref.invalidate(_earningsProvider),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+      body: async.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load earnings',
+        onRetry: () => ref.invalidate(_earningsProvider),
         data: (data) {
           final summary = data['summary'] as Map<String, dynamic>;
           final earnings = data['earnings'] as List<dynamic>;

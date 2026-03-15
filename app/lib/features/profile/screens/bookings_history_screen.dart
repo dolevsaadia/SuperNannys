@@ -7,7 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
-import '../../../core/widgets/loading_indicator.dart';
+import '../../../core/utils/async_value_ui.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose.family<List<BookingModel>, String?>((ref, status) async {
   final params = <String, dynamic>{'limit': '50'};
@@ -94,15 +94,10 @@ class _BookingsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_bookingsProvider(status));
 
-    return async.when(
-      loading: () => const Center(child: LoadingIndicator()),
-      error: (e, _) => EmptyState(
-        title: 'Could not load bookings',
-        subtitle: 'Check your connection and try again',
-        icon: Icons.wifi_off_rounded,
-        actionLabel: 'Retry',
-        onAction: () => ref.invalidate(_bookingsProvider(status)),
-      ),
+    return async.authAwareWhen(
+      ref,
+      errorTitle: 'Could not load bookings',
+      onRetry: () => ref.invalidate(_bookingsProvider(status)),
       data: (bookings) {
         if (bookings.isEmpty) {
           return Center(

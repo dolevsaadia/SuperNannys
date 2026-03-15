@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/constants/israeli_cities.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/nanny_card.dart';
 import '../../../core/widgets/nanny_card_horizontal.dart';
 import '../../../core/widgets/section_header.dart';
@@ -611,9 +612,10 @@ class _HorizontalNannyList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return asyncValue.when(
+    return asyncValue.authAwareWhen(
+      ref,
       loading: () => const SizedBox(height: 210, child: Center(child: LoadingIndicator())),
-      error: (_, __) => const SizedBox(height: 100, child: Center(child: Text('Failed to load', style: TextStyle(color: AppColors.textHint)))),
+      error: (_, __) => const InlineAsyncError(height: 100),
       data: (nannies) {
         if (nannies.isEmpty) return const SizedBox(height: 100, child: Center(child: Text('No nannies found', style: TextStyle(color: AppColors.textHint))));
         return SizedBox(
@@ -639,9 +641,10 @@ class _VerticalNannyList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return asyncValue.when(
+    return asyncValue.authAwareWhen(
+      ref,
       loading: () => const SizedBox(height: 200, child: Center(child: LoadingIndicator())),
-      error: (_, __) => const SizedBox(height: 100, child: Center(child: Text('Failed to load', style: TextStyle(color: AppColors.textHint)))),
+      error: (_, __) => const InlineAsyncError(height: 100),
       data: (nannies) {
         if (nannies.isEmpty) return const SizedBox.shrink();
         return Padding(

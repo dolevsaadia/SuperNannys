@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/badge_chip.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/rating_bar_widget.dart';
 import '../../../core/widgets/app_button.dart';
@@ -29,9 +30,10 @@ class NannyProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: async.when(
-        loading: () => const FullScreenLoader(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+      body: async.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load profile',
+        onRetry: () => ref.invalidate(_nannyDetailProvider(nannyId)),
         data: (data) {
           final profile = NannyModel.fromJson(data['profile'] as Map<String, dynamic>);
           final reviews = data['reviews'] as List<dynamic>? ?? [];

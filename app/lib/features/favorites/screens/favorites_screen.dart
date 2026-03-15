@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/nanny_card.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _favoritesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -33,23 +34,11 @@ class FavoritesScreen extends ConsumerWidget {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      body: async.when(
+      body: async.authAwareWhen(
+        ref,
         loading: () => const FullScreenLoader(),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.textHint),
-              const SizedBox(height: 12),
-              Text('Failed to load favorites', style: TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => ref.invalidate(_favoritesProvider),
-                child: const Text('Try Again'),
-              ),
-            ],
-          ),
-        ),
+        errorTitle: 'Could not load favorites',
+        onRetry: () => ref.invalidate(_favoritesProvider),
         data: (favorites) {
           if (favorites.isEmpty) {
             return Center(
