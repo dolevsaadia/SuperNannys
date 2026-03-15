@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
@@ -11,6 +12,7 @@ import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/utils/async_value_ui.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose.family<List<BookingModel>, String?>((ref, status) async {
+  ref.watch(dataRefreshProvider); // re-fetch when bookings change elsewhere
   final params = <String, dynamic>{'limit': '50'};
   if (status != null) params['status'] = status;
   final resp = await apiClient.dio.get('/bookings', queryParameters: params);

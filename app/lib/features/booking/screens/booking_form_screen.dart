@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/services/booking_reminder_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -245,6 +246,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         'locationType': _locationType,
       });
 
+      triggerDataRefresh(ref);
+
       if (mounted) {
         context.go('/home/nanny/${widget.nannyId}/book/success', extra: {'isRecurring': true});
       }
@@ -298,6 +301,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       });
 
       final booking = resp.data['data'] as Map<String, dynamic>;
+
+      triggerDataRefresh(ref);
 
       // Schedule reminders in a separate try-catch — notification permission
       // failures must NOT block navigation to the success screen.

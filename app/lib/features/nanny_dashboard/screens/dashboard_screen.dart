@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
@@ -13,6 +14,7 @@ import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  ref.watch(dataRefreshProvider); // re-fetch when data changes elsewhere
   final [bookingsResp, earningsResp] = await Future.wait([
     apiClient.dio.get('/bookings', queryParameters: {'limit': '10', 'status': 'REQUESTED'}),
     apiClient.dio.get('/users/me/earnings'),
@@ -89,7 +91,7 @@ class DashboardScreen extends ConsumerWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => context.go('/bookings'),
+                          onTap: () => context.go('/notifications'),
                           child: Container(
                             width: 36,
                             height: 36,
