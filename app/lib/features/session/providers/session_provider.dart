@@ -141,6 +141,10 @@ class SessionNotifier extends StateNotifier<SessionState> {
           .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
+          .enableReconnection()
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          .setReconnectionAttempts(10)
           .build(),
     );
 
@@ -149,6 +153,12 @@ class SessionNotifier extends StateNotifier<SessionState> {
     _socket!.onConnect((_) {
       _socket!.emit('booking:join', bookingId);
       // Request current state from server
+      _socket!.emit('session:get-state', {'bookingId': bookingId});
+    });
+
+    _socket!.onReconnect((_) {
+      // Re-join room and resync state after reconnection
+      _socket!.emit('booking:join', bookingId);
       _socket!.emit('session:get-state', {'bookingId': bookingId});
     });
 

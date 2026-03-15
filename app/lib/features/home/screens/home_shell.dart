@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/bubble_overlay_service.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/biometric_prompt_dialog.dart';
@@ -91,11 +92,31 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
               ];
 
+    final connectivity = ref.watch(connectivityProvider);
+
     return Scaffold(
       body: SafeArea(
         bottom: false, // bottom nav handles its own SafeArea
         child: Column(
           children: [
+            // ── Offline banner ──
+            if (!connectivity.isOnline)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                color: AppColors.error,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 16, color: Colors.white),
+                    SizedBox(width: 6),
+                    Text(
+                      'No internet connection',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
             // ── Persistent session banner ──
             const SessionBanner(),
             // ── Main content ─────────────────────────────
