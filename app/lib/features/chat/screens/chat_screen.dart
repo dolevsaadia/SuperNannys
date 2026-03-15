@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -29,11 +31,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   final _msgController = TextEditingController();
   final _scrollController = ScrollController();
   int _prevMessageCount = 0;
+  String? _otherPhone;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadOtherPhone();
+  }
+
+  Future<void> _loadOtherPhone() async {
+    try {
+      final resp = await apiClient.dio.get('/bookings/${widget.bookingId}');
+      final booking = resp.data['data'] as Map<String, dynamic>;
+      final user = ref.read(currentUserProvider);
+      final isParent = user?.isParent == true;
+      final other = isParent
+          ? booking['nanny'] as Map<String, dynamic>?
+          : booking['parent'] as Map<String, dynamic>?;
+      final phone = other?['phone'] as String?;
+      if (phone != null && phone.isNotEmpty && mounted) {
+        setState(() => _otherPhone = phone);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _callOtherUser() async {
+    if (_otherPhone == null) return;
+    final uri = Uri.parse('tel:$_otherPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   @override
@@ -143,8 +171,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
               borderRadius: BorderRadius.circular(10),
             ),
             child: IconButton(
-              icon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.primary),
-              onPressed: () {},
+              icon: Icon(Icons.phone_outlined, size: 18, color: _otherPhone != null ? AppColors.primary : AppColors.textHint),
+              onPressed: _otherPhone != null ? _callOtherUser : null,
             ),
           ),
         ],

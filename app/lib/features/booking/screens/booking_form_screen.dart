@@ -487,6 +487,11 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                       '~\u20AA$_weeklyEstimate/week estimated (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
+                                  if (_minimumHours > 0)
+                                    Text(
+                                      'Minimum charge: ${_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)} hours',
+                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Final price based on actual session time',

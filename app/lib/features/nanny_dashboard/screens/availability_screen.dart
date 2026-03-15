@@ -24,6 +24,8 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
   bool _enableRecurring = false;
   int _recurringRate = 45;
   int _hourlyRate = 55;
+  double _minimumHours = 0;
+  bool _allowsBabysittingAtHome = false;
 
   static const _days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   static const _daysFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -41,6 +43,8 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
       final avail = (profile['availability'] as List<dynamic>?) ?? [];
       final recurringRate = profile['recurringHourlyRateNis'] as int?;
       final hourlyRate = profile['hourlyRateNis'] as int? ?? 55;
+      final minimumHours = (profile['minimumHoursPerBooking'] as num?)?.toDouble() ?? 0;
+      final allowsHome = profile['allowsBabysittingAtHome'] as bool? ?? false;
 
       final daySlots = <int, List<Map<String, String>>>{};
       final enabledDays = <int>{};
@@ -75,6 +79,8 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
         _enableRecurring = recurringRate != null;
         _recurringRate = recurringRate ?? (hourlyRate * 0.8).round();
         _hourlyRate = hourlyRate;
+        _minimumHours = minimumHours;
+        _allowsBabysittingAtHome = allowsHome;
         _isLoading = false;
       });
     } catch (_) {
@@ -141,6 +147,8 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
       await apiClient.dio.put('/nannies/me', data: {
         'availability': _buildAvailabilityPayload(),
         'recurringHourlyRateNis': _enableRecurring ? _recurringRate : null,
+        'minimumHoursPerBooking': _minimumHours,
+        'allowsBabysittingAtHome': _allowsBabysittingAtHome,
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +194,7 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: 7 + 2, // 2 header items + 7 day cards
+              itemCount: 7 + 3, // 3 header items + 7 day cards
               itemBuilder: (_, index) {
                 // ── Summary header (scrollable) ──────────────────
                 if (index == 0) {
@@ -330,8 +338,111 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
                   );
                 }
 
-                // ── Day cards (index 2..8 → day 0..6) ──────────────────
-                final day = index - 2;
+                // ── Booking Settings (minimum hours + babysitting at home) ──
+                if (index == 2) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: AppShadows.sm,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 40, height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.settings_rounded, size: 20, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text('Booking Settings',
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Minimum hours per booking ──
+                        Row(
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 18, color: AppColors.textHint),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text('Minimum hours per booking',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _minimumHours == 0 ? 'None' : '${_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)}h',
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Slider(
+                          value: _minimumHours,
+                          min: 0, max: 8, divisions: 16,
+                          activeColor: AppColors.primary,
+                          label: _minimumHours == 0 ? 'None' : '${_minimumHours.toStringAsFixed(1)}h',
+                          onChanged: (v) => setState(() => _minimumHours = v),
+                        ),
+                        if (_minimumHours > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'Parents will be charged for at least ${_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)} hours even if session is shorter.',
+                              style: TextStyle(fontSize: 11, color: AppColors.textHint, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+
+                        Divider(height: 20, color: AppColors.divider.withValues(alpha: 0.5)),
+
+                        // ── Allow babysitting at home ──
+                        Row(
+                          children: [
+                            const Icon(Icons.home_rounded, size: 18, color: AppColors.textHint),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Babysitting at my home',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                  Text('Parents can choose your home as the location',
+                                    style: TextStyle(fontSize: 11, color: AppColors.textHint)),
+                                ],
+                              ),
+                            ),
+                            Switch.adaptive(
+                              value: _allowsBabysittingAtHome,
+                              activeTrackColor: AppColors.primary,
+                              onChanged: (v) {
+                                HapticFeedback.lightImpact();
+                                setState(() => _allowsBabysittingAtHome = v);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // ── Day cards (index 3..9 → day 0..6) ──────────────────
+                final day = index - 3;
                 final isEnabled = _enabledDays.contains(day);
                 final slots = _daySlots[day]!;
                 final hasOverlap = isEnabled && _hasOverlap(day);
