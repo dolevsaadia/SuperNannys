@@ -66,7 +66,7 @@ export function createApp() {
   // ── Health ─────────────────────────────────────────────
   // Basic health — fast, no DB call (used by mobile connectivity checks)
   app.get('/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.6.0', payments: config.payments.enabled, ts: new Date().toISOString() })
+    res.json({ status: 'ok', version: '2.0.0', payments: config.payments.enabled, ts: new Date().toISOString() })
   )
 
   // Deep health — checks DB, memory, uptime (for monitoring dashboards)
@@ -85,7 +85,7 @@ export function createApp() {
     }
     res.status(dbOk ? 200 : 503).json({
       status: dbOk ? 'ok' : 'degraded',
-      version: '1.6.0',
+      version: '2.0.0',
       ts: new Date().toISOString(),
       uptime: { seconds: Math.floor(uptimeSec), human: `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m` },
       database: { connected: dbOk, latencyMs: dbLatencyMs },
