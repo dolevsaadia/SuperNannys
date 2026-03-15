@@ -402,6 +402,7 @@ model NannyDateAvailability {
   createdAt      DateTime     @default(now())
 
   @@unique([nannyProfileId, date, startTime])
+  @@index([nannyProfileId, date, isBlocked])  // date range + block lookups
   @@map("nanny_date_availability")
 }
 
