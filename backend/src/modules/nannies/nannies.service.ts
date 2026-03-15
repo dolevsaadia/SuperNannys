@@ -1,5 +1,5 @@
 import type { DocumentType } from '@prisma/client'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, BadRequestError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { nanniesDal } from './nannies.dal'
@@ -64,13 +64,13 @@ export const nanniesService = {
 
   async getMyProfile(userId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return profile
   },
 
   async getById(profileId: string) {
     const profile = await nanniesDal.findById(profileId)
-    if (!profile) throw new AppError('Nanny not found', 404)
+    if (!profile) throw new NotFoundError('Nanny')
 
     const reviews = await nanniesDal.getReviewsForNanny(profile.userId)
     return { profile, reviews }
@@ -101,44 +101,44 @@ export const nanniesService = {
 
   async addDocument(userId: string, type: DocumentType, url: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.createDocument(profile.id, type, url)
   },
 
   async getDocuments(userId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.getDocuments(profile.id)
   },
 
   async deleteDocument(userId: string, docId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.deleteDocument(profile.id, docId)
   },
 
   // ── Date-specific availability ─────────────────────────────
   async upsertDateAvailability(userId: string, data: { date: Date; startTime: string; endTime: string; isBlocked?: boolean }) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.upsertDateAvailability(profile.id, data)
   },
 
   async deleteDateAvailability(userId: string, slotId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.deleteDateAvailability(profile.id, slotId)
   },
 
   async blockDate(userId: string, date: Date) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.blockDate(profile.id, date)
   },
 
   async getAvailabilityCalendar(nannyProfileId: string, month?: string) {
     const profile = await nanniesDal.findById(nannyProfileId)
-    if (!profile) throw new AppError('Nanny not found', 404)
+    if (!profile) throw new NotFoundError('Nanny')
 
     // Determine date range for the requested month
     let startDate: Date
@@ -147,12 +147,12 @@ export const nanniesService = {
       // Validate month format "YYYY-MM"
       const parts = month.split('-')
       if (parts.length !== 2) {
-        throw new AppError('Invalid month format. Expected YYYY-MM', 400)
+        throw new BadRequestError('Invalid month format. Expected YYYY-MM')
       }
       const year = Number(parts[0])
       const m = Number(parts[1])
       if (isNaN(year) || isNaN(m) || m < 1 || m > 12 || year < 2000 || year > 2100) {
-        throw new AppError('Invalid month value', 400)
+        throw new BadRequestError('Invalid month value')
       }
       startDate = new Date(year, m - 1, 1)
       endDate = new Date(year, m, 0, 23, 59, 59) // last day of month

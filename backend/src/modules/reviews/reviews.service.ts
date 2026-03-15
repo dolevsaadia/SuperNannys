@@ -1,4 +1,4 @@
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ForbiddenError, ConflictError, ValidationError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { reviewsDal } from './reviews.dal'
 import type { CreateReviewInput } from './reviews.validation'
@@ -6,12 +6,12 @@ import type { CreateReviewInput } from './reviews.validation'
 export const reviewsService = {
   async create(reviewerUserId: string, data: CreateReviewInput) {
     const booking = await reviewsDal.findBookingById(data.bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
-    if (booking.parentUserId !== reviewerUserId) throw new AppError('Forbidden', 403)
-    if (booking.status !== 'COMPLETED') throw new AppError('Can only review completed bookings')
+    if (!booking) throw new NotFoundError('Booking')
+    if (booking.parentUserId !== reviewerUserId) throw new ForbiddenError()
+    if (booking.status !== 'COMPLETED') throw new ValidationError('Can only review completed bookings')
 
     const existing = await reviewsDal.findExistingReview(data.bookingId)
-    if (existing) throw new AppError('Review already submitted', 409)
+    if (existing) throw new ConflictError('Review already submitted')
 
     const review = await reviewsDal.createReview({
       bookingId: data.bookingId,

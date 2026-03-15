@@ -1,6 +1,6 @@
 import type { DocumentType } from '@prisma/client'
 import { Request, Response } from 'express'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, BadRequestError, ValidationError } from '../../shared/errors/app-error'
 import { ok } from '../../shared/utils/response'
 import { nanniesService } from './nannies.service'
 import { searchNanniesSchema, updateNannyProfileSchema, dateAvailabilitySchema, blockDateSchema } from './nannies.validation'
@@ -30,12 +30,12 @@ export const nanniesController = {
 
   async uploadDocument(req: Request, res: Response): Promise<void> {
     if (!req.file) {
-      throw new AppError('No file uploaded', 400)
+      throw new BadRequestError('No file uploaded')
     }
     const validTypes: DocumentType[] = ['ID_CARD', 'POLICE_CHECK', 'FIRST_AID_CERT', 'CHILDCARE_CERT', 'OTHER']
     const type = (req.body.type || 'OTHER') as DocumentType
     if (!validTypes.includes(type)) {
-      throw new AppError(`Invalid document type. Must be one of: ${validTypes.join(', ')}`, 400)
+      throw new ValidationError(`Invalid document type. Must be one of: ${validTypes.join(', ')}`)
     }
     const url = `/uploads/${req.file.filename}`
     const doc = await nanniesService.addDocument(req.user!.userId, type, url)

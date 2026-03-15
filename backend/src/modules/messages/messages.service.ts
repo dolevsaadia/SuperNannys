@@ -1,4 +1,4 @@
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ForbiddenError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { messagesDal } from './messages.dal'
 
@@ -9,9 +9,9 @@ export const messagesService = {
 
   async getMessages(userId: string, bookingId: string, page: number, limit: number) {
     const booking = await messagesDal.findBookingById(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking')
     if (booking.parentUserId !== userId && booking.nannyUserId !== userId) {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     const skip = (page - 1) * limit
@@ -28,9 +28,9 @@ export const messagesService = {
 
   async sendMessage(userId: string, bookingId: string, text: string) {
     const booking = await messagesDal.findBookingById(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking')
     if (booking.parentUserId !== userId && booking.nannyUserId !== userId) {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     const msg = await messagesDal.createMessage(bookingId, userId, text)

@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import { config } from '../../config'
 import { signToken, signRefreshToken, generateTokenPair, verifyRefreshToken } from '../../shared/utils/jwt'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ConflictError, AuthenticationError, ForbiddenError, ServiceUnavailableError, BadRequestError } from '../../shared/errors/app-error'
 import { generateOTP } from '../../shared/utils/otp'
 import { emailService } from '../../shared/services/email.service'
 import { logger } from '../../shared/utils/logger'
@@ -33,7 +33,7 @@ async function sendOTP(email: string, userId?: string) {
       userId,
       error: err instanceof Error ? err.message : String(err),
     })
-    throw new AppError('Failed to send verification email', 500)
+    throw new ServiceUnavailableError('Failed to send verification email')
   }
 }
 
@@ -41,7 +41,7 @@ export const authService = {
   async register(data: RegisterInput) {
     const email = data.email.toLowerCase()
     const existing = await authDal.findUserByEmail(email)
-    if (existing) throw new AppError('Email already in use', 409)
+    if (existing) throw new ConflictError('Email already in use')
 
     const passwordHash = await bcrypt.hash(data.password, 12)
     const userData = {
@@ -76,17 +76,17 @@ export const authService = {
 
     if (!user || !user.passwordHash) {
       logger.warn('Login failed', { email, reason: 'invalid_credentials' })
-      throw new AppError('Invalid credentials', 401)
+      throw new AuthenticationError('Invalid credentials')
     }
     if (!user.isActive) {
       logger.warn('Login failed', { email, reason: 'account_deactivated' })
-      throw new AppError('Account deactivated', 403)
+      throw new ForbiddenError('Account deactivated')
     }
 
     const valid = await bcrypt.compare(data.password, user.passwordHash)
     if (!valid) {
       logger.warn('Login failed', { email, reason: 'invalid_credentials' })
-      throw new AppError('Invalid credentials', 401)
+      throw new AuthenticationError('Invalid credentials')
     }
 
     logger.info('User logged in', { userId: user.id, email })
@@ -103,10 +103,7 @@ export const authService = {
 
   async googleSignIn(data: GoogleSignInInput) {
     if (!config.google.isConfigured) {
-      throw new AppError(
-        'Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env',
-        503,
-      )
+      throw new ServiceUnavailableError('Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env')
     }
 
     const client = getGoogleClient()
@@ -121,9 +118,9 @@ export const authService = {
       logger.warn('Google token verification failed', {
         error: err instanceof Error ? err.message : String(err),
       })
-      throw new AppError('Invalid or expired Google token', 401)
+      throw new AuthenticationError('Invalid or expired Google token')
     }
-    if (!payload?.email) throw new AppError('Invalid Google token', 401)
+    if (!payload?.email) throw new AuthenticationError('Invalid Google token')
 
     let user = await authDal.findByGoogleSubOrEmail(payload.sub!, payload.email)
     let isNewUser = false
@@ -196,13 +193,13 @@ export const authService = {
     const email = data.email.toLowerCase()
     const record = await verificationDal.findValidCode(email, data.code)
     if (!record) {
-      throw new AppError('Invalid or expired verification code', 400)
+      throw new BadRequestError('Invalid or expired verification code')
     }
 
     await verificationDal.markUsed(record.id)
 
     const user = await authDal.findUserByEmail(email)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
 
     logger.info('OTP verified', { userId: user.id, email })
 
@@ -219,7 +216,7 @@ export const authService = {
   async resendOTP(email: string) {
     const normalizedEmail = email.toLowerCase()
     const user = await authDal.findUserByEmail(normalizedEmail)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
 
     await sendOTP(normalizedEmail, user.id)
     logger.info('OTP resent', { userId: user.id, email: normalizedEmail })
@@ -238,13 +235,13 @@ export const authService = {
       logger.warn('Refresh token invalid', {
         error: err instanceof Error ? err.message : String(err),
       })
-      throw new AppError('Invalid or expired refresh token', 401)
+      throw new AuthenticationError('Invalid or expired refresh token')
     }
 
     // Verify user still exists and is active
     const user = await authDal.findUserWithProfile(payload.userId)
-    if (!user) throw new AppError('User not found', 404)
-    if (!user.isActive) throw new AppError('Account deactivated', 403)
+    if (!user) throw new NotFoundError('User')
+    if (!user.isActive) throw new ForbiddenError('Account deactivated')
 
     logger.info('Token refreshed', { userId: user.id })
 
@@ -263,7 +260,7 @@ export const authService = {
   // requireAuth middleware guarantees the user object is present.
   async getMe(userId: string) {
     const user = await authDal.findUserWithProfile(userId)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
     return user
   },
 
@@ -274,7 +271,7 @@ export const authService = {
    */
   async sendPhoneCode(userId: string, phone: string) {
     const user = await authDal.findUserWithProfile(userId)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
 
     // Invalidate any existing phone codes
     await verificationDal.invalidateExisting(`phone:${phone}`)
@@ -299,7 +296,7 @@ export const authService = {
   async verifyPhone(userId: string, phone: string, code: string) {
     const record = await verificationDal.findValidCode(`phone:${phone}`, code)
     if (!record) {
-      throw new AppError('Invalid or expired verification code', 400)
+      throw new BadRequestError('Invalid or expired verification code')
     }
 
     await verificationDal.markUsed(record.id)

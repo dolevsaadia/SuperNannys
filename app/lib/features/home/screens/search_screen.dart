@@ -614,7 +614,18 @@ class _HorizontalNannyList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return asyncValue.authAwareWhen(
       ref,
-      loading: () => const SizedBox(height: 210, child: Center(child: LoadingIndicator())),
+      loading: () => SizedBox(
+        height: 210,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: 3,
+          itemBuilder: (_, __) => const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: NannyCardSkeleton(),
+          ),
+        ),
+      ),
       error: (_, __) => const InlineAsyncError(height: 100),
       data: (nannies) {
         if (nannies.isEmpty) return const SizedBox(height: 100, child: Center(child: Text('No nannies found', style: TextStyle(color: AppColors.textHint))));
@@ -643,7 +654,10 @@ class _VerticalNannyList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return asyncValue.authAwareWhen(
       ref,
-      loading: () => const SizedBox(height: 200, child: Center(child: LoadingIndicator())),
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: SkeletonList(count: 3, skeleton: NannyCardSkeleton(), padding: EdgeInsets.zero),
+      ),
       error: (_, __) => const InlineAsyncError(height: 100),
       data: (nannies) {
         if (nannies.isEmpty) return const SizedBox.shrink();
@@ -666,21 +680,111 @@ class _SearchResults extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(nanniesProvider);
-    if (state.isLoading) return const Center(child: LoadingIndicator());
+    if (state.isLoading) return const SkeletonList(count: 4, skeleton: NannyCardSkeleton());
     if (state.error != null) {
       return EmptyState(title: 'Could not load nannies', subtitle: state.error!, icon: Icons.wifi_off_rounded, actionLabel: 'Retry', onAction: () => ref.read(nanniesProvider.notifier).loadNannies());
     }
     if (state.nannies.isEmpty) return const EmptyState(title: 'No nannies found', subtitle: 'Try adjusting your search or filters', icon: Icons.search_off_rounded);
 
-    return ListView.builder(
-      controller: scrollController,
-      padding: const EdgeInsets.all(16),
-      itemCount: state.nannies.length + (state.isLoadingMore ? 1 : 0),
-      itemBuilder: (_, i) {
-        if (i == state.nannies.length) return const Padding(padding: EdgeInsets.all(16), child: Center(child: LoadingIndicator()));
-        final nanny = state.nannies[i];
-        return NannyCard(nanny: nanny, onTap: () => context.go('/home/nanny/${nanny.id}'));
-      },
+    final currentSort = ref.read(nanniesProvider.notifier).currentFilter.sortBy;
+
+    return Column(
+      children: [
+        // ── Results count + sort bar ──
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Row(
+            children: [
+              Text(
+                '${state.total} nannies found',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              ),
+              const Spacer(),
+              _SortDropdown(
+                currentSort: currentSort,
+                onChanged: (sort) {
+                  final notifier = ref.read(nanniesProvider.notifier);
+                  notifier.applyFilter(notifier.currentFilter.copyWith(sortBy: sort));
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            controller: scrollController,
+            padding: const EdgeInsets.all(16),
+            itemCount: state.nannies.length + (state.isLoadingMore ? 1 : 0),
+            itemBuilder: (_, i) {
+              if (i == state.nannies.length) return const Padding(padding: EdgeInsets.all(16), child: Center(child: LoadingIndicator()));
+              final nanny = state.nannies[i];
+              return NannyCard(nanny: nanny, onTap: () => context.go('/home/nanny/${nanny.id}'));
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SortDropdown extends StatelessWidget {
+  final String currentSort;
+  final ValueChanged<String> onChanged;
+
+  const _SortDropdown({required this.currentSort, required this.onChanged});
+
+  static const _options = {
+    'rating': 'Top Rated',
+    'rate_asc': 'Price: Low → High',
+    'rate_desc': 'Price: High → Low',
+    'experience': 'Most Experienced',
+    'reviews': 'Most Reviews',
+    'newest': 'Newest',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: onChanged,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      offset: const Offset(0, 36),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.sort_rounded, size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 4),
+            Text(
+              _options[currentSort] ?? 'Sort',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+            ),
+            const Icon(Icons.arrow_drop_down_rounded, size: 16, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+      itemBuilder: (_) => _options.entries.map((e) => PopupMenuItem<String>(
+        value: e.key,
+        child: Row(
+          children: [
+            if (e.key == currentSort)
+              const Icon(Icons.check_rounded, size: 16, color: AppColors.primary)
+            else
+              const SizedBox(width: 16),
+            const SizedBox(width: 8),
+            Text(e.value, style: TextStyle(
+              fontSize: 13,
+              fontWeight: e.key == currentSort ? FontWeight.w700 : FontWeight.w500,
+              color: e.key == currentSort ? AppColors.primary : AppColors.textPrimary,
+            )),
+          ],
+        ),
+      )).toList(),
     );
   }
 }

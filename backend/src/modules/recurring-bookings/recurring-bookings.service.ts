@@ -1,5 +1,5 @@
 import type { RecurringBookingStatus } from '@prisma/client'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ForbiddenError, ValidationError, BadRequestError } from '../../shared/errors/app-error'
 import { recurringBookingsDal } from './recurring-bookings.dal'
 import { bookingsDal } from '../bookings/bookings.dal'
 import type { CreateRecurringBookingInput, UpdateRecurringBookingInput } from './recurring-bookings.validation'
@@ -24,22 +24,22 @@ function parseTime(timeStr: string): [number, number] {
 export const recurringBookingsService = {
   async create(parentUserId: string, data: CreateRecurringBookingInput) {
     if (parentUserId === data.nannyUserId) {
-      throw new AppError('Cannot create a recurring booking with yourself', 400)
+      throw new BadRequestError('Cannot create a recurring booking with yourself')
     }
 
     const nannyProfile = await recurringBookingsDal.findNannyProfile(data.nannyUserId)
-    if (!nannyProfile) throw new AppError('Nanny not found', 404)
+    if (!nannyProfile) throw new NotFoundError('Nanny')
 
     const rate = nannyProfile.recurringHourlyRateNis ?? nannyProfile.hourlyRateNis
     if (!rate || rate <= 0) {
-      throw new AppError('Nanny has no rate configured', 400)
+      throw new ValidationError('Nanny has no rate configured')
     }
 
     const startDate = new Date(data.startDate)
     const endDate = data.endDate ? new Date(data.endDate) : null
 
     if (endDate && endDate <= startDate) {
-      throw new AppError('End date must be after start date', 400)
+      throw new ValidationError('End date must be after start date')
     }
 
     const recurring = await recurringBookingsDal.create({
@@ -85,10 +85,10 @@ export const recurringBookingsService = {
 
   async getById(userId: string, role: string, id: string) {
     const rb = await recurringBookingsDal.findById(id)
-    if (!rb) throw new AppError('Recurring booking not found', 404)
+    if (!rb) throw new NotFoundError('Recurring booking')
 
     if (rb.parentUserId !== userId && rb.nannyUserId !== userId && role !== 'ADMIN') {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     return rb
@@ -96,16 +96,16 @@ export const recurringBookingsService = {
 
   async update(userId: string, role: string, id: string, data: UpdateRecurringBookingInput) {
     const rb = await recurringBookingsDal.findById(id)
-    if (!rb) throw new AppError('Recurring booking not found', 404)
+    if (!rb) throw new NotFoundError('Recurring booking')
 
     // Only the parent who created it or admin can update
     if (rb.parentUserId !== userId && role !== 'ADMIN') {
-      throw new AppError('Only the parent can update this recurring booking', 403)
+      throw new ForbiddenError('Only the parent can update this recurring booking')
     }
 
     // Can only update if PENDING, ACTIVE or PAUSED
     if (!['PENDING', 'ACTIVE', 'PAUSED'].includes(rb.status)) {
-      throw new AppError(`Cannot update a ${rb.status.toLowerCase()} recurring booking`, 400)
+      throw new ValidationError(`Cannot update a ${rb.status.toLowerCase()} recurring booking`)
     }
 
     const updateData: Record<string, unknown> = { ...data }
@@ -118,20 +118,20 @@ export const recurringBookingsService = {
 
   async updateStatus(userId: string, role: string, id: string, status: RecurringBookingStatus) {
     const rb = await recurringBookingsDal.findById(id)
-    if (!rb) throw new AppError('Recurring booking not found', 404)
+    if (!rb) throw new NotFoundError('Recurring booking')
 
     // Authorization
     if (rb.parentUserId !== userId && rb.nannyUserId !== userId && role !== 'ADMIN') {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     // Nanny can only ACTIVE (accept) or CANCELLED (decline) from PENDING
     if (rb.nannyUserId === userId && rb.parentUserId !== userId) {
       if (status === 'ACTIVE' && rb.status !== 'PENDING') {
-        throw new AppError('Can only accept a pending recurring booking', 400)
+        throw new ValidationError('Can only accept a pending recurring booking')
       }
       if (status === 'CANCELLED' && !['PENDING', 'ACTIVE', 'PAUSED'].includes(rb.status)) {
-        throw new AppError('Cannot cancel at this stage', 400)
+        throw new ValidationError('Cannot cancel at this stage')
       }
     }
 
@@ -140,7 +140,7 @@ export const recurringBookingsService = {
       if (status === 'ACTIVE' && rb.status === 'PAUSED') {
         // Resume — allowed
       } else if (status === 'ACTIVE') {
-        throw new AppError('Only nanny can accept a pending recurring booking', 400)
+        throw new ValidationError('Only nanny can accept a pending recurring booking')
       }
     }
 

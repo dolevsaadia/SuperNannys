@@ -1,5 +1,5 @@
 import type { BookingStatus } from '@prisma/client'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ConflictError, ForbiddenError, BadRequestError, ValidationError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { bookingsDal } from './bookings.dal'
@@ -16,19 +16,19 @@ export const bookingsService = {
     })
 
     if (parentUserId === data.nannyUserId) {
-      throw new AppError('Cannot book yourself', 400)
+      throw new BadRequestError('Cannot book yourself')
     }
 
     const start = new Date(data.startTime)
     const end = new Date(data.endTime)
-    if (end <= start) throw new AppError('End time must be after start time')
+    if (end <= start) throw new ValidationError('End time must be after start time')
 
     const nannyProfile = await bookingsDal.findNannyProfile(data.nannyUserId)
-    if (!nannyProfile) throw new AppError('Nanny not found', 404)
+    if (!nannyProfile) throw new NotFoundError('Nanny')
 
     // ── Conflict detection: existing bookings ─────────────
     const conflict = await bookingsDal.findConflict(data.nannyUserId, start, end)
-    if (conflict) throw new AppError('Nanny is not available for this time slot', 409)
+    if (conflict) throw new ConflictError('Nanny is not available for this time slot')
 
     // ── Conflict detection: date-specific blocked slots ───
     const dateBlock = await bookingsDal.findDateBlock(
@@ -37,7 +37,7 @@ export const bookingsService = {
       `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`,
       `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`,
     )
-    if (dateBlock) throw new AppError('Nanny has blocked this date/time in her calendar', 409)
+    if (dateBlock) throw new ConflictError('Nanny has blocked this date/time in her calendar')
 
     const durationHours = (end.getTime() - start.getTime()) / 3_600_000
 
@@ -48,13 +48,13 @@ export const bookingsService = {
       : nannyProfile.hourlyRateNis
 
     if (!rate || rate <= 0) {
-      throw new AppError('Nanny has no rate configured', 400)
+      throw new ValidationError('Nanny has no rate configured')
     }
 
     // Estimated price based on booked hours (actual price determined by timer)
     const estimatedPriceNis = Math.round(durationHours * rate)
     if (!isFinite(estimatedPriceNis) || estimatedPriceNis < 0) {
-      throw new AppError('Invalid price calculation — check rate and duration', 400)
+      throw new ValidationError('Invalid price calculation — check rate and duration')
     }
 
     // If nanny has minimum hours, ensure estimate reflects at least the minimum
@@ -62,7 +62,7 @@ export const bookingsService = {
     const chargeableHours = Math.max(durationHours, minHours)
     const totalAmountNis = Math.round(chargeableHours * rate)
     if (!isFinite(totalAmountNis) || totalAmountNis < 0) {
-      throw new AppError('Invalid total price calculation', 400)
+      throw new ValidationError('Invalid total price calculation')
     }
 
     // Build structured address data (only include defined fields)
@@ -121,32 +121,46 @@ export const bookingsService = {
 
   async getById(userId: string, role: string, bookingId: string) {
     const booking = await bookingsDal.findById(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
 
     if (booking.parentUserId !== userId && booking.nannyUserId !== userId && role !== 'ADMIN') {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
     return booking
   },
 
   async updateStatus(userId: string, role: string, bookingId: string, status: BookingStatus) {
     const booking = await bookingsDal.findByIdSimple(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
 
     // Guard: IN_PROGRESS and COMPLETED transitions go through sessions module only
     if (status === 'IN_PROGRESS') {
-      throw new AppError('Use the sessions API to start a live session', 400)
+      throw new BadRequestError('Use the sessions API to start a live session')
     }
     if (status === 'COMPLETED') {
-      throw new AppError('Use the sessions API to end a live session', 400)
+      throw new BadRequestError('Use the sessions API to end a live session')
+    }
+
+    // ── Valid state transition map ────────────────────────
+    const validTransitions: Record<string, string[]> = {
+      REQUESTED: ['ACCEPTED', 'DECLINED', 'CANCELLED'],
+      ACCEPTED:  ['CANCELLED'],
+      DECLINED:  [],          // terminal
+      CANCELLED: [],          // terminal
+      IN_PROGRESS: [],        // managed by sessions API
+      COMPLETED: [],          // terminal
+    }
+    const allowed = validTransitions[booking.status] || []
+    if (!allowed.includes(status)) {
+      throw new BadRequestError(`Cannot transition from ${booking.status} to ${status}`)
     }
 
     // Authorization checks
     if ((status === 'ACCEPTED' || status === 'DECLINED') && booking.nannyUserId !== userId) {
-      throw new AppError('Only the nanny can accept/decline', 403)
+      throw new ForbiddenError('Only the nanny can accept/decline')
     }
     if (status === 'CANCELLED' && booking.parentUserId !== userId && booking.nannyUserId !== userId) {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     const updated = await bookingsDal.updateStatus(bookingId, status)

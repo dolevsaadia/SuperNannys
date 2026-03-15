@@ -33,6 +33,7 @@ class ChatListScreen extends ConsumerWidget {
       ),
       body: async.authAwareWhen(
         ref,
+        loading: () => const SkeletonList(count: 6, skeleton: ChatSkeleton()),
         errorTitle: 'Could not load messages',
         onRetry: () => ref.invalidate(_conversationsProvider),
         data: (conversations) {
