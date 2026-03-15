@@ -20,6 +20,14 @@ class ApiClient {
   /// and prevents crashes if the keychain is temporarily locked on app restart.
   String? _cachedToken;
 
+  /// Callback invoked when any API call returns 401 Unauthorized.
+  /// Set by AuthNotifier to trigger automatic logout + redirect to login.
+  void Function()? onUnauthorized;
+
+  /// Prevents firing onUnauthorized multiple times when several requests
+  /// fail with 401 simultaneously (e.g. expired token).
+  bool _handlingUnauthorized = false;
+
   void init() {
     dio = Dio(BaseOptions(
       baseUrl: AppConstants.apiBaseUrl,
@@ -93,6 +101,20 @@ class ApiClient {
               if (serverMsg != null) 'serverMessage': serverMsg,
             },
           );
+
+          // Auto-logout on 401 — skip for auth endpoints (login/register/etc.)
+          // to avoid logout loops during login attempts.
+          if (status == 401 && !path.startsWith('/auth/')) {
+            if (!_handlingUnauthorized && onUnauthorized != null) {
+              _handlingUnauthorized = true;
+              appLog.warn('api', 'token_expired', 'Got 401 — triggering auto-logout');
+              onUnauthorized!();
+              // Reset after a short delay so future 401s (after re-login) work
+              Future.delayed(const Duration(seconds: 2), () {
+                _handlingUnauthorized = false;
+              });
+            }
+          }
 
           handler.next(error);
         },
