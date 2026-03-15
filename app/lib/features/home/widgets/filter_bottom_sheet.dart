@@ -40,7 +40,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   void _apply() {
-    final filter = widget.currentFilter.copyWith(
+    final filter = NannyFilter(
+      city: widget.currentFilter.city,
+      lat: widget.currentFilter.lat,
+      lng: widget.currentFilter.lng,
+      radiusKm: widget.currentFilter.radiusKm,
+      sortBy: widget.currentFilter.sortBy,
       minRate: _rateRange.start > _minRate ? _rateRange.start.toInt() : null,
       maxRate: _rateRange.end < _maxRate ? _rateRange.end.toInt() : null,
       language: _language,

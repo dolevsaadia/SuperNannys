@@ -146,6 +146,8 @@ model NannyProfile {
   dateAvailability NannyDateAvailability[]
   documents        Document[]
 
+  @@index([city, rating])
+  @@index([isAvailable, rating])
   @@map("nanny_profiles")
 }
 
@@ -215,6 +217,12 @@ model Booking {
   review   Review?
   earning  Earning?
 
+  // ── Performance indexes ──────────────────────────────────
+  @@index([parentUserId, createdAt])
+  @@index([nannyUserId, createdAt])
+  @@index([nannyUserId, status, startTime, endTime])
+  @@index([status])
+  @@index([recurringBookingId])
   @@map("bookings")
 }
 
@@ -228,6 +236,8 @@ model Message {
   isRead     Boolean  @default(false)
   createdAt  DateTime @default(now())
 
+  @@index([bookingId, createdAt])
+  @@index([fromUserId])
   @@map("messages")
 }
 
@@ -243,6 +253,8 @@ model Review {
   comment        String?
   createdAt      DateTime @default(now())
 
+  @@index([revieweeUserId])
+  @@index([reviewerUserId])
   @@map("reviews")
 }
 
@@ -274,6 +286,7 @@ model Earning {
   paidAt       DateTime?
   createdAt    DateTime @default(now())
 
+  @@index([nannyUserId, isPaid])
   @@map("earnings")
 }
 
@@ -286,6 +299,7 @@ model Device {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
   @@map("devices")
 }
 
@@ -312,6 +326,7 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  @@index([userId, isRead, createdAt])
   @@map("notifications")
 }
 
@@ -343,6 +358,8 @@ model RecurringBooking {
 
   bookings        Booking[]
 
+  @@index([parentUserId, status])
+  @@index([nannyUserId, status])
   @@map("recurring_bookings")
 }
 
@@ -402,5 +419,6 @@ model VerificationRequest {
   reviewedAt        DateTime?
   reviewedBy        String?
 
+  @@index([userId, status])
   @@map("verification_requests")
 }

@@ -186,8 +186,25 @@ class DashboardScreen extends ConsumerWidget {
                   child: Center(child: LoadingIndicator()),
                 ),
                 error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text('Error: $e'),
+                  padding: const EdgeInsets.all(40),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.textHint),
+                        const SizedBox(height: 12),
+                        const Text('Could not load dashboard', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 4),
+                        Text('Check your connection and try again', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => ref.invalidate(_dashboardProvider),
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 data: (data) {
                   final earnings = data['earnings'] as Map<String, dynamic>;

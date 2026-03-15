@@ -28,19 +28,21 @@ class NannyFilter {
     double? lat, double? lng, double? radiusKm, String? sortBy,
     bool? hasRecurringRate,
     bool clearCity = false, bool clearLanguage = false, bool clearSkill = false,
+    bool clearRecurring = false, bool clearMinRate = false, bool clearMaxRate = false,
+    bool clearMinYears = false, bool clearMinRating = false,
   }) => NannyFilter(
         city: clearCity ? null : city ?? this.city,
-        minRate: minRate ?? this.minRate,
-        maxRate: maxRate ?? this.maxRate,
-        minYears: minYears ?? this.minYears,
+        minRate: clearMinRate ? null : minRate ?? this.minRate,
+        maxRate: clearMaxRate ? null : maxRate ?? this.maxRate,
+        minYears: clearMinYears ? null : minYears ?? this.minYears,
         language: clearLanguage ? null : language ?? this.language,
         skill: clearSkill ? null : skill ?? this.skill,
-        minRating: minRating ?? this.minRating,
+        minRating: clearMinRating ? null : minRating ?? this.minRating,
         lat: lat ?? this.lat,
         lng: lng ?? this.lng,
         radiusKm: radiusKm ?? this.radiusKm,
         sortBy: sortBy ?? this.sortBy,
-        hasRecurringRate: hasRecurringRate ?? this.hasRecurringRate,
+        hasRecurringRate: clearRecurring ? null : hasRecurringRate ?? this.hasRecurringRate,
       );
 
   Map<String, dynamic> toQueryParams() {

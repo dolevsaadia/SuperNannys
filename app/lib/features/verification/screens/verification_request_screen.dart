@@ -101,7 +101,7 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Submission failed. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -122,7 +122,22 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
       ),
       body: statusAsync.when(
         loading: () => const Center(child: LoadingIndicator()),
-        error: (_, __) => const Center(child: Text('Error loading status')),
+        error: (_, __) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.textHint),
+              const SizedBox(height: 12),
+              const Text('Could not load verification status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => ref.invalidate(_verificationStatusProvider),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
         data: (existing) {
           if (existing != null) {
             return _StatusView(request: existing);
