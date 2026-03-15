@@ -5,11 +5,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_constants.dart';
 import '../services/app_logger.dart';
+import '../services/connectivity_service.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
   ApiClient._internal();
+
+  /// Reference to the connectivity notifier — set once from the provider
+  /// so every API call can report its network result.
+  ConnectivityNotifier? connectivityNotifier;
 
   // iOS: use first_unlock so keychain is readable right after device boots
   // (before first user unlock). Without this the app hangs on launch.
@@ -90,6 +95,9 @@ class ApiClient {
             extra: {'status': status, 'durationMs': durationMs},
           );
 
+          // ── Report to connectivity: server responded = network works ──
+          connectivityNotifier?.reportApiResult(networkReachable: true);
+
           handler.next(response);
         },
         onError: (error, handler) {
@@ -113,6 +121,16 @@ class ApiClient {
             },
           );
 
+          // ── Report to connectivity ──────────────────────────────
+          // If the server returned ANY HTTP response (even 401/500),
+          // the network is working. Only genuine network failures
+          // (timeout, DNS, socket) indicate connectivity loss.
+          if (error.response != null) {
+            connectivityNotifier?.reportApiResult(networkReachable: true);
+          } else if (_isNetworkError(error)) {
+            connectivityNotifier?.reportApiResult(networkReachable: false);
+          }
+
           // Auto-logout on 401 — skip for auth endpoints (login/register/etc.)
           // to avoid logout loops during login attempts.
           if (status == 401 && !path.startsWith('/auth/')) {
@@ -131,6 +149,16 @@ class ApiClient {
         },
       ),
     );
+  }
+
+  /// Returns true if the error is a genuine network failure
+  /// (not a server-side HTTP error).
+  bool _isNetworkError(DioException error) {
+    return error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        (error.type == DioExceptionType.unknown && error.error is SocketException);
   }
 
   String? _extractServerMessage(DioException error) {
