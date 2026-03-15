@@ -34,6 +34,15 @@ export const authDal = {
     return prisma.user.create({ data, select: userPublicSelect })
   },
 
+  /** Create user + nanny profile atomically in a single transaction */
+  createUserWithNannyProfile(data: Prisma.UserCreateInput) {
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data, select: userPublicSelect })
+      await tx.nannyProfile.create({ data: { userId: user.id } })
+      return user
+    })
+  },
+
   createNannyProfile(userId: string) {
     return prisma.nannyProfile.create({ data: { userId } })
   },

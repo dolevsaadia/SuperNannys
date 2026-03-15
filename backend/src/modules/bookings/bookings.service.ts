@@ -42,7 +42,7 @@ export const bookingsService = {
     const durationHours = (end.getTime() - start.getTime()) / 3_600_000
 
     // Use recurring rate if this booking is explicitly marked as recurring, otherwise casual
-    const isRecurring = !!(data as any).isRecurring
+    const isRecurring = !!data.isRecurring
     const rate = isRecurring && nannyProfile.recurringHourlyRateNis
       ? nannyProfile.recurringHourlyRateNis
       : nannyProfile.hourlyRateNis
@@ -65,16 +65,16 @@ export const bookingsService = {
       throw new AppError('Invalid total price calculation', 400)
     }
 
-    // Build structured address data
-    const addressData: Record<string, any> = {}
+    // Build structured address data (only include defined fields)
+    const addressData: Record<string, unknown> = {}
     if (data.address) addressData.address = data.address
-    if ((data as any).bookingCity) addressData.bookingCity = (data as any).bookingCity
-    if ((data as any).bookingStreet) addressData.bookingStreet = (data as any).bookingStreet
-    if ((data as any).bookingHouseNum) addressData.bookingHouseNum = (data as any).bookingHouseNum
-    if ((data as any).bookingPostalCode) addressData.bookingPostalCode = (data as any).bookingPostalCode
-    if ((data as any).bookingLat) addressData.bookingLat = (data as any).bookingLat
-    if ((data as any).bookingLng) addressData.bookingLng = (data as any).bookingLng
-    if ((data as any).locationType) addressData.locationType = (data as any).locationType
+    if (data.bookingCity) addressData.bookingCity = data.bookingCity
+    if (data.bookingStreet) addressData.bookingStreet = data.bookingStreet
+    if (data.bookingHouseNum) addressData.bookingHouseNum = data.bookingHouseNum
+    if (data.bookingPostalCode) addressData.bookingPostalCode = data.bookingPostalCode
+    if (data.bookingLat) addressData.bookingLat = data.bookingLat
+    if (data.bookingLng) addressData.bookingLng = data.bookingLng
+    if (data.locationType) addressData.locationType = data.locationType
 
     const booking = await bookingsDal.create({
       parentUserId,

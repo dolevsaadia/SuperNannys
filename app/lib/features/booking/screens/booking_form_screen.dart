@@ -73,6 +73,17 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
     _loadUserAddress();
   }
 
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _streetCtrl.dispose();
+    _houseNumCtrl.dispose();
+    _postalCodeCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserAddress() async {
     try {
       final resp = await apiClient.dio.get('/auth/me');

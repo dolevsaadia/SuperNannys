@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/app_logger.dart';
 
 /// Provider that polls for bookings ready to start a live session.
 /// Returns ACCEPTED bookings where the scheduled start time is near now
@@ -59,8 +60,9 @@ class PendingSessionNotifier extends StateNotifier<List<BookingModel>> {
 
       // Combine: IN_PROGRESS first, then ready-to-start
       state = [...inProgressList, ...readyToStart];
-    } catch (_) {
+    } catch (e) {
       // Don't clear state on error — keep showing last known
+      appLog.debug('session', 'pending_poll_error', 'Failed to poll pending sessions', extra: {'error': e.toString()});
     }
   }
 

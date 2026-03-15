@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/app_logger.dart';
 
 class NannyFilter {
   final String? city;
@@ -127,7 +129,13 @@ class NanniesNotifier extends StateNotifier<NanniesState> {
         hasMore: list.length < (pagination['total'] as int),
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Failed to load nannies');
+      final msg = e is DioException && e.response?.data is Map
+          ? (e.response!.data as Map)['message']?.toString() ?? 'Failed to load nannies'
+          : e is DioException && e.type == DioExceptionType.connectionError
+              ? 'No internet connection'
+              : 'Failed to load nannies';
+      appLog.warn('nannies', 'load_failed', msg, extra: {'error': e.toString()});
+      state = state.copyWith(isLoading: false, error: msg);
     }
   }
 
@@ -149,7 +157,8 @@ class NanniesNotifier extends StateNotifier<NanniesState> {
         page: nextPage,
         hasMore: state.nannies.length + list.length < state.total,
       );
-    } catch (_) {
+    } catch (e) {
+      appLog.warn('nannies', 'load_more_failed', 'Failed to load more nannies', extra: {'error': e.toString()});
       state = state.copyWith(isLoadingMore: false);
     }
   }

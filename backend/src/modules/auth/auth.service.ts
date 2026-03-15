@@ -44,7 +44,7 @@ export const authService = {
     if (existing) throw new AppError('Email already in use', 409)
 
     const passwordHash = await bcrypt.hash(data.password, 12)
-    const user = await authDal.createUser({
+    const userData = {
       email,
       passwordHash,
       fullName: data.fullName,
@@ -57,11 +57,12 @@ export const authService = {
       houseNumber: data.houseNumber,
       postalCode: data.postalCode,
       apartmentFloor: data.apartmentFloor,
-    })
-
-    if (data.role === 'NANNY') {
-      await authDal.createNannyProfile(user.id)
     }
+
+    // Atomic: create user + nanny profile in a single transaction if NANNY role
+    const user = data.role === 'NANNY'
+      ? await authDal.createUserWithNannyProfile(userData)
+      : await authDal.createUser(userData)
 
     logger.info('User registered', { userId: user.id, email, role: data.role })
 
@@ -145,18 +146,19 @@ export const authService = {
       // New user with role — create account.
       // Google already verified the email, so sign in directly (no OTP needed).
       isNewUser = true
-      const created = await authDal.createUser({
+      const googleUserData = {
         email: payload.email,
         fullName: payload.name || payload.email,
         avatarUrl: payload.picture,
         role: data.role,
-        authProvider: 'GOOGLE',
+        authProvider: 'GOOGLE' as const,
         googleSub: payload.sub,
         isVerified: true,
-      })
-      if (data.role === 'NANNY') {
-        await authDal.createNannyProfile(created.id)
       }
+      // Atomic: create user + nanny profile in a single transaction if NANNY role
+      const created = data.role === 'NANNY'
+        ? await authDal.createUserWithNannyProfile(googleUserData)
+        : await authDal.createUser(googleUserData)
 
       logger.info('Google sign-in', { email: payload.email, isNewUser: true, userId: created.id })
 

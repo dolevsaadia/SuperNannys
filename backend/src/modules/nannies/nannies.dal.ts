@@ -1,4 +1,5 @@
 import { prisma } from '../../db'
+import type { DocumentType } from '@prisma/client'
 
 export const nanniesDal = {
   searchProfiles(where: Record<string, unknown>, orderBy: Record<string, string>, skip: number, take: number) {
@@ -75,9 +76,9 @@ export const nanniesDal = {
     ])
   },
 
-  createDocument(nannyProfileId: string, type: string, url: string) {
+  createDocument(nannyProfileId: string, type: DocumentType, url: string) {
     return prisma.document.create({
-      data: { nannyProfileId, type: type as any, url },
+      data: { nannyProfileId, type, url },
     })
   },
 

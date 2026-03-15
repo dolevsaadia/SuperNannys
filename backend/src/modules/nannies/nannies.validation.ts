@@ -45,5 +45,19 @@ export const updateNannyProfileSchema = z.object({
   })).optional(),
 })
 
+// ── Date availability schemas ─────────────────────────────
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
+
+export const dateAvailabilitySchema = z.object({
+  date: z.string().refine(v => !isNaN(Date.parse(v)), { message: 'Invalid date format' }),
+  startTime: z.string().regex(timeRegex, 'Invalid time format. Expected HH:mm'),
+  endTime: z.string().regex(timeRegex, 'Invalid time format. Expected HH:mm'),
+  isBlocked: z.boolean().optional(),
+})
+
+export const blockDateSchema = z.object({
+  date: z.string().refine(v => !isNaN(Date.parse(v)), { message: 'Invalid date format' }),
+})
+
 export type SearchNanniesInput = z.infer<typeof searchNanniesSchema>
 export type UpdateNannyProfileInput = z.infer<typeof updateNannyProfileSchema>
