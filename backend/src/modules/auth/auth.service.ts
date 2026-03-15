@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import { config } from '../../config'
-import { signToken, signRefreshToken, generateTokenPair, verifyRefreshToken } from '../../shared/utils/jwt'
+import { signToken, signRefreshToken, generateTokenPair, generateTokenPairWithExpiry, verifyRefreshToken } from '../../shared/utils/jwt'
 import { AppError, NotFoundError, ConflictError, AuthenticationError, ForbiddenError, ServiceUnavailableError, BadRequestError } from '../../shared/errors/app-error'
 import { generateOTP } from '../../shared/utils/otp'
 import { emailService } from '../../shared/services/email.service'
@@ -66,7 +66,7 @@ export const authService = {
 
     logger.info('User registered', { userId: user.id, email, role: data.role })
 
-    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return { ...tokens, user }
   },
 
@@ -91,7 +91,7 @@ export const authService = {
 
     logger.info('User logged in', { userId: user.id, email })
 
-    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
       ...tokens,
       user: {
@@ -159,7 +159,7 @@ export const authService = {
 
       logger.info('Google sign-in', { email: payload.email, isNewUser: true, userId: created.id })
 
-      const newTokens = generateTokenPair({ userId: created.id, email: created.email, role: created.role })
+      const newTokens = generateTokenPairWithExpiry({ userId: created.id, email: created.email, role: created.role })
       return {
         ...newTokens,
         isNewUser: true,
@@ -178,7 +178,7 @@ export const authService = {
     logger.info('Google sign-in', { email: payload.email, isNewUser: false, userId: user.id })
 
     // Google already verified the email, so sign in directly (no OTP needed).
-    const existingTokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    const existingTokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
       ...existingTokens,
       isNewUser: false,
@@ -203,7 +203,7 @@ export const authService = {
 
     logger.info('OTP verified', { userId: user.id, email })
 
-    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
       ...tokens,
       user: {
@@ -246,7 +246,7 @@ export const authService = {
     logger.info('Token refreshed', { userId: user.id })
 
     // Issue new token pair (refresh token rotation)
-    const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
       ...tokens,
       user: {

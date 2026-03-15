@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -33,6 +34,10 @@ class ApiClient {
   /// Set by AuthNotifier to trigger automatic logout + redirect to login.
   void Function()? onUnauthorized;
 
+  /// Callback for showing a friendly "session expired" dialog before logout.
+  /// Unlike onUnauthorized (which fires silently), this shows a dialog first.
+  void Function()? onSessionExpired;
+
   /// Prevents firing onUnauthorized multiple times when several requests
   /// fail with 401 simultaneously (e.g. expired token).
   bool _handlingUnauthorized = false;
@@ -40,6 +45,11 @@ class ApiClient {
   /// Guards concurrent refresh: only one refresh call at a time.
   /// Other 401'd requests wait for this completer.
   Completer<bool>? _refreshCompleter;
+
+  /// Proactive refresh: schedules a refresh BEFORE the token expires
+  /// so the user never sees a 401 error or gets logged out unexpectedly.
+  Timer? _proactiveRefreshTimer;
+  int? _tokenExpiresAtMs;
 
   void init() {
     dio = Dio(BaseOptions(
@@ -153,15 +163,8 @@ class ApiClient {
                 return handler.next(retryError);
               }
             } else {
-              // Refresh failed — truly unauthorized, logout
-              if (!_handlingUnauthorized && onUnauthorized != null) {
-                _handlingUnauthorized = true;
-                appLog.warn('api', 'token_expired', 'Refresh failed — triggering auto-logout');
-                onUnauthorized!();
-                Future.delayed(const Duration(seconds: 2), () {
-                  _handlingUnauthorized = false;
-                });
-              }
+              // Refresh failed — truly unauthorized
+              _triggerSessionExpired();
             }
           }
 
@@ -286,6 +289,145 @@ class ApiClient {
     try {
       await _storage.write(key: AppConstants.refreshTokenKey, value: token);
     } catch (_) {}
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Proactive Token Refresh
+  // ═══════════════════════════════════════════════════════════
+
+  /// Schedule a background refresh at ~80% of the token's lifetime.
+  /// Example: 7-day token → refresh after ~5.6 days.
+  void scheduleProactiveRefresh(int expiresAtMs) {
+    _tokenExpiresAtMs = expiresAtMs;
+    _proactiveRefreshTimer?.cancel();
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final lifetimeMs = expiresAtMs - now;
+    if (lifetimeMs <= 0) return; // already expired
+
+    // Refresh at 80% of lifetime
+    final refreshInMs = (lifetimeMs * 0.8).toInt();
+    appLog.info('api', 'proactive_refresh_scheduled',
+      'Token refresh scheduled in ${(refreshInMs / 1000 / 60).toStringAsFixed(0)}min '
+      '(token lifetime: ${(lifetimeMs / 1000 / 60 / 60).toStringAsFixed(1)}h)',
+    );
+
+    _proactiveRefreshTimer = Timer(Duration(milliseconds: refreshInMs), _doProactiveRefresh);
+  }
+
+  Future<void> _doProactiveRefresh() async {
+    appLog.info('api', 'proactive_refresh_start', 'Running proactive token refresh');
+    final success = await _attemptTokenRefresh();
+    if (success) {
+      // After successful refresh, the new token's expiry is unknown unless
+      // we decode it. Use the JWT exp claim as fallback.
+      final exp = extractExpFromJwt(_cachedToken);
+      if (exp != null) {
+        scheduleProactiveRefresh(exp * 1000);
+      }
+    } else {
+      _triggerSessionExpired();
+    }
+  }
+
+  /// Called on app resume — checks if token is expired or close to expiry
+  /// and refreshes if needed. Returns true if session is valid.
+  Future<bool> validateTokenOrRefresh() async {
+    final token = _cachedToken ?? await getToken();
+    if (token == null) return false;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Use stored expiresAt first, fall back to JWT decode
+    int? expiresAtMs = _tokenExpiresAtMs;
+    if (expiresAtMs == null) {
+      final exp = extractExpFromJwt(token);
+      if (exp != null) expiresAtMs = exp * 1000;
+    }
+
+    if (expiresAtMs == null) return true; // can't determine — assume valid
+
+    final remainingMs = expiresAtMs - now;
+
+    if (remainingMs <= 0) {
+      // Token already expired — try refresh
+      appLog.info('api', 'resume_token_expired', 'Token expired on resume — attempting refresh');
+      final success = await _attemptTokenRefresh();
+      if (success) {
+        final exp = extractExpFromJwt(_cachedToken);
+        if (exp != null) scheduleProactiveRefresh(exp * 1000);
+      }
+      return success;
+    }
+
+    // If less than 20% lifetime remaining, refresh proactively
+    // (e.g., < ~1.4 days for a 7-day token)
+    if (expiresAtMs > 0) {
+      // Estimate original lifetime: if we have less than 20% left, refresh now
+      const thresholdMs = 30 * 60 * 1000; // 30 minutes minimum threshold
+      if (remainingMs < thresholdMs) {
+        appLog.info('api', 'resume_token_near_expiry',
+          'Token near expiry on resume (${(remainingMs / 1000 / 60).toStringAsFixed(0)}min left)');
+        final success = await _attemptTokenRefresh();
+        if (success) {
+          final exp = extractExpFromJwt(_cachedToken);
+          if (exp != null) scheduleProactiveRefresh(exp * 1000);
+        }
+        return success;
+      }
+    }
+
+    // Token still valid — make sure proactive timer is running
+    if (_proactiveRefreshTimer == null || !_proactiveRefreshTimer!.isActive) {
+      scheduleProactiveRefresh(expiresAtMs);
+    }
+
+    return true;
+  }
+
+  void cancelProactiveRefresh() {
+    _proactiveRefreshTimer?.cancel();
+    _proactiveRefreshTimer = null;
+    _tokenExpiresAtMs = null;
+  }
+
+  /// Unified handler: show friendly dialog, then logout.
+  void _triggerSessionExpired() {
+    if (_handlingUnauthorized) return;
+    _handlingUnauthorized = true;
+    appLog.warn('api', 'session_expired', 'Session expired — showing dialog');
+
+    if (onSessionExpired != null) {
+      onSessionExpired!();
+    } else if (onUnauthorized != null) {
+      onUnauthorized!();
+    }
+
+    Future.delayed(const Duration(seconds: 2), () {
+      _handlingUnauthorized = false;
+    });
+  }
+
+  /// Decode the `exp` claim from a JWT without verifying signature.
+  /// Returns the Unix timestamp (seconds) or null if decoding fails.
+  static int? extractExpFromJwt(String? token) {
+    if (token == null) return null;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      // JWT payload is base64url-encoded
+      String payload = parts[1];
+      // Pad to multiple of 4
+      switch (payload.length % 4) {
+        case 2: payload += '=='; break;
+        case 3: payload += '='; break;
+      }
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      return map['exp'] as int?;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
