@@ -26,6 +26,9 @@ void main() {
 
     appLog.info('app', 'startup', 'App starting');
 
+    // Initialize persistent crash log storage (errors → disk for post-crash analysis)
+    await appLog.initPersistentStorage();
+
     // Catch Flutter framework errors (layout, rendering, etc.)
     FlutterError.onError = (details) {
       FlutterError.presentError(details); // logs to console
