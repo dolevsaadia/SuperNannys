@@ -164,7 +164,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             // ═══ STICKY HEADER ═══
             _StickyHeader(
               userName: user?.fullName.split(' ').first ?? 'there',
-              onNotification: () => context.go('/chat'),
+              onNotification: () => context.go('/notifications'),
               onProfile: () => context.go('/profile'),
               onLocationSelected: (city) {
                 if (city.isEmpty) {

@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'booking_map_screen.dart';
 
 final _bookingDetailProvider = FutureProvider.autoDispose.family<BookingModel, String>((ref, id) async {
+  ref.watch(dataRefreshProvider); // re-fetch when booking status changes elsewhere
   final resp = await apiClient.dio.get('/bookings/$id');
   return BookingModel.fromJson(resp.data['data'] as Map<String, dynamic>);
 });

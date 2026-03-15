@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/avatar_widget.dart';
@@ -529,6 +530,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         'rating': _reviewRating,
         'comment': _reviewController.text.trim().isEmpty ? null : _reviewController.text.trim(),
       });
+      triggerDataRefresh(ref);
       setState(() {
         _reviewSubmitted = true;
         _reviewSubmitting = false;

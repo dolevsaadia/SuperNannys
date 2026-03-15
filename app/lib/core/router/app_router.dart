@@ -37,6 +37,7 @@ import '../../features/profile/screens/privacy_screen.dart';
 import '../../features/profile/screens/help_screen.dart';
 import '../../features/profile/screens/about_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/verification/screens/verification_request_screen.dart';
 import '../../features/profile/screens/language_screen.dart';
 import '../../features/auth/screens/phone_verification_screen.dart';
@@ -177,6 +178,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'about', builder: (_, __) => const AboutScreen()),
             ],
           ),
+          GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
           GoRoute(
