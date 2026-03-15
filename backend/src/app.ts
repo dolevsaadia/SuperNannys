@@ -32,15 +32,35 @@ export function createApp() {
   const httpServer = http.createServer(app)
 
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: config.clientUrl, methods: ['GET', 'POST'], credentials: true },
-    pingTimeout: 60000,
+    cors: { origin: '*', methods: ['GET', 'POST'] },
+    pingInterval: 25000,    // send ping every 25s (keep alive through nginx)
+    pingTimeout: 20000,     // wait 20s for pong before declaring dead
+    connectTimeout: 10000,  // 10s to complete handshake
+    transports: ['websocket', 'polling'], // prefer websocket, fallback to polling
   })
 
   // ── Security ───────────────────────────────────────────
   app.set('trust proxy', 1)
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
-  app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))
+
+  // Rate limiter — only on /api routes, NOT on /health (health checks are frequent)
+  const limiter = rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.max,
+    standardHeaders: true,
+    skip: (req) => req.path === '/health' || req.path === '/health/deep',
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        userAgent: req.get('user-agent'),
+      })
+      res.status(429).json({ error: 'Too many requests, please try again later.' })
+    },
+  })
+  app.use(limiter)
   // Prevent caching of API responses (stale auth tokens, booking data, etc.)
   app.use('/api', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')

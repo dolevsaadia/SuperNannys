@@ -164,7 +164,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             // ═══ STICKY HEADER ═══
             _StickyHeader(
               userName: user?.fullName.split(' ').first ?? 'there',
-              onNotification: () => context.go('/bookings'),
+              onNotification: () => context.go('/chat'),
               onProfile: () => context.go('/profile'),
               onLocationSelected: (city) {
                 if (city.isEmpty) {
@@ -491,7 +491,7 @@ class _SearchBarState extends State<_SearchBar> {
                         controller: widget.controller,
                         focusNode: _focusNode,
                         decoration: const InputDecoration(
-                          hintText: 'Search nannies, cities...',
+                          hintText: 'Search by city or area...',
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,

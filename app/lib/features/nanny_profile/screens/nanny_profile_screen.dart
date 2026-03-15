@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/badge_chip.dart';
@@ -45,7 +46,7 @@ class NannyProfileScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileBody extends StatefulWidget {
+class _ProfileBody extends ConsumerStatefulWidget {
   final NannyModel profile;
   final List<dynamic> reviews;
   final String nannyId;
@@ -53,10 +54,10 @@ class _ProfileBody extends StatefulWidget {
   const _ProfileBody({required this.profile, required this.reviews, required this.nannyId});
 
   @override
-  State<_ProfileBody> createState() => _ProfileBodyState();
+  ConsumerState<_ProfileBody> createState() => _ProfileBodyState();
 }
 
-class _ProfileBodyState extends State<_ProfileBody> {
+class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   bool _isFavorited = false;
   bool _favLoading = true;
 
@@ -90,6 +91,8 @@ class _ProfileBodyState extends State<_ProfileBody> {
     setState(() => _isFavorited = !_isFavorited);
     try {
       await apiClient.dio.post('/favorites/toggle', data: {'nannyUserId': profile.userId});
+      // Trigger refresh so favorites screen and home sections update
+      triggerDataRefresh(ref);
     } catch (_) {
       if (mounted) setState(() => _isFavorited = prev);
     }
