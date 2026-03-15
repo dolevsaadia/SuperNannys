@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose
@@ -71,9 +72,9 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
 
           // Bookings list
           Expanded(
-            child: async.when(
-              loading: () => const Center(child: LoadingIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+            child: async.authAwareWhen(
+              ref,
+              errorTitle: 'Could not load bookings',
               data: (data) {
                 final bookings = (data['bookings'] as List?) ?? [];
                 if (bookings.isEmpty) {

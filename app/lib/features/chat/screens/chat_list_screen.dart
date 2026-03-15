@@ -8,6 +8,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _conversationsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
@@ -30,15 +31,10 @@ class ChatListScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      body: async.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => EmptyState(
-          title: 'Could not load messages',
-          subtitle: 'Check your connection and try again',
-          icon: Icons.wifi_off_rounded,
-          actionLabel: 'Retry',
-          onAction: () => ref.invalidate(_conversationsProvider),
-        ),
+      body: async.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load messages',
+        onRetry: () => ref.invalidate(_conversationsProvider),
         data: (conversations) {
           if (conversations.isEmpty) {
             return Center(

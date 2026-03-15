@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _pendingNanniesProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -81,9 +82,10 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: async.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+      body: async.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load data',
+        onRetry: () => ref.invalidate(_pendingNanniesProvider),
         data: (data) {
           final nannies = (data['nannies'] as List?) ?? [];
 

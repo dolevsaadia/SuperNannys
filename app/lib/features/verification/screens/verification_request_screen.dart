@@ -8,7 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/loading_indicator.dart';
+import '../../../core/utils/async_value_ui.dart';
 
 final _verificationStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
   try {
@@ -120,24 +120,10 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      body: statusAsync.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (_, __) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.textHint),
-              const SizedBox(height: 12),
-              const Text('Could not load verification status', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => ref.invalidate(_verificationStatusProvider),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+      body: statusAsync.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load verification status',
+        onRetry: () => ref.invalidate(_verificationStatusProvider),
         data: (existing) {
           if (existing != null) {
             return _StatusView(request: existing);
