@@ -119,6 +119,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: Colors.white,

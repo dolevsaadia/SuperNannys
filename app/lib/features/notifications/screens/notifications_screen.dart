@@ -34,7 +34,13 @@ class NotificationsScreen extends ConsumerWidget {
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }),
         actions: [
           TextButton(
             onPressed: () async {

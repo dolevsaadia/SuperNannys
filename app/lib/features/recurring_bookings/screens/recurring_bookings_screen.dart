@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/recurring_booking_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _recurringListProvider = FutureProvider.autoDispose<List<RecurringBookingModel>>((ref) async {
+  ref.watch(dataRefreshProvider);
   final resp = await apiClient.dio.get('/recurring-bookings');
   final list = resp.data['data']['recurringBookings'] as List<dynamic>;
   return list.map((e) => RecurringBookingModel.fromJson(e as Map<String, dynamic>)).toList();
@@ -26,7 +28,13 @@ class RecurringBookingsScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         title: const Text('Recurring Bookings'),
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        }),
       ),
       body: async.authAwareWhen(
         ref,

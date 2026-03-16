@@ -5,7 +5,6 @@ import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/nanny_card.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
@@ -129,7 +128,7 @@ class FavoritesScreen extends ConsumerWidget {
 
                 return NannyCard(
                   nanny: nannyModel,
-                  onTap: () => context.go('/home/nanny/${nannyUser['id']}'),
+                  onTap: () => context.go('/home/nanny/${nannyProfile['id']}'),
                 );
               },
             ),
