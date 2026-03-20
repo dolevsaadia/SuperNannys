@@ -53,8 +53,13 @@ export const adminDal = {
             headline: true, hourlyRateNis: true, city: true,
             yearsExperience: true, languages: true, skills: true,
             completedJobs: true, rating: true, reviewsCount: true,
+            documents: {
+              select: { id: true, type: true, url: true, verifiedAt: true, createdAt: true },
+              orderBy: { createdAt: 'desc' as const },
+            },
           },
         },
+        idNumber: true,
       },
     })
   },

@@ -152,6 +152,8 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
         'allowsBabysittingAtHome': _allowsBabysittingAtHome,
       });
       triggerDataRefresh(ref);
+      // Reload from server to ensure local state matches persisted data
+      await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Availability saved'), backgroundColor: AppColors.success),

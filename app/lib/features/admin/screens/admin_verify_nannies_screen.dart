@@ -31,6 +31,64 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
     }
   }
 
+  void _showDocumentFullScreen(BuildContext context, String imageUrl, String docType) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.broken_image_rounded, color: Colors.white54, size: 48),
+                        SizedBox(height: 8),
+                        Text('Could not load image', style: TextStyle(color: Colors.white54)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.pop(ctx),
+                icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    docType.replaceAll('_', ' '),
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _rejectNanny(BuildContext context, WidgetRef ref, String userId) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -201,6 +259,67 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
                                 style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                             const SizedBox(height: 4),
                           ],
+
+                          // ── Uploaded Documents ──
+                          if (profile['documents'] is List && (profile['documents'] as List).isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            const Text('Uploaded Documents', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              height: 110,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: (profile['documents'] as List).length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                itemBuilder: (_, di) {
+                                  final doc = (profile['documents'] as List)[di] as Map<String, dynamic>;
+                                  final docType = doc['type'] as String? ?? 'OTHER';
+                                  final docUrl = doc['url'] as String? ?? '';
+                                  final isVerified = doc['verifiedAt'] != null;
+                                  final fullUrl = docUrl.startsWith('http') ? docUrl : 'https://api.supernanny.net$docUrl';
+                                  return GestureDetector(
+                                    onTap: () => _showDocumentFullScreen(context, fullUrl, docType),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: 80,
+                                          height: 80,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: isVerified ? AppColors.success : AppColors.warning,
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(
+                                              fullUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => const Center(
+                                                child: Icon(Icons.description_rounded, color: AppColors.textHint, size: 28),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          docType.replaceAll('_', ' '),
+                                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+
+                        // ── ID Number ──
+                        if (n['idNumber'] != null) ...[
+                          const SizedBox(height: 4),
+                          Text('ID: ${n['idNumber']}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
 
                         const SizedBox(height: 4),

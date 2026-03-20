@@ -251,7 +251,7 @@ class _StickyHeaderState extends State<_StickyHeader> {
                 const SizedBox(height: 12),
                 Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2))),
                 const SizedBox(height: 16),
-                const Text('Select Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const Text('Select Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -287,7 +287,7 @@ class _StickyHeaderState extends State<_StickyHeader> {
                     itemCount: suggestions.length,
                     itemBuilder: (_, i) => ListTile(
                       leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
-                      title: Text(suggestions[i], style: const TextStyle(fontSize: 14)),
+                      title: Text(suggestions[i], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                       onTap: () {
                         setState(() => _selectedLocation = suggestions[i]);
                         widget.onLocationSelected?.call(suggestions[i]);
