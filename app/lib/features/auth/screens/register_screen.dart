@@ -86,7 +86,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
     if (!mounted) return;
     if (success) {
-      await _promptBiometricAndNavigate(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
+      // Navigate immediately to prevent GoRouter redirect from racing
+      // (auth state change triggers redirect on next microtask which would
+      // send nannies to /dashboard before we can navigate to onboarding)
+      final route = _role == 'NANNY' ? '/nanny-onboarding' : '/home';
+      context.go(route);
     } else {
       final err = ref.read(authProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +134,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final result = await ref.read(authProvider.notifier).loginWithGoogle(idToken, role: _role);
       if (!mounted) return;
       if (result.success) {
-        await _promptBiometricAndNavigate(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
+        if (mounted) context.go(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Google sign-up failed'), backgroundColor: AppColors.error),

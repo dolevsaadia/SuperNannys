@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/async_value_ui.dart';
@@ -276,7 +277,8 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
                                   final docType = doc['type'] as String? ?? 'OTHER';
                                   final docUrl = doc['url'] as String? ?? '';
                                   final isVerified = doc['verifiedAt'] != null;
-                                  final fullUrl = docUrl.startsWith('http') ? docUrl : 'https://api.supernanny.net$docUrl';
+                                  final serverRoot = AppConstants.apiBaseUrl.replaceAll(RegExp(r'/api$'), '');
+                                  final fullUrl = docUrl.startsWith('http') ? docUrl : '$serverRoot$docUrl';
                                   return GestureDetector(
                                     onTap: () => _showDocumentFullScreen(context, fullUrl, docType),
                                     child: Column(
