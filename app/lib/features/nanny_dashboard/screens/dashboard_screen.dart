@@ -27,6 +27,17 @@ final _dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref
   };
 });
 
+/// Fetches the nanny's latest verification request status from the backend.
+final _verificationStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
+  ref.watch(dataRefreshProvider);
+  try {
+    final resp = await apiClient.dio.get('/verification-requests/me');
+    return resp.data['data'] as Map<String, dynamic>?;
+  } catch (_) {
+    return null;
+  }
+});
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -131,56 +142,12 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
 
-            // ── Verification Reminder (always visible, not inside async) ──
-            if (user?.isVerified != true)
-              SliverToBoxAdapter(
-                child: GestureDetector(
-                  onTap: () => context.go('/dashboard/verification'),
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.warning.withValues(alpha: 0.12), AppColors.warning.withValues(alpha: 0.04)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44, height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.warning.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(13),
-                          ),
-                          child: const Icon(Icons.verified_user_rounded, color: AppColors.warning, size: 24),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Verification Required', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                              const SizedBox(height: 2),
-                              Text('Upload your documents and send a verification request to increase trust.',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.warning,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            // ── Verification Banner (status-aware) ──
+            SliverToBoxAdapter(
+              child: user?.isVerified == true
+                  ? _VerificationBanner(verificationAsync: const AsyncData<Map<String, dynamic>?>({'status': 'approved'}))
+                  : _VerificationBanner(verificationAsync: ref.watch(_verificationStatusProvider)),
+            ),
 
             SliverToBoxAdapter(
               child: async.when(
@@ -450,6 +417,111 @@ class _PremiumActionCard extends StatelessWidget {
           ),
         ),
       );
+}
+
+// ── Verification Banner (status-aware) ──────────────────
+class _VerificationBanner extends StatelessWidget {
+  final AsyncValue<Map<String, dynamic>?> verificationAsync;
+  const _VerificationBanner({required this.verificationAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return verificationAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => _buildBanner(context, status: null),
+      data: (data) => _buildBanner(context, status: data?['status'] as String?),
+    );
+  }
+
+  Widget _buildBanner(BuildContext context, {required String? status}) {
+    final Color color;
+    final IconData icon;
+    final String title;
+    final String subtitle;
+    final String? ctaText;
+    final bool showCta;
+
+    switch (status) {
+      case 'approved':
+        color = AppColors.success;
+        icon = Icons.verified_rounded;
+        title = 'Verified';
+        subtitle = 'Your identity has been verified. You have a trusted badge on your profile.';
+        ctaText = null;
+        showCta = false;
+      case 'pending':
+        color = AppColors.info;
+        icon = Icons.hourglass_top_rounded;
+        title = 'Under Review';
+        subtitle = 'Your verification request is being reviewed by our team.';
+        ctaText = 'View Request';
+        showCta = true;
+      case 'rejected':
+        color = AppColors.error;
+        icon = Icons.cancel_rounded;
+        title = 'Verification Rejected';
+        subtitle = 'Your request was not approved. Please update your documents and resubmit.';
+        ctaText = 'Resubmit';
+        showCta = true;
+      default:
+        // No request exists yet
+        color = AppColors.warning;
+        icon = Icons.verified_user_rounded;
+        title = 'Verification Required';
+        subtitle = 'Upload your documents and send a verification request to increase trust.';
+        ctaText = 'Start';
+        showCta = true;
+    }
+
+    return GestureDetector(
+      onTap: showCta ? () => context.go('/dashboard/verification') : null,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color.withValues(alpha: 0.12), color.withValues(alpha: 0.04)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            if (showCta && ctaText != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(ctaText, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Premium Pending Booking Card ──────────────────
