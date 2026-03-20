@@ -150,7 +150,7 @@ export const authService = {
         role: data.role,
         authProvider: 'GOOGLE' as const,
         googleSub: payload.sub,
-        isVerified: true,
+        isVerified: data.role !== 'NANNY',  // Nannies require admin verification
       }
       // Atomic: create user + nanny profile in a single transaction if NANNY role
       const created = data.role === 'NANNY'

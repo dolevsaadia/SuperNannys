@@ -81,25 +81,29 @@ export const nanniesService = {
 
   async updateMyProfile(userId: string, data: UpdateNannyProfileInput) {
     const { availability, ...profileData } = data
-    const profile = await nanniesDal.updateProfile(userId, profileData)
+    await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
-      try {
-        // Atomically replace all availability slots in a single transaction
-        await nanniesDal.replaceAllAvailability(profile.id, availability)
-      } catch (err) {
-        logger.error('Failed to update availability slots', {
-          userId,
-          profileId: profile.id,
-          slotCount: availability.length,
-          error: err instanceof Error ? err.message : String(err),
-        })
-        // Don't throw — availability update failure shouldn't block profile save
+      const existing = await nanniesDal.findByUserId(userId)
+      if (existing) {
+        try {
+          // Atomically replace all availability slots in a single transaction
+          await nanniesDal.replaceAllAvailability(existing.id, availability)
+        } catch (err) {
+          logger.error('Failed to update availability slots', {
+            userId,
+            profileId: existing.id,
+            slotCount: availability.length,
+            error: err instanceof Error ? err.message : String(err),
+          })
+          // Don't throw — availability update failure shouldn't block profile save
+        }
       }
     }
 
     logger.info('Nanny profile updated', { userId })
-    return profile
+    // Return full profile with availability included
+    return nanniesDal.findByUserId(userId)
   },
 
   async addDocument(userId: string, type: DocumentType, url: string) {
