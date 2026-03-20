@@ -6,6 +6,7 @@ class UserModel {
   final String? avatarUrl;
   final String role; // PARENT | NANNY | ADMIN
   final bool isVerified;
+  final bool nannyOnboardingCompleted;
   final NannyProfileSummary? nannyProfile;
 
   const UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     this.avatarUrl,
     required this.role,
     this.isVerified = false,
+    this.nannyOnboardingCompleted = true,
     this.nannyProfile,
   });
 
@@ -23,27 +25,38 @@ class UserModel {
   bool get isParent => role == 'PARENT';
   bool get isAdmin => role == 'ADMIN';
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as String,
-        email: json['email'] as String,
-        fullName: json['fullName'] as String,
-        phone: json['phone'] as String?,
-        avatarUrl: json['avatarUrl'] as String?,
-        role: json['role'] as String,
-        isVerified: json['isVerified'] as bool? ?? false,
-        nannyProfile: json['nannyProfile'] != null
-            ? NannyProfileSummary.fromJson(json['nannyProfile'] as Map<String, dynamic>)
-            : null,
-      );
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    final nannyProfile = json['nannyProfile'] != null
+        ? NannyProfileSummary.fromJson(json['nannyProfile'] as Map<String, dynamic>)
+        : null;
+    // Derive onboarding completed: explicit flag, OR profile with city set
+    final explicitFlag = json['nannyOnboardingCompleted'] as bool?;
+    final derivedFromProfile = nannyProfile != null && nannyProfile.city.isNotEmpty;
+    final onboarded = explicitFlag ?? (json['role'] != 'NANNY' ? true : derivedFromProfile);
+
+    return UserModel(
+      id: json['id'] as String,
+      email: json['email'] as String,
+      fullName: json['fullName'] as String,
+      phone: json['phone'] as String?,
+      avatarUrl: json['avatarUrl'] as String?,
+      role: json['role'] as String,
+      isVerified: json['isVerified'] as bool? ?? false,
+      nannyOnboardingCompleted: onboarded,
+      nannyProfile: nannyProfile,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id, 'email': email, 'fullName': fullName,
         'phone': phone, 'avatarUrl': avatarUrl, 'role': role,
         'isVerified': isVerified,
+        'nannyOnboardingCompleted': nannyOnboardingCompleted,
       };
 
   UserModel copyWith({
     String? fullName, String? phone, String? avatarUrl,
+    bool? nannyOnboardingCompleted,
     NannyProfileSummary? nannyProfile,
   }) => UserModel(
         id: id, email: email,
@@ -51,6 +64,7 @@ class UserModel {
         phone: phone ?? this.phone,
         avatarUrl: avatarUrl ?? this.avatarUrl,
         role: role, isVerified: isVerified,
+        nannyOnboardingCompleted: nannyOnboardingCompleted ?? this.nannyOnboardingCompleted,
         nannyProfile: nannyProfile ?? this.nannyProfile,
       );
 }

@@ -85,6 +85,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isPublic = publicRoutes.any((r) => loc.startsWith(r));
 
       if (!isAuth && !isPublic) return '/onboarding';
+
+      // ── Nanny onboarding gate ─────────────────────────────────
+      // If nanny has not completed onboarding, force them there.
+      // This works on fresh signup, app reopen, and session restore.
+      if (isAuth && authState.user?.isNanny == true && !authState.user!.nannyOnboardingCompleted) {
+        if (loc != '/nanny-onboarding') return '/nanny-onboarding';
+        return null; // already on onboarding, stay there
+      }
+
+      // ── Completed nannies should leave onboarding ─────────────
+      if (isAuth && loc == '/nanny-onboarding' && (authState.user?.nannyOnboardingCompleted ?? false)) {
+        return '/dashboard';
+      }
+
       if (isAuth && isPublic) {
         final user = authState.user;
         if (user?.isAdmin == true) return '/admin';
