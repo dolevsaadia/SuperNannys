@@ -166,14 +166,39 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
     return true;
   }
 
+  /// Extract a user-friendly error message from a DioException or fallback.
+  String _extractErrorMessage(dynamic e) {
+    try {
+      if (e is DioException && e.response?.data is Map) {
+        final msg = (e.response!.data as Map)['message'];
+        if (msg is String && msg.isNotEmpty) return msg;
+      }
+    } catch (_) {}
+    return 'Something went wrong. Please try again.';
+  }
+
   Future<void> _submit() async {
     setState(() => _isLoading = true);
     try {
       // 1. Update user profile fields (idNumber, phone)
-      await apiClient.dio.put('/users/me', data: {
-        if (_idNumberCtrl.text.trim().isNotEmpty) 'idNumber': _idNumberCtrl.text.trim(),
-        if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
-      });
+      try {
+        await apiClient.dio.put('/users/me', data: {
+          if (_idNumberCtrl.text.trim().isNotEmpty) 'idNumber': _idNumberCtrl.text.trim(),
+          if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
+        });
+      } on DioException catch (e) {
+        // If ID number conflicts, show clear error and go back to step 0
+        if (e.response?.statusCode == 409) {
+          if (mounted) {
+            setState(() { _isLoading = false; _step = 0; });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_extractErrorMessage(e)), backgroundColor: AppColors.error, duration: const Duration(seconds: 5)),
+            );
+          }
+          return;
+        }
+        rethrow;
+      }
 
       // 2. Update nanny profile
       await apiClient.dio.put('/nannies/me', data: {
@@ -190,7 +215,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
         'allowsBabysittingAtHome': _allowsBabysittingAtHome,
       });
 
-      // 2. Upload documents (if selected)
+      // 3. Upload documents (if selected)
       if (_idDocument != null) {
         await _uploadDocument(_idDocument!, 'ID_CARD');
       }
@@ -231,7 +256,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(_extractErrorMessage(e)), backgroundColor: AppColors.error),
         );
       }
     }

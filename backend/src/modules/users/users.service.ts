@@ -1,10 +1,30 @@
+import { Prisma } from '@prisma/client'
 import { usersDal } from './users.dal'
+import { ConflictError } from '../../shared/errors/app-error'
 import type { UpdateProfileInput, RegisterDeviceInput } from './users.validation'
 import type { PaginationParams } from '../../shared/utils/pagination'
 
 export const usersService = {
   async updateProfile(userId: string, data: UpdateProfileInput) {
-    return usersDal.updateUser(userId, data)
+    try {
+      return await usersDal.updateUser(userId, data)
+    } catch (err) {
+      // Prisma P2002 = unique constraint violation — give a human-readable message
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const target = (err.meta?.target as string[]) ?? []
+        if (target.includes('idNumber')) {
+          throw new ConflictError('This ID number is already registered to another account. Please check and try again.')
+        }
+        if (target.includes('email')) {
+          throw new ConflictError('This email is already registered to another account.')
+        }
+        if (target.includes('phone')) {
+          throw new ConflictError('This phone number is already registered to another account.')
+        }
+        throw new ConflictError('A record with this data already exists.')
+      }
+      throw err
+    }
   },
 
   async getNotifications(userId: string, pagination: PaginationParams) {
