@@ -91,7 +91,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
               ];
 
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 50;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false, // bottom nav handles its own SafeArea
         child: Column(
@@ -109,7 +112,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ],
         ),
       ),
-      bottomNavigationBar: _PremiumBottomNav(
+      bottomNavigationBar: keyboardOpen ? null : _PremiumBottomNav(
         items: navItems,
         currentIndex: currentIndex,
         onTap: (i) {

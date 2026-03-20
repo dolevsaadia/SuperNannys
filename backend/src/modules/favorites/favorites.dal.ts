@@ -25,6 +25,7 @@ export const favoritesDal = {
             avatarUrl: true,
             nannyProfile: {
               select: {
+                id: true,
                 hourlyRateNis: true,
                 recurringHourlyRateNis: true,
                 rating: true,

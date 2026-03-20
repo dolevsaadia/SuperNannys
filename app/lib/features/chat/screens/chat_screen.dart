@@ -55,6 +55,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Scroll to bottom when keyboard opens/closes
+    _scrollToBottom();
+  }
+
   Future<void> _init() async {
     _currentUserId = ref.read(currentUserProvider)?.id;
     await _loadBookingInfo();
@@ -199,6 +206,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: Colors.white,

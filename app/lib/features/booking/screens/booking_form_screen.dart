@@ -31,6 +31,10 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
+  // ── Available time range from calendar ──────────────────
+  String? _availableFromTime;
+  String? _availableToTime;
+
   // ── Recurring fields ──────────────────
   final Set<int> _selectedDays = {}; // 0=Sun … 6=Sat
   TimeOfDay? _recurringStartTime;
@@ -185,13 +189,55 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   }
 
   Future<void> _pickStartTime() async {
-    final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
-    if (t != null) setState(() => _startTime = t);
+    final initial = _startTime ?? (_availableFromTime != null
+        ? TimeOfDay(hour: int.parse(_availableFromTime!.split(':')[0]), minute: int.parse(_availableFromTime!.split(':')[1]))
+        : const TimeOfDay(hour: 9, minute: 0));
+    final t = await showTimePicker(context: context, initialTime: initial);
+    if (t != null) {
+      // Validate against available range
+      if (_availableFromTime != null && _availableToTime != null) {
+        final fromParts = _availableFromTime!.split(':');
+        final toParts = _availableToTime!.split(':');
+        final fromMin = int.parse(fromParts[0]) * 60 + int.parse(fromParts[1]);
+        final toMin = int.parse(toParts[0]) * 60 + int.parse(toParts[1]);
+        final selectedMin = t.hour * 60 + t.minute;
+        if (selectedMin < fromMin || selectedMin >= toMin) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Start time must be between $_availableFromTime and $_availableToTime'), backgroundColor: Colors.orange),
+            );
+          }
+          return;
+        }
+      }
+      setState(() => _startTime = t);
+    }
   }
 
   Future<void> _pickEndTime() async {
-    final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 17, minute: 0));
-    if (t != null) setState(() => _endTime = t);
+    final initial = _endTime ?? (_availableToTime != null
+        ? TimeOfDay(hour: int.parse(_availableToTime!.split(':')[0]), minute: int.parse(_availableToTime!.split(':')[1]))
+        : const TimeOfDay(hour: 17, minute: 0));
+    final t = await showTimePicker(context: context, initialTime: initial);
+    if (t != null) {
+      // Validate against available range
+      if (_availableFromTime != null && _availableToTime != null) {
+        final fromParts = _availableFromTime!.split(':');
+        final toParts = _availableToTime!.split(':');
+        final fromMin = int.parse(fromParts[0]) * 60 + int.parse(fromParts[1]);
+        final toMin = int.parse(toParts[0]) * 60 + int.parse(toParts[1]);
+        final selectedMin = t.hour * 60 + t.minute;
+        if (selectedMin <= fromMin || selectedMin > toMin) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('End time must be between $_availableFromTime and $_availableToTime'), backgroundColor: Colors.orange),
+            );
+          }
+          return;
+        }
+      }
+      setState(() => _endTime = t);
+    }
   }
 
   Future<void> _proceedRecurring() async {
@@ -600,6 +646,22 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                         compact: true,
                         onDateSelected: (date) {
                           setState(() => _startDate = date);
+                        },
+                        onTimeRangeResolved: (fromTime, toTime) {
+                          setState(() {
+                            _availableFromTime = fromTime;
+                            _availableToTime = toTime;
+                            // Auto-fill start/end times from nanny's availability
+                            if (fromTime != null && toTime != null) {
+                              final fromParts = fromTime.split(':');
+                              final toParts = toTime.split(':');
+                              _startTime = TimeOfDay(hour: int.parse(fromParts[0]), minute: int.parse(fromParts[1]));
+                              _endTime = TimeOfDay(hour: int.parse(toParts[0]), minute: int.parse(toParts[1]));
+                            } else {
+                              _startTime = null;
+                              _endTime = null;
+                            }
+                          });
                         },
                       ),
                     ),
