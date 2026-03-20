@@ -89,10 +89,38 @@ export const nanniesService = {
     await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
+      // Validate: no duplicate (dayOfWeek, fromTime) pairs
+      const seen = new Set<string>()
+      for (const slot of availability) {
+        const key = `${slot.dayOfWeek}-${slot.fromTime}`
+        if (seen.has(key)) {
+          throw new BadRequestError(`Duplicate start time ${slot.fromTime} on day ${slot.dayOfWeek}`)
+        }
+        seen.add(key)
+        // Validate: fromTime must be before toTime
+        if (slot.fromTime >= slot.toTime) {
+          throw new BadRequestError(`Start time must be before end time (${slot.fromTime} >= ${slot.toTime})`)
+        }
+      }
+      // Validate: no overlapping slots on the same day
+      const byDay = new Map<number, { fromTime: string; toTime: string }[]>()
+      for (const slot of availability) {
+        const arr = byDay.get(slot.dayOfWeek) || []
+        arr.push(slot)
+        byDay.set(slot.dayOfWeek, arr)
+      }
+      for (const [day, slots] of byDay) {
+        for (let i = 0; i < slots.length; i++) {
+          for (let j = i + 1; j < slots.length; j++) {
+            if (slots[i].fromTime < slots[j].toTime && slots[j].fromTime < slots[i].toTime) {
+              throw new BadRequestError(`Overlapping time slots on day ${day}`)
+            }
+          }
+        }
+      }
+
       const existing = await nanniesDal.findByUserId(userId)
       if (existing) {
-        // Atomically replace all availability slots in a single transaction
-        // Errors (e.g. unique constraint) must propagate so the client knows save failed
         await nanniesDal.replaceAllAvailability(existing.id, availability)
       }
     }
