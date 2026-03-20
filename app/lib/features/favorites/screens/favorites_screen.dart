@@ -98,8 +98,9 @@ class FavoritesScreen extends ConsumerWidget {
 
                 if (nannyProfile == null) return const SizedBox.shrink();
 
+                final nannyProfileId = nannyProfile['id'] as String? ?? nannyUser['id'] as String? ?? '';
                 final nannyModel = NannyModel(
-                  id: nannyUser['id'] as String? ?? '',
+                  id: nannyProfileId,
                   userId: nannyUser['id'] as String? ?? '',
                   headline: nannyProfile['headline'] as String? ?? '',
                   bio: '',
@@ -128,7 +129,7 @@ class FavoritesScreen extends ConsumerWidget {
 
                 return NannyCard(
                   nanny: nannyModel,
-                  onTap: () => context.go('/home/nanny/${nannyProfile['id']}'),
+                  onTap: () => context.go('/home/nanny/$nannyProfileId'),
                 );
               },
             ),

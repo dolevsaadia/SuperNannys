@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,6 +25,8 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
   final _headlineCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
+  final _idNumberCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   int _rate = 55;
   bool _enableRecurring = false;
   int _recurringRate = 45;
@@ -39,10 +42,24 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
   File? _policeCheck;
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill phone if already on the user profile (e.g. from email registration)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(currentUserProvider);
+      if (user?.phone != null && user!.phone!.isNotEmpty) {
+        _phoneCtrl.text = user.phone!;
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _headlineCtrl.dispose();
     _bioCtrl.dispose();
     _cityCtrl.dispose();
+    _idNumberCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
@@ -98,10 +115,67 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
     await apiClient.dio.post('/nannies/me/documents', data: formData);
   }
 
+  /// Validate Israeli ID number (Luhn mod-10 check)
+  bool _isValidIsraeliId(String id) {
+    if (id.length < 5 || id.length > 9) return false;
+    final padded = id.padLeft(9, '0');
+    int sum = 0;
+    for (int i = 0; i < 9; i++) {
+      int digit = int.parse(padded[i]);
+      int val = digit * ((i % 2 == 0) ? 1 : 2);
+      if (val > 9) val -= 9;
+      sum += val;
+    }
+    return sum % 10 == 0;
+  }
+
+  bool _validateCurrentStep() {
+    if (_step == 0) {
+      if (_idNumberCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ID number is required'), backgroundColor: Colors.orange),
+        );
+        return false;
+      }
+      if (!_isValidIsraeliId(_idNumberCtrl.text.trim())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter a valid Israeli ID number'), backgroundColor: Colors.orange),
+        );
+        return false;
+      }
+      if (_phoneCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Phone number is required'), backgroundColor: Colors.orange),
+        );
+        return false;
+      }
+      final cleaned = _phoneCtrl.text.replaceAll(RegExp(r'[\s\-]'), '');
+      if (cleaned.length < 9 || cleaned.length > 13) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter a valid phone number'), backgroundColor: Colors.orange),
+        );
+        return false;
+      }
+      if (_cityCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('City is required'), backgroundColor: Colors.orange),
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _submit() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Update profile
+      // 1. Update user profile fields (idNumber, phone)
+      await apiClient.dio.put('/users/me', data: {
+        if (_idNumberCtrl.text.trim().isNotEmpty) 'idNumber': _idNumberCtrl.text.trim(),
+        if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
+      });
+
+      // 2. Update nanny profile
       await apiClient.dio.put('/nannies/me', data: {
         'headline': _headlineCtrl.text,
         'bio': _bioCtrl.text,
@@ -176,8 +250,11 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
                 label: _step < _totalSteps - 1 ? 'Next' : 'Complete Setup',
                 isLoading: _isLoading,
                 onTap: () {
-                  if (_step < _totalSteps - 1) setState(() => _step++);
-                  else _submit();
+                  if (_step < _totalSteps - 1) {
+                    if (_validateCurrentStep()) setState(() => _step++);
+                  } else {
+                    _submit();
+                  }
                 },
               ),
             ),
@@ -190,7 +267,13 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
   Widget _buildStep() {
     switch (_step) {
       case 0:
-        return _BasicInfoStep(headlineCtrl: _headlineCtrl, bioCtrl: _bioCtrl, cityCtrl: _cityCtrl);
+        return _BasicInfoStep(
+          headlineCtrl: _headlineCtrl,
+          bioCtrl: _bioCtrl,
+          cityCtrl: _cityCtrl,
+          idNumberCtrl: _idNumberCtrl,
+          phoneCtrl: _phoneCtrl,
+        );
       case 1:
         return _RateStep(
           rate: _rate,
@@ -231,8 +314,16 @@ class _BasicInfoStep extends StatelessWidget {
   final TextEditingController headlineCtrl;
   final TextEditingController bioCtrl;
   final TextEditingController cityCtrl;
+  final TextEditingController idNumberCtrl;
+  final TextEditingController phoneCtrl;
 
-  const _BasicInfoStep({required this.headlineCtrl, required this.bioCtrl, required this.cityCtrl});
+  const _BasicInfoStep({
+    required this.headlineCtrl,
+    required this.bioCtrl,
+    required this.cityCtrl,
+    required this.idNumberCtrl,
+    required this.phoneCtrl,
+  });
 
   @override
   Widget build(BuildContext context) => Column(
@@ -242,12 +333,29 @@ class _BasicInfoStep extends StatelessWidget {
           const SizedBox(height: 6),
           const Text('Parents will see this on your profile', style: TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: 24),
+          AppTextField(
+            label: 'ID Number *',
+            hint: 'Israeli ID number',
+            controller: idNumberCtrl,
+            keyboardType: TextInputType.number,
+            prefixIcon: const Icon(Icons.badge_outlined, size: 20, color: AppColors.textHint),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
+          ),
+          const SizedBox(height: 16),
+          AppTextField(
+            label: 'Phone Number *',
+            hint: '050-1234567',
+            controller: phoneCtrl,
+            keyboardType: TextInputType.phone,
+            prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.textHint),
+          ),
+          const SizedBox(height: 16),
           AppTextField(label: 'Headline', hint: 'e.g. Experienced nanny with infant care expertise', controller: headlineCtrl),
           const SizedBox(height: 16),
           AppTextField(label: 'Bio', hint: 'Describe your experience, approach, and personality...', controller: bioCtrl, maxLines: 4),
           const SizedBox(height: 16),
           AppTextField(
-            label: 'City',
+            label: 'City *',
             hint: 'e.g. Tel Aviv',
             controller: cityCtrl,
             prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),

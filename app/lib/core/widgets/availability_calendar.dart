@@ -9,12 +9,16 @@ import '../network/api_client.dart';
 class AvailabilityCalendar extends StatefulWidget {
   final String nannyProfileId;
   final Function(DateTime)? onDateSelected;
+  /// Called with the available time range (fromTime, toTime) when a date is selected.
+  /// Returns null values if no availability for the selected date.
+  final Function(String? fromTime, String? toTime)? onTimeRangeResolved;
   final bool compact;
 
   const AvailabilityCalendar({
     super.key,
     required this.nannyProfileId,
     this.onDateSelected,
+    this.onTimeRangeResolved,
     this.compact = false,
   });
 
@@ -159,6 +163,16 @@ class _AvailabilityCalendarState extends State<AvailabilityCalendar> {
                   _focusedDay = focused;
                 });
                 widget.onDateSelected?.call(selected);
+                // Resolve and expose available time range for the selected date
+                if (widget.onTimeRangeResolved != null) {
+                  final range = _getTimeRange(selected);
+                  if (range != null) {
+                    final parts = range.split(' - ');
+                    widget.onTimeRangeResolved!(parts[0].trim(), parts[1].trim());
+                  } else {
+                    widget.onTimeRangeResolved!(null, null);
+                  }
+                }
               },
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;

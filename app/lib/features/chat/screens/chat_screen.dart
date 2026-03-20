@@ -72,6 +72,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   }
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Scroll to bottom when keyboard opens/closes
+    _scrollToBottom();
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _msgController.dispose();
