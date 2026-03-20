@@ -75,6 +75,11 @@ export const nanniesService = {
     const profile = await nanniesDal.findById(profileId)
     if (!profile) throw new NotFoundError('Nanny')
 
+    // Block access to unverified nanny profiles
+    if (profile.user && !profile.user.isVerified) {
+      throw new NotFoundError('Nanny')
+    }
+
     const reviews = await nanniesDal.getReviewsForNanny(profile.userId)
     return { profile, reviews }
   },
@@ -86,18 +91,9 @@ export const nanniesService = {
     if (availability) {
       const existing = await nanniesDal.findByUserId(userId)
       if (existing) {
-        try {
-          // Atomically replace all availability slots in a single transaction
-          await nanniesDal.replaceAllAvailability(existing.id, availability)
-        } catch (err) {
-          logger.error('Failed to update availability slots', {
-            userId,
-            profileId: existing.id,
-            slotCount: availability.length,
-            error: err instanceof Error ? err.message : String(err),
-          })
-          // Don't throw — availability update failure shouldn't block profile save
-        }
+        // Atomically replace all availability slots in a single transaction
+        // Errors (e.g. unique constraint) must propagate so the client knows save failed
+        await nanniesDal.replaceAllAvailability(existing.id, availability)
       }
     }
 

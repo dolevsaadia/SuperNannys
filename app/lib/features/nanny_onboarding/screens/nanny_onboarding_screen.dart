@@ -199,9 +199,41 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
       }
 
       await ref.read(authProvider.notifier).refreshMe();
-      if (mounted) context.go('/home');
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        // Show pending approval message before navigating
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.hourglass_top_rounded, color: AppColors.primary),
+                SizedBox(width: 8),
+                Expanded(child: Text('Registration Submitted')),
+              ],
+            ),
+            content: const Text(
+              'Your profile has been submitted for review. '
+              'An admin will verify your details and documents. '
+              'You will be able to receive bookings once approved.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Got it'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration failed: $e'), backgroundColor: AppColors.error),
+        );
+      }
     }
   }
 
