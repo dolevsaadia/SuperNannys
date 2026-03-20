@@ -164,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (freshToken != null) {
         await _biometric.saveToken(freshToken);
       }
-      context.go('/home');
+      context.go(_roleBasedRoute());
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Session expired. Please sign in again.'), backgroundColor: AppColors.error),
@@ -211,7 +211,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // New user from Google — redirect to role selection
           context.go('/role-select', extra: {'googleIdToken': idToken});
         } else {
-          await _promptBiometricAndNavigate('/home');
+          await _promptBiometricAndNavigate();
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -243,12 +243,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _promptBiometricAndNavigate(String route) async {
+  String _roleBasedRoute() {
+    final user = ref.read(authProvider).user;
+    if (user?.isAdmin == true) return '/admin';
+    if (user?.isNanny == true) return '/dashboard';
+    return '/home';
+  }
+
+  Future<void> _promptBiometricAndNavigate() async {
     final token = await ref.read(authProvider.notifier).getStoredToken();
     if (token != null && mounted) {
       await showBiometricPrompt(context, token);
     }
-    if (mounted) context.go(route);
+    if (mounted) context.go(_roleBasedRoute());
   }
 
   Future<void> _login() async {
@@ -256,7 +263,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final success = await ref.read(authProvider.notifier).login(_email.text.trim().toLowerCase(), _password.text);
     if (!mounted) return;
     if (success) {
-      await _promptBiometricAndNavigate('/home');
+      await _promptBiometricAndNavigate();
     } else {
       final err = ref.read(authProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
