@@ -24,9 +24,11 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
   static const _docTypes = {
     'ID_CARD': {'label': 'ID Card (Teudat Zehut)', 'icon': Icons.badge_rounded, 'color': AppColors.primary},
+    'ID_APPENDIX': {'label': 'ID Appendix (Sefach)', 'icon': Icons.description_rounded, 'color': AppColors.primary},
     'CHILDCARE_CERT': {'label': 'Ethics Certificate', 'icon': Icons.school_rounded, 'color': AppColors.accent},
     'FIRST_AID_CERT': {'label': 'First Aid Certificate', 'icon': Icons.medical_services_rounded, 'color': AppColors.success},
     'POLICE_CHECK': {'label': 'Police Background Check', 'icon': Icons.security_rounded, 'color': AppColors.warning},
+    'POLICE_CLEARANCE': {'label': 'Police Clearance Certificate', 'icon': Icons.shield_rounded, 'color': AppColors.warning},
     'OTHER': {'label': 'Other Document', 'icon': Icons.description_rounded, 'color': AppColors.info},
   };
 
