@@ -30,7 +30,7 @@ export const nanniesDal = {
     return prisma.nannyProfile.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, fullName: true, avatarUrl: true, createdAt: true } },
+        user: { select: { id: true, fullName: true, avatarUrl: true, createdAt: true, isVerified: true } },
         availability: { orderBy: { dayOfWeek: 'asc' } },
         documents: { select: { type: true, verifiedAt: true } },
       },

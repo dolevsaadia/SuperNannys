@@ -26,6 +26,10 @@ export const bookingsService = {
     const nannyProfile = await bookingsDal.findNannyProfile(data.nannyUserId)
     if (!nannyProfile) throw new NotFoundError('Nanny')
 
+    // ── Block bookings for unverified/inactive nannies ─────
+    if (!nannyProfile.user?.isVerified) throw new ForbiddenError('This nanny has not been verified yet')
+    if (!nannyProfile.user?.isActive) throw new ForbiddenError('This nanny account is not active')
+
     // ── Conflict detection: existing bookings ─────────────
     const conflict = await bookingsDal.findConflict(data.nannyUserId, start, end)
     if (conflict) throw new ConflictError('Nanny is not available for this time slot')

@@ -90,6 +90,9 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
   }
 
   List<Map<String, dynamic>> _buildAvailabilityPayload() {
+    // Only send enabled slots — disabled days simply have no entries.
+    // The backend replaceAllAvailability deletes everything first,
+    // so omitting a day means it has no availability.
     final slots = <Map<String, dynamic>>[];
     for (int day = 0; day < 7; day++) {
       if (_enabledDays.contains(day) && _daySlots[day]!.isNotEmpty) {
@@ -101,14 +104,6 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
             'isAvailable': true,
           });
         }
-      } else {
-        // Send one disabled slot so the backend knows this day is off
-        slots.add({
-          'dayOfWeek': day,
-          'fromTime': '09:00',
-          'toTime': '18:00',
-          'isAvailable': false,
-        });
       }
     }
     return slots;
@@ -129,13 +124,32 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
     return false;
   }
 
+  bool _hasDuplicateFromTime(int day) {
+    final slots = _daySlots[day]!;
+    final fromTimes = <String>{};
+    for (final slot in slots) {
+      if (!fromTimes.add(slot['fromTime']!)) return true;
+    }
+    return false;
+  }
+
   Future<void> _save() async {
-    // Check for overlaps
+    // Check for overlaps and duplicate start times
     for (int day = 0; day < 7; day++) {
-      if (_enabledDays.contains(day) && _hasOverlap(day)) {
+      if (!_enabledDays.contains(day)) continue;
+      if (_hasOverlap(day)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${_daysFull[day]} has overlapping time slots. Please fix before saving.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      if (_hasDuplicateFromTime(day)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${_daysFull[day]} has slots with the same start time. Please change one.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -152,21 +166,42 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
         'allowsBabysittingAtHome': _allowsBabysittingAtHome,
       });
       triggerDataRefresh(ref);
-      // Reload from server to ensure local state matches persisted data
+      // Reload from server to confirm persistence
       await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Availability saved'), backgroundColor: AppColors.success),
         );
       }
-    } catch (_) {} finally {
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save availability. Please try again.'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
   void _addSlot(int day) {
+    // Pick a fromTime that doesn't conflict with existing slots on this day
+    // (DB has @@unique on [nannyProfileId, dayOfWeek, fromTime])
+    final existing = _daySlots[day]!;
+    final usedFromTimes = existing.map((s) => s['fromTime']!).toSet();
+    String fromTime = '09:00';
+    String toTime = '18:00';
+    // Find the next available hour that doesn't conflict
+    for (int h = 9; h < 23; h++) {
+      final candidate = '${h.toString().padLeft(2, '0')}:00';
+      if (!usedFromTimes.contains(candidate)) {
+        fromTime = candidate;
+        toTime = '${(h + 2).clamp(h + 1, 23).toString().padLeft(2, '0')}:00';
+        break;
+      }
+    }
     setState(() {
-      _daySlots[day]!.add({'fromTime': '09:00', 'toTime': '18:00'});
+      _daySlots[day]!.add({'fromTime': fromTime, 'toTime': toTime});
     });
   }
 

@@ -30,7 +30,10 @@ const bookingDetailInclude = {
 
 export const bookingsDal = {
   findNannyProfile(nannyUserId: string) {
-    return prisma.nannyProfile.findUnique({ where: { userId: nannyUserId } })
+    return prisma.nannyProfile.findUnique({
+      where: { userId: nannyUserId },
+      include: { user: { select: { isVerified: true, isActive: true } } },
+    })
   },
 
   // INDEX HINT: This query benefits from a composite index on
