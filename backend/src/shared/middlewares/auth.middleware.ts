@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { verifyToken, JwtPayload } from '../utils/jwt'
 import { unauthorized, forbidden } from '../utils/response'
+import { logger } from '../utils/logger'
 
 declare global {
   namespace Express {
@@ -16,10 +17,30 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     unauthorized(res)
     return
   }
+
+  const token = header.slice(7).trim()
+
+  // Guard against empty, null-string, or malformed tokens that could
+  // cause JWT verification to throw unexpectedly and crash the server.
+  if (!token || token === 'null' || token === 'undefined' || token.length < 10) {
+    logger.warn('Auth rejected: invalid token format', {
+      requestId: req.requestId,
+      path: req.path,
+      tokenLength: token.length,
+    })
+    unauthorized(res, 'Invalid token format')
+    return
+  }
+
   try {
-    req.user = verifyToken(header.slice(7))
+    req.user = verifyToken(token)
     next()
-  } catch {
+  } catch (err) {
+    logger.debug('Auth token verification failed', {
+      requestId: req.requestId,
+      path: req.path,
+      error: err instanceof Error ? err.message : String(err),
+    })
     unauthorized(res, 'Invalid or expired token')
   }
 }

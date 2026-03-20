@@ -69,6 +69,28 @@ class RecurringBookingModel {
   /// Human-readable schedule
   String get scheduleLabel => '$daysLabel  $startTime–$endTime';
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'parentUserId': parentUserId,
+        'nannyUserId': nannyUserId,
+        'daysOfWeek': daysOfWeek,
+        'startTime': startTime,
+        'endTime': endTime,
+        'startDate': startDate.toIso8601String(),
+        'endDate': endDate?.toIso8601String(),
+        'hourlyRateNis': hourlyRateNis,
+        'childrenCount': childrenCount,
+        'childrenAges': childrenAges,
+        'address': address,
+        'notes': notes,
+        'status': status,
+        'lastGeneratedAt': lastGeneratedAt?.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+        'parent': parent?.toJson(),
+        'nanny': nanny?.toJson(),
+        '_count': {'bookings': bookingsCount},
+      };
+
   factory RecurringBookingModel.fromJson(Map<String, dynamic> json) {
     final count = json['_count'] as Map<String, dynamic>?;
     return RecurringBookingModel(
@@ -107,6 +129,13 @@ class RecurringBookingUser {
     this.avatarUrl,
     this.phone,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'fullName': fullName,
+        'avatarUrl': avatarUrl,
+        'phone': phone,
+      };
 
   factory RecurringBookingUser.fromJson(Map<String, dynamic> json) => RecurringBookingUser(
         id: json['id'] as String,

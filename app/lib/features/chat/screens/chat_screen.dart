@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:socket_io_client/socket_io_client.dart' as io;
-import '../../../core/constants/app_constants.dart';
-import '../../../core/models/message_model.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../providers/chat_provider.dart';
 import 'package:intl/intl.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -29,100 +28,78 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObserver {
-  final List<MessageModel> _messages = [];
   final _msgController = TextEditingController();
   final _scrollController = ScrollController();
-  io.Socket? _socket;
-  bool _isLoading = true;
-  bool _otherTyping = false;
-  String? _currentUserId;
+  int _prevMessageCount = 0;
+  String? _otherPhone;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _init();
+    _loadOtherPhone();
+  }
+
+  Future<void> _loadOtherPhone() async {
+    try {
+      final resp = await apiClient.dio.get('/bookings/${widget.bookingId}');
+      final booking = resp.data['data'] as Map<String, dynamic>;
+      final user = ref.read(currentUserProvider);
+      final isParent = user?.isParent == true;
+      final other = isParent
+          ? booking['nanny'] as Map<String, dynamic>?
+          : booking['parent'] as Map<String, dynamic>?;
+      final phone = other?['phone'] as String?;
+      if (phone != null && phone.isNotEmpty && mounted) {
+        setState(() => _otherPhone = phone);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _callOtherUser() async {
+    if (_otherPhone == null) return;
+    final uri = Uri.parse('tel:$_otherPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Reconnect socket and refresh messages when app comes back to foreground
-      _reconnectIfNeeded();
-      _loadMessages();
+      ref.read(chatProvider(widget.bookingId).notifier).reconnectIfNeeded();
     }
   }
 
-  Future<void> _init() async {
-    _currentUserId = ref.read(currentUserProvider)?.id;
-    await _loadMessages();
-    await _connectSocket();
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Scroll to bottom when keyboard opens/closes
+    _scrollToBottom();
   }
 
-  Future<void> _reconnectIfNeeded() async {
-    if (_socket == null || _socket!.disconnected) {
-      _socket?.dispose();
-      _socket = null;
-      await _connectSocket();
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _msgController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    final text = _msgController.text.trim();
+    if (text.isEmpty) return;
+    _msgController.clear();
+    ref.read(chatProvider(widget.bookingId).notifier).sendMessage(text);
+  }
+
+  void _onTyping(String value) {
+    final notifier = ref.read(chatProvider(widget.bookingId).notifier);
+    if (value.isNotEmpty) {
+      notifier.startTyping();
+    } else {
+      notifier.stopTyping();
     }
-  }
-
-  Future<void> _loadMessages() async {
-    try {
-      final resp = await apiClient.dio.get('/messages/${widget.bookingId}');
-      final list = (resp.data['data']['messages'] as List<dynamic>)
-          .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-      if (!mounted) return;
-      final hadMessages = _messages.isNotEmpty;
-      setState(() {
-        _messages.clear();
-        _messages.addAll(list);
-        _isLoading = false;
-      });
-      if (!hadMessages || list.length > _messages.length) {
-        _scrollToBottom();
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _connectSocket() async {
-    final token = await apiClient.getToken();
-    if (token == null) return;
-
-    _socket = io.io(
-      AppConstants.socketUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket'])
-          .setAuth({'token': token})
-          .disableAutoConnect()
-          .enableReconnection()
-          .build(),
-    );
-
-    _socket!.connect();
-    _socket!.onConnect((_) {
-      _socket!.emit('booking:join', widget.bookingId);
-    });
-
-    _socket!.onReconnect((_) {
-      _socket!.emit('booking:join', widget.bookingId);
-      _loadMessages(); // Refresh messages on reconnect
-    });
-
-    _socket!.on('message:new', (data) {
-      if (!mounted) return;
-      final msg = MessageModel.fromJson(data as Map<String, dynamic>);
-      // Avoid duplicates
-      if (_messages.any((m) => m.id == msg.id)) return;
-      setState(() => _messages.add(msg));
-      _scrollToBottom();
-    });
-
-    _socket!.on('typing:start', (_) { if (mounted) setState(() => _otherTyping = true); });
-    _socket!.on('typing:stop', (_) { if (mounted) setState(() => _otherTyping = false); });
   }
 
   void _scrollToBottom() {
@@ -137,35 +114,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
     });
   }
 
-  void _sendMessage() {
-    final text = _msgController.text.trim();
-    if (text.isEmpty) return;
-    _msgController.clear();
-    _socket?.emit('message:send', {'bookingId': widget.bookingId, 'text': text});
-  }
-
-  void _onTyping(String value) {
-    if (value.isNotEmpty) {
-      _socket?.emit('typing:start', {'bookingId': widget.bookingId});
-    } else {
-      _socket?.emit('typing:stop', {'bookingId': widget.bookingId});
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _socket?.emit('booking:leave', widget.bookingId);
-    _socket?.disconnect();
-    _socket?.dispose();
-    _msgController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(chatProvider(widget.bookingId));
+    final currentUserId = ref.watch(currentUserProvider)?.id;
+
+    // Auto-scroll when new messages arrive
+    if (chatState.messages.length > _prevMessageCount) {
+      _prevMessageCount = chatState.messages.length;
+      _scrollToBottom();
+    }
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -182,9 +143,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                 Text(widget.otherUserName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  child: _otherTyping
+                  child: chatState.otherTyping
                       ? const Text('typing...', key: ValueKey('typing'), style: TextStyle(fontSize: 11, color: AppColors.accent, fontWeight: FontWeight.w500))
-                      : const Text('Online', key: ValueKey('online'), style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w500)),
+                      : chatState.otherOnline
+                          ? Row(
+                              key: const ValueKey('online'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+                                const SizedBox(width: 4),
+                                const Text('Online', style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w500)),
+                              ],
+                            )
+                          : Row(
+                              key: const ValueKey('offline'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(width: 7, height: 7, decoration: BoxDecoration(color: AppColors.textHint.withValues(alpha: 0.5), shape: BoxShape.circle)),
+                                const SizedBox(width: 4),
+                                const Text('Offline', style: TextStyle(fontSize: 11, color: AppColors.textHint, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
                 ),
               ],
             ),
@@ -200,18 +179,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
               borderRadius: BorderRadius.circular(10),
             ),
             child: IconButton(
-              icon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.primary),
-              onPressed: () {},
+              icon: Icon(Icons.phone_outlined, size: 18, color: _otherPhone != null ? AppColors.primary : AppColors.textHint),
+              onPressed: _otherPhone != null ? _callOtherUser : null,
             ),
           ),
         ],
       ),
       body: Column(
         children: [
+          // ── Connection lost indicator ──────────────────
+          if (!chatState.socketConnected && !chatState.isLoading)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: AppColors.warning.withValues(alpha: 0.15),
+              child: const Text(
+                'Reconnecting...',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.w600),
+              ),
+            ),
+
           Expanded(
-            child: _isLoading
+            child: chatState.isLoading
                 ? const Center(child: LoadingIndicator())
-                : _messages.isEmpty
+                : chatState.messages.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -233,14 +225,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        itemCount: _messages.length,
+                        itemCount: chatState.messages.length,
                         itemBuilder: (_, i) {
-                          final msg = _messages[i];
-                          final isMe = msg.fromUserId == _currentUserId;
+                          final msg = chatState.messages[i];
+                          final isMe = msg.fromUserId == currentUserId;
 
                           // Date separator
                           Widget? dateSeparator;
-                          if (i == 0 || !_isSameDay(_messages[i - 1].createdAt, msg.createdAt)) {
+                          if (i == 0 || !_isSameDay(chatState.messages[i - 1].createdAt, msg.createdAt)) {
                             dateSeparator = _DateSeparator(date: msg.createdAt);
                           }
 
@@ -255,7 +247,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
           ),
 
           // ── Typing indicator ──────────────────
-          if (_otherTyping)
+          if (chatState.otherTyping)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
               alignment: Alignment.centerLeft,
@@ -370,7 +362,7 @@ class _DateSeparator extends StatelessWidget {
 
 // ── Message Bubble ──────────────────
 class _MessageBubble extends StatelessWidget {
-  final MessageModel message;
+  final dynamic message;
   final bool isMe;
   const _MessageBubble({required this.message, required this.isMe});
 

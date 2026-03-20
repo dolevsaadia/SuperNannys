@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _adminStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -28,9 +29,10 @@ class AdminScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: async.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+      body: async.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load admin data',
+        onRetry: () => ref.invalidate(_adminStatsProvider),
         data: (stats) {
           final users = stats['users'] as Map<String, dynamic>;
           final bookings = stats['bookings'] as Map<String, dynamic>;

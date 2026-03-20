@@ -6,12 +6,15 @@ import 'package:intl/intl.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  ref.watch(dataRefreshProvider); // re-fetch when data changes elsewhere
   final [bookingsResp, earningsResp] = await Future.wait([
     apiClient.dio.get('/bookings', queryParameters: {'limit': '10', 'status': 'REQUESTED'}),
     apiClient.dio.get('/users/me/earnings'),
@@ -34,67 +37,150 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: CustomScrollView(
+      body: CustomScrollView(
           slivers: [
-            // ── Gradient Header ──────────────────
+            // ── Premium Header ──────────────────
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
                     colors: AppColors.gradientPrimary,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(28),
                     bottomRight: Radius.circular(28),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // Avatar
+                        AvatarWidget(
+                          imageUrl: user?.avatarUrl,
+                          name: user?.fullName,
+                          size: 42,
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Welcome back,',
-                                style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
+                                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75)),
                               ),
-                              const SizedBox(height: 2),
                               Text(
                                 '${user?.fullName.split(' ').first ?? ''}!',
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
                         GestureDetector(
-                          onTap: () => context.go('/bookings'),
+                          onTap: () => context.go('/notifications'),
                           child: Container(
-                            width: 44,
-                            height: 44,
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(14),
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(11),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                             ),
-                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 18),
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 14),
+                    // Status pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8, height: 8,
+                            decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          Text('Active & Available', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.9))),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
+
+            // ── Verification Reminder (always visible, not inside async) ──
+            if (user?.isVerified != true)
+              SliverToBoxAdapter(
+                child: GestureDetector(
+                  onTap: () => context.go('/dashboard/verification'),
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.warning.withValues(alpha: 0.12), AppColors.warning.withValues(alpha: 0.04)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: const Icon(Icons.verified_user_rounded, color: AppColors.warning, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Verification Required', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 2),
+                              Text('Upload your documents and send a verification request to increase trust.',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
 
             SliverToBoxAdapter(
               child: async.when(
@@ -102,54 +188,80 @@ class DashboardScreen extends ConsumerWidget {
                   padding: EdgeInsets.all(40),
                   child: Center(child: LoadingIndicator()),
                 ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text('Error: $e'),
-                ),
+                error: (e, _) {
+                  // Don't show error during logout transition
+                  if (!ref.watch(authProvider).isAuthenticated) {
+                    return const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(child: LoadingIndicator()),
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.textHint),
+                          const SizedBox(height: 12),
+                          const Text('Could not load dashboard', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 4),
+                          Text('Check your connection and try again', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () => ref.invalidate(_dashboardProvider),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
                 data: (data) {
                   final earnings = data['earnings'] as Map<String, dynamic>;
                   final pending = data['pendingBookings'] as List<BookingModel>;
 
                   return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Floating Stats Cards ──────────────────
-                        Transform.translate(
-                          offset: const Offset(0, -20),
-                          child: Row(
+                        // ── Stats Cards ──────────────────
+                        Column(
                             children: [
-                              Expanded(
-                                child: _GradientStatCard(
-                                  title: 'Total Earned',
-                                  value: '\u20AA${earnings['totalEarned'] ?? 0}',
-                                  icon: Icons.account_balance_wallet_rounded,
-                                  gradient: AppColors.gradientSuccess,
-                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _GradientStatCard(
+                                      title: 'Total Earned',
+                                      value: '\u20AA${earnings['totalEarned'] ?? 0}',
+                                      icon: Icons.account_balance_wallet_rounded,
+                                      gradient: AppColors.gradientSuccess,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _GradientStatCard(
+                                      title: 'Total Jobs',
+                                      value: '${earnings['totalJobs'] ?? 0}',
+                                      icon: Icons.work_rounded,
+                                      gradient: AppColors.gradientAccent,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _GradientStatCard(
-                                  title: 'Total Jobs',
-                                  value: '${earnings['totalJobs'] ?? 0}',
-                                  icon: Icons.work_rounded,
-                                  gradient: AppColors.gradientAccent,
-                                ),
-                              ),
+                              const SizedBox(height: 10),
+                              _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
                             ],
                           ),
-                        ),
-                        Transform.translate(
-                          offset: const Offset(0, -8),
-                          child: _PendingPayoutCard(amount: earnings['totalPending'] ?? 0),
-                        ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
 
                         // ── Quick Actions ──────────────────
                         const Text('Quick Actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
+
                         Row(
                           children: [
                             Expanded(
@@ -172,10 +284,10 @@ class DashboardScreen extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _PremiumActionCard(
-                                icon: Icons.person_outline_rounded,
-                                label: 'Profile',
-                                color: AppColors.accent,
-                                onTap: () => context.go('/profile'),
+                                icon: Icons.description_rounded,
+                                label: 'Documents',
+                                color: AppColors.info,
+                                onTap: () => context.go('/dashboard/documents'),
                               ),
                             ),
                           ],
@@ -214,7 +326,6 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

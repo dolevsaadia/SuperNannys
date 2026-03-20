@@ -110,7 +110,21 @@ class IsraeliCities {
     'קריית טבעון': 'Kiryat Tivon',
   };
 
-  /// Search cities by query (supports Hebrew and English)
+  /// Reverse map: English to Hebrew
+  static final Map<String, String> englishToHebrew = {
+    for (final e in hebrewToEnglish.entries) e.value: e.key,
+  };
+
+  /// Get the Hebrew name for a city (for backend search — DB stores Hebrew)
+  static String? getHebrewName(String englishOrHebrew) {
+    // Already Hebrew?
+    if (hebrewToEnglish.containsKey(englishOrHebrew)) return englishOrHebrew;
+    // English → Hebrew
+    return englishToHebrew[englishOrHebrew];
+  }
+
+  /// Search cities by query (supports Hebrew and English).
+  /// Returns display names (English) but each result can be mapped to Hebrew via [getHebrewName].
   static List<String> search(String query) {
     if (query.isEmpty) return all.take(20).toList();
     final q = query.toLowerCase();
@@ -124,5 +138,11 @@ class IsraeliCities {
 
     // English search
     return all.where((city) => city.toLowerCase().contains(q)).toList();
+  }
+
+  /// Convert a city name to the backend search value.
+  /// The DB stores Hebrew names, so we convert English → Hebrew when possible.
+  static String toBackendQuery(String city) {
+    return getHebrewName(city) ?? city;
   }
 }

@@ -35,6 +35,7 @@ class SessionState {
   final String? actualStartTime;
   final String? error;
   final bool isLoading;
+  final bool socketConnected;
 
   const SessionState({
     this.phase = SessionPhase.idle,
@@ -56,6 +57,7 @@ class SessionState {
     this.actualStartTime,
     this.error,
     this.isLoading = false,
+    this.socketConnected = false,
   });
 
   SessionState copyWith({
@@ -78,6 +80,7 @@ class SessionState {
     String? actualStartTime,
     String? error,
     bool? isLoading,
+    bool? socketConnected,
   }) {
     return SessionState(
       phase: phase ?? this.phase,
@@ -99,6 +102,7 @@ class SessionState {
       actualStartTime: actualStartTime ?? this.actualStartTime,
       error: error,
       isLoading: isLoading ?? this.isLoading,
+      socketConnected: socketConnected ?? this.socketConnected,
     );
   }
 
@@ -141,6 +145,10 @@ class SessionNotifier extends StateNotifier<SessionState> {
           .setTransports(['websocket'])
           .setAuth({'token': token})
           .disableAutoConnect()
+          .enableReconnection()
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(5000)
+          .setReconnectionAttempts(10)
           .build(),
     );
 
@@ -150,6 +158,18 @@ class SessionNotifier extends StateNotifier<SessionState> {
       _socket!.emit('booking:join', bookingId);
       // Request current state from server
       _socket!.emit('session:get-state', {'bookingId': bookingId});
+      if (mounted) {
+        state = state.copyWith(socketConnected: true);
+      }
+    });
+
+    _socket!.onReconnect((_) {
+      // Re-join room and resync state after reconnection
+      _socket!.emit('booking:join', bookingId);
+      _socket!.emit('session:get-state', {'bookingId': bookingId});
+      if (mounted) {
+        state = state.copyWith(socketConnected: true);
+      }
     });
 
     // ── Session events ───────────────────────────────────
@@ -231,7 +251,11 @@ class SessionNotifier extends StateNotifier<SessionState> {
     });
 
     _socket!.onDisconnect((_) {
-      // Don't reset state, just flag
+      // Flag as disconnected but DON'T stop local timer — keep it running
+      // so the timer UI doesn't freeze while reconnecting.
+      if (mounted) {
+        state = state.copyWith(socketConnected: false);
+      }
     });
 
     state = state.copyWith(isLoading: false);

@@ -1,9 +1,11 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/geo_utils.dart';
@@ -47,6 +49,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       });
     } catch (_) {
       setState(() => _loadingLocation = false);
+    }
+  }
+
+  void _launchNavigation(NannyModel nanny) async {
+    final lat = nanny.latitude!;
+    final lng = nanny.longitude!;
+    final url = Platform.isIOS
+        ? 'https://maps.apple.com/?daddr=$lat,$lng&dirflg=d'
+        : 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -127,21 +141,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  context.push('/home/nanny/${nanny.id}');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            Row(
+              children: [
+                if (nanny.latitude != null && nanny.longitude != null)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _launchNavigation(nanny);
+                      },
+                      icon: const Icon(Icons.directions_rounded, size: 18),
+                      label: const Text('Navigate', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                if (nanny.latitude != null && nanny.longitude != null)
+                  const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.push('/home/nanny/${nanny.id}');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('View Profile', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
                 ),
-                child: const Text('View Profile', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
+              ],
             ),
           ],
         ),

@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit'
 import { Server as SocketIOServer } from 'socket.io'
 
 import { config } from './config'
+import { prisma } from './db'
 import { logger } from './shared/utils/logger'
 import { requestContext } from './shared/middlewares/request-context'
 import { errorHandler, notFoundMiddleware } from './shared/middlewares/error.middleware'
@@ -24,21 +25,49 @@ import adminRoutes   from './modules/admin/admin.routes'
 import sessionRoutes   from './modules/sessions/sessions.routes'
 import recurringRoutes from './modules/recurring-bookings/recurring-bookings.routes'
 import favoritesRoutes from './modules/favorites/favorites.routes'
+import verificationRoutes from './modules/verification/verification.routes'
 
 export function createApp() {
   const app = express()
   const httpServer = http.createServer(app)
 
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: config.clientUrl, methods: ['GET', 'POST'], credentials: true },
-    pingTimeout: 60000,
+    cors: { origin: '*', methods: ['GET', 'POST'] },
+    pingInterval: 25000,    // send ping every 25s (keep alive through nginx)
+    pingTimeout: 20000,     // wait 20s for pong before declaring dead
+    connectTimeout: 10000,  // 10s to complete handshake
+    transports: ['websocket', 'polling'], // prefer websocket, fallback to polling
   })
 
   // ── Security ───────────────────────────────────────────
   app.set('trust proxy', 1)
   app.use(helmet())
   app.use(cors({ origin: config.clientUrl, credentials: true }))
-  app.use(rateLimit({ windowMs: config.rateLimit.windowMs, max: config.rateLimit.max, standardHeaders: true }))
+
+  // Rate limiter — only on /api routes, NOT on /health (health checks are frequent)
+  const limiter = rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.max,
+    standardHeaders: true,
+    skip: (req) => req.path === '/health' || req.path === '/health/deep',
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+        userAgent: req.get('user-agent'),
+      })
+      res.status(429).json({ error: 'Too many requests, please try again later.' })
+    },
+  })
+  app.use(limiter)
+  // Prevent caching of API responses (stale auth tokens, booking data, etc.)
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
+    next()
+  })
 
   // ── Middleware ─────────────────────────────────────────
   app.use(compression())
@@ -55,9 +84,46 @@ export function createApp() {
   app.use('/uploads', express.static(config.upload.uploadDir))
 
   // ── Health ─────────────────────────────────────────────
+  // Basic health — fast, no DB call (used by mobile connectivity checks)
   app.get('/health', (_req, res) =>
-    res.json({ status: 'ok', version: '1.5.1', payments: config.payments.enabled, ts: new Date().toISOString() })
+    res.json({ status: 'ok', version: '2.0.0', payments: config.payments.enabled, ts: new Date().toISOString() })
   )
+
+  // Deep health — checks DB, memory, uptime (for monitoring dashboards)
+  app.get('/health/deep', async (_req, res) => {
+    const mem = process.memoryUsage()
+    const uptimeSec = process.uptime()
+    let dbOk = false
+    let dbLatencyMs = 0
+    try {
+      const start = Date.now()
+      await prisma.$queryRaw`SELECT 1`
+      dbLatencyMs = Date.now() - start
+      dbOk = true
+    } catch (err) {
+      logger.error('Deep health: DB unreachable', { error: String(err) })
+    }
+
+    const heapUsedMB = Math.round(mem.heapUsed / 1024 / 1024)
+    const heapTotalMB = Math.round(mem.heapTotal / 1024 / 1024)
+    const heapUsagePercent = heapTotalMB > 0 ? Math.round((heapUsedMB / heapTotalMB) * 100) : 0
+
+    res.status(dbOk ? 200 : 503).json({
+      status: dbOk ? 'ok' : 'degraded',
+      version: '2.0.0',
+      ts: new Date().toISOString(),
+      uptime: { seconds: Math.floor(uptimeSec), human: `${Math.floor(uptimeSec / 3600)}h ${Math.floor((uptimeSec % 3600) / 60)}m` },
+      database: { connected: dbOk, latencyMs: dbLatencyMs },
+      memory: {
+        rssMB: Math.round(mem.rss / 1024 / 1024),
+        heapUsedMB,
+        heapTotalMB,
+        heapUsagePercent,
+      },
+      payments: config.payments.enabled,
+      pid: process.pid,
+    })
+  })
 
   // ── API Routes ─────────────────────────────────────────
   app.use('/api/auth',     authRoutes)
@@ -71,6 +137,7 @@ export function createApp() {
   app.use('/api/sessions', sessionRoutes)
   app.use('/api/recurring-bookings', recurringRoutes)
   app.use('/api/favorites', favoritesRoutes)
+  app.use('/api/verification-requests', verificationRoutes)
 
   // ── Socket.IO ──────────────────────────────────────────
   initSocketIO(io)

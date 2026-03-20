@@ -1,6 +1,6 @@
 import { Server as SocketIOServer } from 'socket.io'
 import { config } from '../../config'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ForbiddenError, BadRequestError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { sessionsDal } from './sessions.dal'
 import { sessionTimer } from './session-timer'
@@ -20,18 +20,18 @@ export const sessionsService = {
   // ── Confirm Start ──────────────────────────────────────────
   async confirmStart(userId: string, role: string, bookingId: string) {
     const booking = await sessionsDal.findBookingByIdSimple(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
 
     // Only ACCEPTED bookings can start a session
     if (booking.status !== 'ACCEPTED') {
-      throw new AppError('Booking must be accepted before starting a session', 400)
+      throw new BadRequestError('Booking must be accepted before starting a session')
     }
 
     // Check user is part of this booking
     const isParent = booking.parentUserId === userId
     const isNanny = booking.nannyUserId === userId
     if (!isParent && !isNanny && role !== 'ADMIN') {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     // Time window check: 30 min before to 60 min after scheduled start
@@ -42,18 +42,17 @@ export const sessionsService = {
     const windowEnd = new Date(scheduled.getTime() + 60 * 60_000)
 
     if (now < windowStart || now > windowEnd) {
-      throw new AppError(
-        `Session can only be started between ${windowStart.toISOString()} and ${windowEnd.toISOString()} (scheduled: ${scheduled.toISOString()}, now: ${now.toISOString()})`,
-        400,
+      throw new BadRequestError(
+        `Session can only be started between ${windowStart.toISOString()} and ${windowEnd.toISOString()}`,
       )
     }
 
     // Prevent double confirmation
     if (isParent && booking.parentConfirmedStart) {
-      throw new AppError('You have already confirmed start', 400)
+      throw new BadRequestError('You have already confirmed start')
     }
     if (isNanny && booking.nannyConfirmedStart) {
-      throw new AppError('You have already confirmed start', 400)
+      throw new BadRequestError('You have already confirmed start')
     }
 
     // Mark confirmation
@@ -123,25 +122,25 @@ export const sessionsService = {
   // ── Request End ──────────────────────────────────────────
   async requestEnd(userId: string, role: string, bookingId: string) {
     const booking = await sessionsDal.findBookingByIdSimple(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
 
     if (booking.status !== 'IN_PROGRESS') {
-      throw new AppError('Session is not active', 400)
+      throw new BadRequestError('Session is not active')
     }
 
     const isParent = booking.parentUserId === userId
     const isNanny = booking.nannyUserId === userId
     if (!isParent && !isNanny && role !== 'ADMIN') {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     // Mark this user's end confirmation
     let updated
     if (isParent) {
-      if (booking.parentConfirmedEnd) throw new AppError('You have already requested end', 400)
+      if (booking.parentConfirmedEnd) throw new BadRequestError('You have already requested end')
       updated = await sessionsDal.confirmParentEnd(bookingId)
     } else {
-      if (booking.nannyConfirmedEnd) throw new AppError('You have already requested end', 400)
+      if (booking.nannyConfirmedEnd) throw new BadRequestError('You have already requested end')
       updated = await sessionsDal.confirmNannyEnd(bookingId)
     }
 
@@ -177,40 +176,48 @@ export const sessionsService = {
 
   // ── Finalize Session ──────────────────────────────────────
   async finalizeSession(bookingId: string) {
+    // Get booking data for minimum hours enforcement
+    const bookingData = await sessionsDal.findBookingById(bookingId)
+    if (!bookingData || !bookingData.actualStartTime) {
+      throw new AppError('Cannot finalize session — no start time found', 500, undefined, 'SESSION_NO_START')
+    }
+
+    // Get nanny's minimum hours setting
+    const nannyProfile = bookingData.nanny?.nannyProfile
+    const minimumHours = nannyProfile?.minimumHoursPerBooking || 0
+
     const calcResult = sessionTimer.calculateFinal(bookingId)
 
     let actualDurationMin: number
     let finalAmountNis: number
     let overtimeAmountNis: number
 
+    const now = new Date()
+
     if (calcResult) {
       actualDurationMin = calcResult.actualDurationMin
-      finalAmountNis = calcResult.finalAmountNis
-      overtimeAmountNis = calcResult.overtimeAmountNis
     } else {
       // Fallback: calculate from DB if timer not found (server restart edge case)
-      const booking = await sessionsDal.findBookingByIdSimple(bookingId)
-      if (!booking || !booking.actualStartTime) {
-        throw new AppError('Cannot finalize session — no start time found', 500)
-      }
-      const now = new Date()
-      const elapsedMs = now.getTime() - new Date(booking.actualStartTime).getTime()
+      const elapsedMs = now.getTime() - new Date(bookingData.actualStartTime).getTime()
       actualDurationMin = Math.round(elapsedMs / 60_000)
+    }
 
-      const bookedDurationMin = Math.round(
-        (new Date(booking.endTime).getTime() - new Date(booking.startTime).getTime()) / 60_000,
-      )
-      const baseAmount = booking.totalAmountNis
+    // ── Price = actual time × rate, with minimum hours enforcement ──
+    // Protect against negative or zero durations
+    if (actualDurationMin < 0) actualDurationMin = 0
+    const actualHours = actualDurationMin / 60
+    const chargeableHours = Math.max(actualHours, minimumHours)
+    finalAmountNis = Math.round(chargeableHours * bookingData.hourlyRateNis)
+    if (!isFinite(finalAmountNis) || finalAmountNis < 0) finalAmountNis = 0
 
-      if (actualDurationMin <= bookedDurationMin) {
-        finalAmountNis = baseAmount
-        overtimeAmountNis = 0
-      } else {
-        const overtimeMin = actualDurationMin - bookedDurationMin
-        const overtimeBlocks = Math.ceil(overtimeMin / 15)
-        overtimeAmountNis = Math.round((overtimeBlocks * 15 / 60) * booking.hourlyRateNis)
-        finalAmountNis = baseAmount + overtimeAmountNis
-      }
+    // Overtime = anything beyond the originally booked duration
+    const bookedDurationMin = Math.round(
+      (new Date(bookingData.endTime).getTime() - new Date(bookingData.startTime).getTime()) / 60_000,
+    )
+    if (actualDurationMin > bookedDurationMin) {
+      overtimeAmountNis = Math.round(((actualDurationMin - bookedDurationMin) / 60) * bookingData.hourlyRateNis)
+    } else {
+      overtimeAmountNis = 0
     }
 
     // Stop the timer
@@ -227,19 +234,25 @@ export const sessionsService = {
       overtimeAmountNis,
     })
 
-    // Create earning record
+    // Create earning record — wrap in try/catch so session completion is not lost
     const platformFee = Math.round(finalAmountNis * config.platformFeePercent / 100)
     const netAmountNis = finalAmountNis - platformFee
 
-    await sessionsDal.upsertEarning({
-      nannyUserId: completed.nannyUserId,
-      bookingId: completed.id,
-      amountNis: finalAmountNis,
-      platformFee,
-      netAmountNis,
-    })
+    try {
+      await sessionsDal.upsertEarning({
+        nannyUserId: completed.nannyUserId,
+        bookingId: completed.id,
+        amountNis: finalAmountNis,
+        platformFee,
+        netAmountNis,
+      })
 
-    await sessionsDal.updateNannyStats(completed.nannyUserId, netAmountNis)
+      await sessionsDal.updateNannyStats(completed.nannyUserId, netAmountNis)
+    } catch (err) {
+      logger.error('Failed to create earning/update stats — session still completed', {
+        bookingId, nannyUserId: completed.nannyUserId, err,
+      })
+    }
 
     // Emit session ended
     if (ioRef) {
@@ -283,12 +296,12 @@ export const sessionsService = {
   // ── Get Session State ─────────────────────────────────────
   async getState(userId: string, role: string, bookingId: string) {
     const booking = await sessionsDal.findBookingById(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
 
     const isParent = booking.parentUserId === userId
     const isNanny = booking.nannyUserId === userId
     if (!isParent && !isNanny && role !== 'ADMIN') {
-      throw new AppError('Forbidden', 403)
+      throw new ForbiddenError()
     }
 
     const timerState = sessionTimer.getState(bookingId)

@@ -10,11 +10,17 @@ const bookingListInclude = {
 } as const
 
 const bookingDetailInclude = {
-  parent: { select: { id: true, fullName: true, avatarUrl: true, phone: true } },
+  parent: { select: { id: true, fullName: true, avatarUrl: true, phone: true, city: true, streetName: true, houseNumber: true, postalCode: true, latitude: true, longitude: true } },
   nanny: {
     select: {
       id: true, fullName: true, avatarUrl: true, phone: true,
-      nannyProfile: { select: { hourlyRateNis: true, recurringHourlyRateNis: true, city: true, rating: true, badges: true, latitude: true, longitude: true } },
+      nannyProfile: {
+        select: {
+          hourlyRateNis: true, recurringHourlyRateNis: true, city: true, rating: true, badges: true,
+          latitude: true, longitude: true, minimumHoursPerBooking: true, allowsBabysittingAtHome: true,
+          streetName: true, houseNumber: true, postalCode: true,
+        },
+      },
     },
   },
   review: true,
@@ -48,6 +54,7 @@ export const bookingsDal = {
     endTime: Date
     hourlyRateNis: number
     totalAmountNis: number
+    estimatedPriceNis?: number
     notes?: string
     childrenCount: number
     childrenAges?: string[]
@@ -56,12 +63,37 @@ export const bookingsDal = {
     recurringBookingId?: string
     occurrenceDate?: Date
     status?: BookingStatus
+    // Structured address
+    bookingCity?: string
+    bookingStreet?: string
+    bookingHouseNum?: string
+    bookingPostalCode?: string
+    bookingLat?: number
+    bookingLng?: number
+    locationType?: string
   }) {
     return prisma.booking.create({
       data,
       include: {
         parent: { select: { fullName: true, avatarUrl: true, phone: true } },
         nanny: { select: { fullName: true, avatarUrl: true, phone: true } },
+      },
+    })
+  },
+
+  // Check date availability blocks for conflict (hour-level, not day-level)
+  findDateBlock(nannyProfileId: string, date: Date, startTime: string, endTime: string) {
+    return prisma.nannyDateAvailability.findFirst({
+      where: {
+        nannyProfileId,
+        date: {
+          gte: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
+          lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1),
+        },
+        isBlocked: true,
+        // Only block if the blocked slot actually overlaps the requested time
+        startTime: { lte: endTime },
+        endTime: { gte: startTime },
       },
     })
   },

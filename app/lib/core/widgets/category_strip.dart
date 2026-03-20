@@ -19,10 +19,12 @@ class NannyCategory {
 /// Default nanny categories
 const kNannyCategories = [
   NannyCategory(id: 'all', label: 'All', icon: Icons.grid_view_rounded, bgColor: AppColors.catAll),
+  NannyCategory(id: 'ongoing', label: 'Ongoing Care', icon: Icons.repeat_rounded, bgColor: AppColors.catOngoing),
   NannyCategory(id: 'infant', label: 'Infant', icon: Icons.child_friendly_rounded, bgColor: AppColors.catInfant),
   NannyCategory(id: 'toddler', label: 'Toddler', icon: Icons.child_care_rounded, bgColor: AppColors.catToddler),
   NannyCategory(id: 'school', label: 'School Age', icon: Icons.school_rounded, bgColor: AppColors.catSchool),
   NannyCategory(id: 'special', label: 'Special Needs', icon: Icons.accessibility_new_rounded, bgColor: AppColors.catSpecial),
+  NannyCategory(id: 'first_aid', label: 'First Aid', icon: Icons.medical_services_rounded, bgColor: AppColors.catFirstAid),
   NannyCategory(id: 'night', label: 'Night Care', icon: Icons.nightlight_round, bgColor: AppColors.catNight),
   NannyCategory(id: 'weekend', label: 'Weekend', icon: Icons.wb_sunny_rounded, bgColor: AppColors.catWeekend),
 ];
@@ -43,10 +45,10 @@ class CategoryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 100,
+      height: 76,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: categories.length,
         itemBuilder: (context, index) {
           final cat = categories[index];
@@ -54,15 +56,15 @@ class CategoryStrip extends StatelessWidget {
           return GestureDetector(
             onTap: () => onSelected(cat.id),
             child: Container(
-              width: 76,
-              margin: const EdgeInsets.only(right: 8),
+              width: 66,
+              margin: const EdgeInsets.only(right: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    width: 64,
-                    height: 64,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
                       color: isSelected ? AppColors.primary : cat.bgColor,
                       shape: BoxShape.circle,
@@ -85,7 +87,7 @@ class CategoryStrip extends StatelessWidget {
                       color: isSelected ? Colors.white : AppColors.textPrimary.withValues(alpha:0.7),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     cat.label,
                     style: TextStyle(

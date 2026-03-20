@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/nanny_card.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _favoritesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  ref.watch(dataRefreshProvider); // re-fetch when favorites toggled elsewhere
   final resp = await apiClient.dio.get('/favorites');
   final list = resp.data['data']['favorites'] as List<dynamic>? ?? [];
   return list.cast<Map<String, dynamic>>();
@@ -33,23 +35,11 @@ class FavoritesScreen extends ConsumerWidget {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      body: async.when(
+      body: async.authAwareWhen(
+        ref,
         loading: () => const FullScreenLoader(),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.textHint),
-              const SizedBox(height: 12),
-              Text('Failed to load favorites', style: TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => ref.invalidate(_favoritesProvider),
-                child: const Text('Try Again'),
-              ),
-            ],
-          ),
-        ),
+        errorTitle: 'Could not load favorites',
+        onRetry: () => ref.invalidate(_favoritesProvider),
         data: (favorites) {
           if (favorites.isEmpty) {
             return Center(
@@ -108,8 +98,9 @@ class FavoritesScreen extends ConsumerWidget {
 
                 if (nannyProfile == null) return const SizedBox.shrink();
 
+                final nannyProfileId = nannyProfile['id'] as String? ?? nannyUser['id'] as String? ?? '';
                 final nannyModel = NannyModel(
-                  id: nannyUser['id'] as String? ?? '',
+                  id: nannyProfileId,
                   userId: nannyUser['id'] as String? ?? '',
                   headline: nannyProfile['headline'] as String? ?? '',
                   bio: '',
@@ -138,7 +129,7 @@ class FavoritesScreen extends ConsumerWidget {
 
                 return NannyCard(
                   nanny: nannyModel,
-                  onTap: () => context.go('/home/nanny/${nannyUser['id']}'),
+                  onTap: () => context.go('/home/nanny/$nannyProfileId'),
                 );
               },
             ),

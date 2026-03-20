@@ -11,5 +11,6 @@ router.get('/users',                       asyncHandler(adminController.getUsers
 router.patch('/users/:id',                 asyncHandler(adminController.updateUser))
 router.get('/nannies/pending-verification', asyncHandler(adminController.getPendingNannies))
 router.get('/bookings',                    asyncHandler(adminController.getBookings))
+router.patch('/documents/:docId/verify',   asyncHandler(adminController.verifyDocument))
 
 export default router

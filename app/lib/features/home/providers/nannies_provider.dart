@@ -1,6 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
+import '../../../core/services/app_logger.dart';
 
 class NannyFilter {
   final String? city;
@@ -14,30 +17,35 @@ class NannyFilter {
   final double? lng;
   final double? radiusKm;
   final String sortBy;
+  final bool? hasRecurringRate;
 
   const NannyFilter({
     this.city, this.minRate, this.maxRate, this.minYears,
     this.language, this.skill, this.minRating, this.lat, this.lng,
-    this.radiusKm, this.sortBy = 'rating',
+    this.radiusKm, this.sortBy = 'rating', this.hasRecurringRate,
   });
 
   NannyFilter copyWith({
     String? city, int? minRate, int? maxRate, int? minYears,
     String? language, String? skill, double? minRating,
     double? lat, double? lng, double? radiusKm, String? sortBy,
+    bool? hasRecurringRate,
     bool clearCity = false, bool clearLanguage = false, bool clearSkill = false,
+    bool clearRecurring = false, bool clearMinRate = false, bool clearMaxRate = false,
+    bool clearMinYears = false, bool clearMinRating = false,
   }) => NannyFilter(
         city: clearCity ? null : city ?? this.city,
-        minRate: minRate ?? this.minRate,
-        maxRate: maxRate ?? this.maxRate,
-        minYears: minYears ?? this.minYears,
+        minRate: clearMinRate ? null : minRate ?? this.minRate,
+        maxRate: clearMaxRate ? null : maxRate ?? this.maxRate,
+        minYears: clearMinYears ? null : minYears ?? this.minYears,
         language: clearLanguage ? null : language ?? this.language,
         skill: clearSkill ? null : skill ?? this.skill,
-        minRating: minRating ?? this.minRating,
+        minRating: clearMinRating ? null : minRating ?? this.minRating,
         lat: lat ?? this.lat,
         lng: lng ?? this.lng,
         radiusKm: radiusKm ?? this.radiusKm,
         sortBy: sortBy ?? this.sortBy,
+        hasRecurringRate: clearRecurring ? null : hasRecurringRate ?? this.hasRecurringRate,
       );
 
   Map<String, dynamic> toQueryParams() {
@@ -52,12 +60,13 @@ class NannyFilter {
     if (lat != null) m['lat'] = lat.toString();
     if (lng != null) m['lng'] = lng.toString();
     if (radiusKm != null) m['radiusKm'] = radiusKm.toString();
+    if (hasRecurringRate == true) m['hasRecurringRate'] = 'true';
     return m;
   }
 
   bool get hasFilters =>
       city != null || minRate != null || maxRate != null || minYears != null ||
-      language != null || skill != null || minRating != null;
+      language != null || skill != null || minRating != null || hasRecurringRate == true;
 }
 
 class NanniesState {
@@ -121,7 +130,13 @@ class NanniesNotifier extends StateNotifier<NanniesState> {
         hasMore: list.length < (pagination['total'] as int),
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Failed to load nannies');
+      final msg = e is DioException && e.response?.data is Map
+          ? (e.response!.data as Map)['message']?.toString() ?? 'Failed to load nannies'
+          : e is DioException && e.type == DioExceptionType.connectionError
+              ? 'No internet connection'
+              : 'Failed to load nannies';
+      appLog.warn('nannies', 'load_failed', msg, extra: {'error': e.toString()});
+      state = state.copyWith(isLoading: false, error: msg);
     }
   }
 
@@ -143,7 +158,8 @@ class NanniesNotifier extends StateNotifier<NanniesState> {
         page: nextPage,
         hasMore: state.nannies.length + list.length < state.total,
       );
-    } catch (_) {
+    } catch (e) {
+      appLog.warn('nannies', 'load_more_failed', 'Failed to load more nannies', extra: {'error': e.toString()});
       state = state.copyWith(isLoadingMore: false);
     }
   }
@@ -152,4 +168,9 @@ class NanniesNotifier extends StateNotifier<NanniesState> {
   NannyFilter get currentFilter => _filter;
 }
 
-final nanniesProvider = StateNotifierProvider<NanniesNotifier, NanniesState>((ref) => NanniesNotifier());
+final nanniesProvider = StateNotifierProvider<NanniesNotifier, NanniesState>((ref) {
+  final notifier = NanniesNotifier();
+  // Re-fetch when data changes elsewhere (booking created, favorite toggled, etc.)
+  ref.listen(dataRefreshProvider, (_, __) => notifier.loadNannies());
+  return notifier;
+});

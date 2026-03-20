@@ -22,7 +22,7 @@
           }
         },
         {
-          "client_id": "768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com",
+          "client_id": "768121322557-onvanoq8dpr74bdrg40ne9iqpishgbn7.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -35,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com",
+              "client_id": "768121322557-onvanoq8dpr74bdrg40ne9iqpishgbn7.apps.googleusercontent.com",
               "client_type": 3
             },
             {
@@ -58,7 +58,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com",
+          "client_id": "768121322557-sh82uq6jo24fhqh8oi6mon34facssq7t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.super_nannys",
+            "certificate_hash": "404af04f84615ece33cad16c4659f8ca4c6e9e93"
+          }
+        },
+        {
+          "client_id": "768121322557-onvanoq8dpr74bdrg40ne9iqpishgbn7.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -71,7 +79,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "768121322557-to3kut5fj1l82l0scnrebqs614qvb2dr.apps.googleusercontent.com",
+              "client_id": "768121322557-onvanoq8dpr74bdrg40ne9iqpishgbn7.apps.googleusercontent.com",
               "client_type": 3
             },
             {

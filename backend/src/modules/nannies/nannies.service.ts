@@ -1,4 +1,5 @@
-import { AppError } from '../../shared/errors/app-error'
+import type { DocumentType } from '@prisma/client'
+import { AppError, NotFoundError, BadRequestError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { nanniesDal } from './nannies.dal'
@@ -16,7 +17,7 @@ const orderByMap: Record<string, Record<string, string>> = {
 
 export const nanniesService = {
   async search(params: SearchNanniesInput) {
-    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating' } = params
+    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params
 
     const where: Record<string, unknown> = {
       // Only show nannies whose user account is verified and active
@@ -33,6 +34,7 @@ export const nanniesService = {
     if (language) where.languages = { has: language }
     if (skill) where.skills = { has: skill }
     if (minRating) { const v = parseFloat(minRating); if (!isNaN(v)) where.rating = { gte: v } }
+    if (hasRecurringRate === 'true') where.recurringHourlyRateNis = { not: null }
 
     const orderBy = orderByMap[sortBy] || orderByMap['rating']
     const { page, limit, skip } = parsePagination({ page: params.page, limit: params.limit })
@@ -65,13 +67,13 @@ export const nanniesService = {
 
   async getMyProfile(userId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return profile
   },
 
   async getById(profileId: string) {
     const profile = await nanniesDal.findById(profileId)
-    if (!profile) throw new AppError('Nanny not found', 404)
+    if (!profile) throw new NotFoundError('Nanny')
 
     const reviews = await nanniesDal.getReviewsForNanny(profile.userId)
     return { profile, reviews }
@@ -82,20 +84,19 @@ export const nanniesService = {
     await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
-      // Get the profile id for availability upserts
       const existing = await nanniesDal.findByUserId(userId)
       if (existing) {
-        for (const slot of availability) {
-          try {
-            await nanniesDal.upsertAvailability(existing.id, slot)
-          } catch (err) {
-            logger.error('Failed to upsert availability slot', {
-              userId,
-              profileId: existing.id,
-              dayOfWeek: slot.dayOfWeek,
-              error: err instanceof Error ? err.message : String(err),
-            })
-          }
+        try {
+          // Atomically replace all availability slots in a single transaction
+          await nanniesDal.replaceAllAvailability(existing.id, availability)
+        } catch (err) {
+          logger.error('Failed to update availability slots', {
+            userId,
+            profileId: existing.id,
+            slotCount: availability.length,
+            error: err instanceof Error ? err.message : String(err),
+          })
+          // Don't throw — availability update failure shouldn't block profile save
         }
       }
     }
@@ -103,5 +104,88 @@ export const nanniesService = {
     logger.info('Nanny profile updated', { userId })
     // Return full profile with availability included
     return nanniesDal.findByUserId(userId)
+  },
+
+  async addDocument(userId: string, type: DocumentType, url: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new NotFoundError('Profile')
+    return nanniesDal.createDocument(profile.id, type, url)
+  },
+
+  async getDocuments(userId: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new NotFoundError('Profile')
+    return nanniesDal.getDocuments(profile.id)
+  },
+
+  async deleteDocument(userId: string, docId: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new NotFoundError('Profile')
+    return nanniesDal.deleteDocument(profile.id, docId)
+  },
+
+  // ── Date-specific availability ─────────────────────────────
+  async upsertDateAvailability(userId: string, data: { date: Date; startTime: string; endTime: string; isBlocked?: boolean }) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new NotFoundError('Profile')
+    return nanniesDal.upsertDateAvailability(profile.id, data)
+  },
+
+  async deleteDateAvailability(userId: string, slotId: string) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new NotFoundError('Profile')
+    return nanniesDal.deleteDateAvailability(profile.id, slotId)
+  },
+
+  async blockDate(userId: string, date: Date) {
+    const profile = await nanniesDal.findByUserId(userId)
+    if (!profile) throw new NotFoundError('Profile')
+    return nanniesDal.blockDate(profile.id, date)
+  },
+
+  async getAvailabilityCalendar(nannyProfileId: string, month?: string) {
+    const profile = await nanniesDal.findById(nannyProfileId)
+    if (!profile) throw new NotFoundError('Nanny')
+
+    // Determine date range for the requested month
+    let startDate: Date
+    let endDate: Date
+    if (month) {
+      // Validate month format "YYYY-MM"
+      const parts = month.split('-')
+      if (parts.length !== 2) {
+        throw new BadRequestError('Invalid month format. Expected YYYY-MM')
+      }
+      const year = Number(parts[0])
+      const m = Number(parts[1])
+      if (isNaN(year) || isNaN(m) || m < 1 || m > 12 || year < 2000 || year > 2100) {
+        throw new BadRequestError('Invalid month value')
+      }
+      startDate = new Date(year, m - 1, 1)
+      endDate = new Date(year, m, 0, 23, 59, 59) // last day of month
+    } else {
+      const now = new Date()
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+    }
+
+    // Get date-specific availability slots
+    const dateSlots = await nanniesDal.getDateAvailability(profile.id, startDate, endDate)
+
+    // Get existing bookings for this nanny in the range
+    const bookings = await nanniesDal.getNannyBookingsForRange(profile.userId, startDate, endDate)
+
+    // Get weekly availability pattern
+    const weeklyAvailability = profile.availability || []
+
+    return {
+      nannyProfileId: profile.id,
+      month: month || `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`,
+      weeklyAvailability,
+      dateSlots,
+      bookings,
+      minimumHoursPerBooking: profile.minimumHoursPerBooking,
+      allowsBabysittingAtHome: profile.allowsBabysittingAtHome,
+    }
   },
 }

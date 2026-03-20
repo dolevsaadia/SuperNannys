@@ -13,6 +13,7 @@ class BadgeChip extends StatelessWidget {
     'FAST_RESPONDER': ('Fast', Icons.bolt_rounded, AppColors.badgeFastResponder),
     'BACKGROUND_CHECKED': ('Checked', Icons.security_rounded, AppColors.badgeBackground),
     'EXPERIENCE_5_PLUS': ('5+ Years', Icons.workspace_premium_rounded, AppColors.primary),
+    'RECURRING': ('Recurring', Icons.repeat_rounded, AppColors.accent),
   };
 
   @override

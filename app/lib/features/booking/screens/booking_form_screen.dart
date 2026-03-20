@@ -3,12 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/services/booking_reminder_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/constants/israeli_cities.dart';
+import '../../../core/widgets/availability_calendar.dart';
 
 class BookingFormScreen extends ConsumerStatefulWidget {
   final String nannyId;
@@ -27,6 +32,10 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
+  // ── Available time range from calendar ──────────────────
+  String? _availableFromTime;
+  String? _availableToTime;
+
   // ── Recurring fields ──────────────────
   final Set<int> _selectedDays = {}; // 0=Sun … 6=Sat
   TimeOfDay? _recurringStartTime;
@@ -37,15 +46,27 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   // ── Shared fields ──────────────────
   int _childrenCount = 1;
   final _notesCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController(); // kept for backward compat display
+  final _cityCtrl = TextEditingController();
+  final _streetCtrl = TextEditingController();
+  final _houseNumCtrl = TextEditingController();
+  final _postalCodeCtrl = TextEditingController();
   bool _isLoading = false;
   String? _error;
+  bool _showCitySuggestions = false;
+
+  // Address source: 'registered' | 'current' | 'manual'
+  String _addressSource = 'registered';
+  bool _loadingLocation = false;
 
   // Nanny data
   String? _nannyName;
   String? _nannyUserId;
   int _hourlyRate = 0;
   int? _recurringHourlyRate;
+  double _minimumHours = 0;
+  bool _nannyAllowsHome = false;
+  String _locationType = 'parent_home';
 
   // Visual stepper
   int _currentStep = 0; // 0=When, 1=Details, 2=Confirm
@@ -54,6 +75,70 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   void initState() {
     super.initState();
     _loadNanny();
+    _loadUserAddress();
+  }
+
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _streetCtrl.dispose();
+    _houseNumCtrl.dispose();
+    _postalCodeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserAddress() async {
+    try {
+      final resp = await apiClient.dio.get('/auth/me');
+      final user = resp.data['data'] as Map<String, dynamic>;
+      setState(() {
+        _cityCtrl.text = (user['city'] as String?) ?? '';
+        _streetCtrl.text = (user['streetName'] as String?) ?? '';
+        _houseNumCtrl.text = (user['houseNumber'] as String?) ?? '';
+        _postalCodeCtrl.text = (user['postalCode'] as String?) ?? '';
+        _addressCtrl.text = _buildAddressString();
+      });
+    } catch (_) {}
+  }
+
+  String _buildAddressString() {
+    final parts = <String>[];
+    if (_streetCtrl.text.isNotEmpty) parts.add(_streetCtrl.text);
+    if (_houseNumCtrl.text.isNotEmpty) parts.add(_houseNumCtrl.text);
+    if (_cityCtrl.text.isNotEmpty) parts.add(_cityCtrl.text);
+    return parts.join(', ');
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _loadingLocation = true);
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
+        setState(() { _error = 'Location permission denied'; _loadingLocation = false; });
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        setState(() {
+          _cityCtrl.text = p.locality ?? p.subAdministrativeArea ?? '';
+          _streetCtrl.text = p.street ?? p.thoroughfare ?? '';
+          _houseNumCtrl.text = p.subThoroughfare ?? '';
+          _postalCodeCtrl.text = p.postalCode ?? '';
+          _addressSource = 'current';
+          _addressCtrl.text = _buildAddressString();
+        });
+      }
+    } catch (e) {
+      setState(() => _error = 'Could not get location');
+    }
+    setState(() => _loadingLocation = false);
   }
 
   Future<void> _loadNanny() async {
@@ -66,6 +151,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         _nannyUserId = user['id'] as String;
         _hourlyRate = profile['hourlyRateNis'] as int;
         _recurringHourlyRate = profile['recurringHourlyRateNis'] as int?;
+        _minimumHours = (profile['minimumHoursPerBooking'] as num?)?.toDouble() ?? 0;
+        _nannyAllowsHome = profile['allowsBabysittingAtHome'] as bool? ?? false;
       });
     } catch (_) {}
   }
@@ -114,13 +201,55 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   }
 
   Future<void> _pickStartTime() async {
-    final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
-    if (t != null) setState(() => _startTime = t);
+    final initial = _startTime ?? (_availableFromTime != null
+        ? TimeOfDay(hour: int.parse(_availableFromTime!.split(':')[0]), minute: int.parse(_availableFromTime!.split(':')[1]))
+        : const TimeOfDay(hour: 9, minute: 0));
+    final t = await showTimePicker(context: context, initialTime: initial);
+    if (t != null) {
+      // Validate against available range
+      if (_availableFromTime != null && _availableToTime != null) {
+        final fromParts = _availableFromTime!.split(':');
+        final toParts = _availableToTime!.split(':');
+        final fromMin = int.parse(fromParts[0]) * 60 + int.parse(fromParts[1]);
+        final toMin = int.parse(toParts[0]) * 60 + int.parse(toParts[1]);
+        final selectedMin = t.hour * 60 + t.minute;
+        if (selectedMin < fromMin || selectedMin >= toMin) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Start time must be between $_availableFromTime and $_availableToTime'), backgroundColor: Colors.orange),
+            );
+          }
+          return;
+        }
+      }
+      setState(() => _startTime = t);
+    }
   }
 
   Future<void> _pickEndTime() async {
-    final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 17, minute: 0));
-    if (t != null) setState(() => _endTime = t);
+    final initial = _endTime ?? (_availableToTime != null
+        ? TimeOfDay(hour: int.parse(_availableToTime!.split(':')[0]), minute: int.parse(_availableToTime!.split(':')[1]))
+        : const TimeOfDay(hour: 17, minute: 0));
+    final t = await showTimePicker(context: context, initialTime: initial);
+    if (t != null) {
+      // Validate against available range
+      if (_availableFromTime != null && _availableToTime != null) {
+        final fromParts = _availableFromTime!.split(':');
+        final toParts = _availableToTime!.split(':');
+        final fromMin = int.parse(fromParts[0]) * 60 + int.parse(fromParts[1]);
+        final toMin = int.parse(toParts[0]) * 60 + int.parse(toParts[1]);
+        final selectedMin = t.hour * 60 + t.minute;
+        if (selectedMin <= fromMin || selectedMin > toMin) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('End time must be between $_availableFromTime and $_availableToTime'), backgroundColor: Colors.orange),
+            );
+          }
+          return;
+        }
+      }
+      setState(() => _endTime = t);
+    }
   }
 
   Future<void> _proceedRecurring() async {
@@ -128,8 +257,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       setState(() => _error = 'Please select days, time, and start date');
       return;
     }
-    if (_addressCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter an address');
+    if (_cityCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'City is required');
       return;
     }
 
@@ -155,8 +284,15 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         if (_recurringEndDate != null) 'endDate': _recurringEndDate!.toUtc().toIso8601String(),
         'childrenCount': _childrenCount,
         if (_notesCtrl.text.isNotEmpty) 'notes': _notesCtrl.text,
-        'address': _addressCtrl.text.trim(),
+        'address': _buildAddressString(),
+        'bookingCity': _cityCtrl.text.trim(),
+        'bookingStreet': _streetCtrl.text.trim(),
+        'bookingHouseNum': _houseNumCtrl.text.trim(),
+        'bookingPostalCode': _postalCodeCtrl.text.trim(),
+        'locationType': _locationType,
       });
+
+      triggerDataRefresh(ref);
 
       if (mounted) {
         context.go('/home/nanny/${widget.nannyId}/book/success', extra: {'isRecurring': true});
@@ -174,8 +310,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       setState(() => _error = 'Please select date and time');
       return;
     }
-    if (_addressCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please enter an address');
+    if (_cityCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'City is required');
       return;
     }
 
@@ -202,10 +338,17 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         'endTime': endDt.toUtc().toIso8601String(),
         'childrenCount': _childrenCount,
         if (_notesCtrl.text.isNotEmpty) 'notes': _notesCtrl.text,
-        'address': _addressCtrl.text.trim(),
+        'address': _buildAddressString(),
+        'bookingCity': _cityCtrl.text.trim(),
+        'bookingStreet': _streetCtrl.text.trim(),
+        'bookingHouseNum': _houseNumCtrl.text.trim(),
+        'bookingPostalCode': _postalCodeCtrl.text.trim(),
+        'locationType': _locationType,
       });
 
       final booking = resp.data['data'] as Map<String, dynamic>;
+
+      triggerDataRefresh(ref);
 
       // Schedule reminders in a separate try-catch — notification permission
       // failures must NOT block navigation to the success screen.
@@ -387,14 +530,24 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                   ),
                                   if (!_isRecurring && _totalAmount > 0)
                                     Text(
-                                      '${_durationHours.toStringAsFixed(1)}h = \u20AA$_totalAmount total',
+                                      '~${_durationHours.toStringAsFixed(1)}h ≈ \u20AA$_totalAmount estimated',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
                                   if (_isRecurring && _weeklyEstimate > 0)
                                     Text(
-                                      '~\u20AA$_weeklyEstimate/week  (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
+                                      '~\u20AA$_weeklyEstimate/week estimated (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
+                                  if (_minimumHours > 0)
+                                    Text(
+                                      'Minimum charge: ${_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)} hours',
+                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Final price based on actual session time',
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11, fontStyle: FontStyle.italic),
+                                  ),
                                 ],
                               ),
                             ),
@@ -503,14 +656,45 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                       const SizedBox(height: 24),
                     ],
 
-                    // ── ONE-TIME: Date section ──────────────────
+                    // ── ONE-TIME: Availability + Date ──────────────────
                     if (!_isRecurring) ...[
+                    // Availability calendar
+                    _FormSection(
+                      icon: Icons.event_available_rounded,
+                      title: 'Nanny Availability',
+                      child: AvailabilityCalendar(
+                        nannyProfileId: widget.nannyId,
+                        compact: true,
+                        onDateSelected: (date) {
+                          setState(() => _startDate = date);
+                        },
+                        onTimeRangeResolved: (fromTime, toTime) {
+                          setState(() {
+                            _availableFromTime = fromTime;
+                            _availableToTime = toTime;
+                            // Auto-fill start/end times from nanny's availability
+                            if (fromTime != null && toTime != null) {
+                              final fromParts = fromTime.split(':');
+                              final toParts = toTime.split(':');
+                              _startTime = TimeOfDay(hour: int.parse(fromParts[0]), minute: int.parse(fromParts[1]));
+                              _endTime = TimeOfDay(hour: int.parse(toParts[0]), minute: int.parse(toParts[1]));
+                            } else {
+                              _startTime = null;
+                              _endTime = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Selected date display
                     _FormSection(
                       icon: Icons.calendar_month_rounded,
-                      title: 'Date',
+                      title: 'Selected Date',
                       child: _PremiumDateTimeTile(
                         icon: Icons.calendar_month_rounded,
-                        label: _startDate != null ? fmt.format(_startDate!) : 'Select date',
+                        label: _startDate != null ? fmt.format(_startDate!) : 'Tap a date above or select manually',
                         isSelected: _startDate != null,
                         onTap: () {
                           _pickDate();
@@ -603,15 +787,183 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ── Address ──────────────────
-                    GestureDetector(
-                      onTap: () => setState(() => _currentStep = 1),
-                      child: AppTextField(
-                        label: 'Address',
-                        hint: 'Where will the care take place?',
-                        controller: _addressCtrl,
-                        prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                    // ── Location type (if nanny allows home) ──────────────
+                    if (_nannyAllowsHome)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _FormSection(
+                          icon: Icons.home_work_rounded,
+                          title: 'Meeting Location',
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _locationType = 'parent_home'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _locationType == 'parent_home' ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: _locationType == 'parent_home' ? AppColors.primary : AppColors.border),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.home_rounded, color: _locationType == 'parent_home' ? AppColors.primary : AppColors.textHint, size: 22),
+                                        const SizedBox(height: 4),
+                                        Text('At my home', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _locationType == 'parent_home' ? AppColors.primary : AppColors.textHint)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _locationType = 'nanny_home'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _locationType == 'nanny_home' ? AppColors.accent.withValues(alpha: 0.1) : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: _locationType == 'nanny_home' ? AppColors.accent : AppColors.border),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.child_friendly_rounded, color: _locationType == 'nanny_home' ? AppColors.accent : AppColors.textHint, size: 22),
+                                        const SizedBox(height: 4),
+                                        Text("At nanny's home", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _locationType == 'nanny_home' ? AppColors.accent : AppColors.textHint)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // ── Address section ──────────────────
+                    _FormSection(
+                      icon: Icons.location_on_outlined,
+                      title: 'Address',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Address source selector
+                          Row(
+                            children: [
+                              _AddressSourceChip(
+                                label: 'My Address',
+                                icon: Icons.home_outlined,
+                                isSelected: _addressSource == 'registered',
+                                onTap: () {
+                                  setState(() => _addressSource = 'registered');
+                                  _loadUserAddress();
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              _AddressSourceChip(
+                                label: 'Current Location',
+                                icon: Icons.my_location_rounded,
+                                isSelected: _addressSource == 'current',
+                                isLoading: _loadingLocation,
+                                onTap: () {
+                                  setState(() => _addressSource = 'current');
+                                  _useCurrentLocation();
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              _AddressSourceChip(
+                                label: 'Manual',
+                                icon: Icons.edit_location_alt_outlined,
+                                isSelected: _addressSource == 'manual',
+                                onTap: () {
+                                  setState(() {
+                                    _addressSource = 'manual';
+                                    _cityCtrl.clear();
+                                    _streetCtrl.clear();
+                                    _houseNumCtrl.clear();
+                                    _postalCodeCtrl.clear();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // City with autocomplete
+                          AppTextField(
+                            label: 'City',
+                            hint: 'Start typing a city...',
+                            controller: _cityCtrl,
+                            prefixIcon: const Icon(Icons.location_city_rounded, size: 20, color: AppColors.textHint),
+                            onChanged: (_) => setState(() => _showCitySuggestions = true),
+                          ),
+                          if (_showCitySuggestions && _cityCtrl.text.isNotEmpty && IsraeliCities.search(_cityCtrl.text).isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              constraints: const BoxConstraints(maxHeight: 120),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: AppShadows.sm,
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: ListView(
+                                shrinkWrap: true,
+                                padding: EdgeInsets.zero,
+                                children: IsraeliCities.search(_cityCtrl.text).take(5).map((city) => ListTile(
+                                  dense: true,
+                                  leading: const Icon(Icons.location_city_rounded, size: 18, color: AppColors.primary),
+                                  title: Text(city, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                  onTap: () {
+                                    _cityCtrl.text = city;
+                                    _showCitySuggestions = false;
+                                    setState(() => _currentStep = 1);
+                                    FocusScope.of(context).unfocus();
+                                  },
+                                )).toList(),
+                              ),
+                            ),
+                          const SizedBox(height: 10),
+
+                          // Street + House Number row
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: AppTextField(
+                                  label: 'Street',
+                                  hint: 'Street name',
+                                  controller: _streetCtrl,
+                                  prefixIcon: const Icon(Icons.signpost_rounded, size: 20, color: AppColors.textHint),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: AppTextField(
+                                  label: 'House #',
+                                  hint: 'Number',
+                                  controller: _houseNumCtrl,
+                                  prefixIcon: const Icon(Icons.tag_rounded, size: 20, color: AppColors.textHint),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Postal code
+                          SizedBox(
+                            width: 160,
+                            child: AppTextField(
+                              label: 'Postal Code',
+                              hint: '0000000',
+                              controller: _postalCodeCtrl,
+                              prefixIcon: const Icon(Icons.markunread_mailbox_outlined, size: 20, color: AppColors.textHint),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -826,6 +1178,41 @@ class _CounterButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: enabled ? Colors.white : AppColors.textHint, size: 22),
+        ),
+      );
+}
+
+// ── Address Source Chip ──────────────────
+class _AddressSourceChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final bool isLoading;
+  final VoidCallback onTap;
+  const _AddressSourceChip({required this.label, required this.icon, required this.isSelected, this.isLoading = false, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+            ),
+            child: Column(
+              children: [
+                if (isLoading)
+                  const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                else
+                  Icon(icon, size: 16, color: isSelected ? AppColors.primary : AppColors.textHint),
+                const SizedBox(height: 2),
+                Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: isSelected ? AppColors.primary : AppColors.textHint), textAlign: TextAlign.center),
+              ],
+            ),
+          ),
         ),
       );
 }

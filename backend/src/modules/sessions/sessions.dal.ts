@@ -5,7 +5,7 @@ const sessionInclude = {
   nanny: {
     select: {
       id: true, fullName: true, avatarUrl: true, phone: true,
-      nannyProfile: { select: { hourlyRateNis: true, city: true } },
+      nannyProfile: { select: { hourlyRateNis: true, city: true, minimumHoursPerBooking: true, allowsBabysittingAtHome: true } },
     },
   },
 } as const

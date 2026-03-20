@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/nanny_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
@@ -81,7 +82,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                           color: Colors.white,
                           padding: const EdgeInsets.all(1.5),
                           child: ClipOval(
-                            child: nanny.user?.avatarUrl != null && nanny.user!.avatarUrl!.isNotEmpty
+                            child: (nanny.user?.avatarUrl ?? '').isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: nanny.user!.avatarUrl!,
                                     width: 64,
@@ -184,24 +185,83 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                         ],
                       ),
                     ),
+                    // ── Navigate button ──────────────────
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: GestureDetector(
+                        onTap: () async {
+                          String url;
+                          if (nanny.latitude != null && nanny.longitude != null) {
+                            url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
+                          } else if (nanny.address.isNotEmpty) {
+                            url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
+                          } else {
+                            url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
+                          }
+                          final uri = Uri.parse(url);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFF4285F4).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 2)),
+                            ],
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.navigation_rounded, size: 15, color: Colors.white),
+                              SizedBox(height: 1),
+                              Text('Navigate', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: Colors.white, height: 1)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
 
               // ── Badges row ───────────────────────────
-              if (nanny.badges.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    height: 28,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: nanny.badges.take(4).length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 6),
-                      itemBuilder: (_, i) => BadgeChip(badge: nanny.badges[i]),
+              Builder(
+                builder: (_) {
+                  // Build effective badge list from badges + derived from skills/verification
+                  final effectiveBadges = <String>[...nanny.badges];
+                  if (nanny.isVerified && !effectiveBadges.contains('VERIFIED')) {
+                    effectiveBadges.insert(0, 'VERIFIED');
+                  }
+                  if (nanny.skills.any((s) => s.toLowerCase().contains('first aid')) && !effectiveBadges.contains('FIRST_AID')) {
+                    effectiveBadges.add('FIRST_AID');
+                  }
+                  if (nanny.rating >= 4.5 && nanny.reviewsCount >= 3 && !effectiveBadges.contains('TOP_RATED')) {
+                    effectiveBadges.add('TOP_RATED');
+                  }
+                  if (nanny.yearsExperience >= 5 && !effectiveBadges.contains('EXPERIENCE_5_PLUS')) {
+                    effectiveBadges.add('EXPERIENCE_5_PLUS');
+                  }
+                  if (nanny.recurringHourlyRateNis != null && !effectiveBadges.contains('RECURRING')) {
+                    effectiveBadges.add('RECURRING');
+                  }
+                  if (effectiveBadges.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      height: 28,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: effectiveBadges.take(4).length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 6),
+                        itemBuilder: (_, i) => BadgeChip(badge: effectiveBadges[i]),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
+              ),
 
               const SizedBox(height: 12),
 
@@ -218,7 +278,28 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                     const SizedBox(width: 14),
                     _Stat(icon: Icons.check_circle_outline, label: '${nanny.completedJobs} jobs'),
                     const Spacer(),
-                    // Price tag
+                    // Price tags
+                    if (nanny.recurringHourlyRateNis != null)
+                      Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.repeat_rounded, size: 12, color: AppColors.accent),
+                            const SizedBox(width: 3),
+                            Text(
+                              '₪${nanny.recurringHourlyRateNis}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent),
+                            ),
+                          ],
+                        ),
+                      ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(

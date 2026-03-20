@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/bubble_overlay_service.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/widgets/biometric_prompt_dialog.dart';
 import '../../session/widgets/session_banner.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
@@ -18,6 +20,7 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   bool _bubbleStarted = false;
+  bool _biometricChecked = false;
 
   @override
   void didChangeDependencies() {
@@ -27,6 +30,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) BubbleOverlayService.instance.startMonitoring(context);
       });
+    }
+    if (!_biometricChecked) {
+      _biometricChecked = true;
+      _checkBiometricPrompt();
+    }
+  }
+
+  Future<void> _checkBiometricPrompt() async {
+    // Wait for the home screen to fully render before showing the prompt
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+    final token = await ref.read(authProvider.notifier).getStoredToken();
+    if (token != null && mounted) {
+      await showBiometricPrompt(context, token);
     }
   }
 
@@ -75,19 +92,52 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
               ];
 
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 50;
+    final connectivity = ref.watch(connectivityProvider);
+
     return Scaffold(
-      body: Column(
-        children: [
-          // ── Persistent session banner ────────────────
-          SafeArea(
-            bottom: false,
-            child: const SessionBanner(),
-          ),
-          // ── Main content ─────────────────────────────
-          Expanded(child: widget.child),
-        ],
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false, // bottom nav handles its own SafeArea
+        child: Column(
+          children: [
+            // ── Offline banner (animated) ──
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: !connectivity.isOnline
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      color: AppColors.error,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off_rounded, size: 16, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'No internet connection',
+                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            // ── Persistent session banner ──
+            const SessionBanner(),
+            // ── Main content ─────────────────────────────
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: widget.child,
+              ),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: _PremiumBottomNav(
+      bottomNavigationBar: keyboardOpen ? null : _PremiumBottomNav(
         items: navItems,
         currentIndex: currentIndex,
         onTap: (i) {

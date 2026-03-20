@@ -7,16 +7,20 @@ import 'package:latlong2/latlong.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/avatar_widget.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/services/booking_reminder_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'booking_map_screen.dart';
 
 final _bookingDetailProvider = FutureProvider.autoDispose.family<BookingModel, String>((ref, id) async {
+  ref.watch(dataRefreshProvider); // re-fetch when booking status changes elsewhere
   final resp = await apiClient.dio.get('/bookings/$id');
   return BookingModel.fromJson(resp.data['data'] as Map<String, dynamic>);
 });
@@ -35,9 +39,11 @@ class BookingDetailScreen extends ConsumerWidget {
         title: const Text('Booking Details'),
         leading: BackButton(onPressed: () => context.pop()),
       ),
-      body: async.when(
-        loading: () => const LoadingIndicator(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+      body: async.authAwareWhen(
+        ref,
+        loading: () => const FullScreenLoader(),
+        errorTitle: 'Could not load booking',
+        onRetry: () => ref.invalidate(_bookingDetailProvider(bookingId)),
         data: (booking) => _BookingDetailBody(booking: booking),
       ),
     );
@@ -227,6 +233,58 @@ class _BookingDetailBody extends ConsumerWidget {
             ),
           ),
 
+          // ── Contact section (after mutual approval) ──────────────────
+          if ((booking.isAccepted || booking.isInProgress || booking.isCompleted)) ...[
+            const SizedBox(height: 12),
+            () {
+              final otherPhone = isParent ? booking.nanny?.phone : booking.parent?.phone;
+              final otherName = isParent ? booking.nanny?.fullName ?? 'Nanny' : booking.parent?.fullName ?? 'Parent';
+              if (otherPhone != null && otherPhone.isNotEmpty) {
+                return GestureDetector(
+                  onTap: () async {
+                    final uri = Uri.parse('tel:$otherPhone');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.phone_rounded, color: AppColors.success, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Call $otherName', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.success)),
+                              Text(otherPhone, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.success, size: 20),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }(),
+          ],
+
           // ── Mini Map ──────────────────
           if (booking.nanny?.latitude != null && booking.nanny?.longitude != null) ...[
             const SizedBox(height: 16),
@@ -291,14 +349,37 @@ class _BookingDetailBody extends ConsumerWidget {
                         children: [
                           const Icon(Icons.place_rounded, size: 16, color: AppColors.primary),
                           const SizedBox(width: 4),
-                          Text(
-                            booking.nanny?.city ?? 'See on map',
-                            style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: Text(
+                              booking.nanny?.city ?? 'See on map',
+                              style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
+                            ),
                           ),
-                          const Spacer(),
-                          const Text('Tap to expand', style: TextStyle(fontSize: 11, color: AppColors.textHint)),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.open_in_full_rounded, size: 14, color: AppColors.textHint),
+                          GestureDetector(
+                            onTap: () async {
+                              final url = Uri.parse(
+                                'https://www.google.com/maps/dir/?api=1&destination=${booking.nanny!.latitude},${booking.nanny!.longitude}&travelmode=driving',
+                              );
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.navigation_rounded, size: 14, color: AppColors.success),
+                                  SizedBox(width: 4),
+                                  Text('Navigate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.success)),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -338,10 +419,20 @@ class _BookingDetailBody extends ConsumerWidget {
                 _premiumDivider(),
                 _PremiumRow(
                   icon: Icons.receipt_rounded,
-                  label: booking.finalAmountNis != null ? 'Booked' : 'Total',
+                  label: booking.isCompleted
+                      ? (booking.finalAmountNis != null ? 'Booked' : 'Total')
+                      : 'Estimated',
                   value: '\u20AA${booking.totalAmountNis}',
-                  valueBold: booking.finalAmountNis == null,
+                  valueBold: booking.isCompleted && booking.finalAmountNis == null,
                 ),
+                if (!booking.isCompleted && booking.finalAmountNis == null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Final price calculated by session timer',
+                      style: TextStyle(fontSize: 11, color: AppColors.textHint, fontStyle: FontStyle.italic),
+                    ),
+                  ),
                 if (booking.overtimeAmountNis > 0) ...[
                   _premiumDivider(),
                   _PremiumRow(
@@ -372,7 +463,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 _PremiumRow(
                   icon: booking.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
                   label: 'Status',
-                  value: booking.isPaid ? 'Paid' : (booking.isCompleted ? 'Processing' : 'After session'),
+                  value: booking.isPaid ? 'Paid' : (booking.isCompleted ? 'Processing' : 'Pending session'),
                   valueColor: booking.isPaid ? AppColors.success : AppColors.warning,
                 ),
               ],
@@ -399,7 +490,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   child: AppButton(
                     label: 'Decline',
                     variant: AppButtonVariant.outline,
-                    onTap: () => _updateStatus(context, 'DECLINED'),
+                    onTap: () => _updateStatus(context, ref, 'DECLINED'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -407,7 +498,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   child: AppButton(
                     label: 'Accept',
                     variant: AppButtonVariant.gradient,
-                    onTap: () => _updateStatus(context, 'ACCEPTED'),
+                    onTap: () => _updateStatus(context, ref, 'ACCEPTED'),
                   ),
                 ),
               ],
@@ -419,7 +510,7 @@ class _BookingDetailBody extends ConsumerWidget {
               child: AppButton(
                 label: 'Cancel Booking',
                 variant: AppButtonVariant.danger,
-                onTap: () => _updateStatus(context, 'CANCELLED'),
+                onTap: () => _updateStatus(context, ref, 'CANCELLED'),
               ),
             ),
           if ((isParent || isNanny) && booking.isAccepted)
@@ -457,7 +548,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 label: 'Leave a Review',
                 variant: AppButtonVariant.outline,
                 prefixIcon: const Icon(Icons.star_outline_rounded, color: AppColors.primary, size: 20),
-                onTap: () => _showReviewDialog(context, booking.id),
+                onTap: () => _showReviewDialog(context, ref, booking.id),
               ),
             ),
           const SizedBox(height: 20),
@@ -481,13 +572,16 @@ class _BookingDetailBody extends ConsumerWidget {
         child: Divider(height: 1, color: AppColors.divider.withValues(alpha: 0.5)),
       );
 
-  Future<void> _updateStatus(BuildContext context, String status) async {
+  Future<void> _updateStatus(BuildContext context, WidgetRef ref, String status) async {
     try {
       await apiClient.dio.patch('/bookings/${booking.id}/status', data: {'status': status});
 
       if (status == 'CANCELLED' || status == 'DECLINED') {
         await BookingReminderService.instance.cancelReminders(booking.id);
       }
+
+      // Trigger global data refresh so bookings list + dashboard update
+      triggerDataRefresh(ref);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking $status')));
@@ -496,13 +590,13 @@ class _BookingDetailBody extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: const Text('Action failed. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }
   }
 
-  void _showReviewDialog(BuildContext context, String bookingId) {
+  void _showReviewDialog(BuildContext context, WidgetRef ref, String bookingId) {
     int rating = 5;
     final controller = TextEditingController();
 
@@ -559,6 +653,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   'rating': rating,
                   if (controller.text.isNotEmpty) 'comment': controller.text,
                 });
+                triggerDataRefresh(ref);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
               child: const Text('Submit'),

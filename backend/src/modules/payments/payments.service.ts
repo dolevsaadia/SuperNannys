@@ -1,5 +1,5 @@
 import { config } from '../../config'
-import { AppError } from '../../shared/errors/app-error'
+import { AppError, NotFoundError, ForbiddenError, BadRequestError, ConflictError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { paymentsDal } from './payments.dal'
 import type { AddPaymentMethodInput } from './payments.validation'
@@ -18,9 +18,9 @@ async function getStripe() {
 export const paymentsService = {
   async createIntent(userId: string, bookingId: string) {
     const booking = await paymentsDal.findBookingById(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
-    if (booking.parentUserId !== userId) throw new AppError('Not authorized', 403)
-    if (booking.isPaid) throw new AppError('Booking already paid')
+    if (!booking) throw new NotFoundError('Booking')
+    if (booking.parentUserId !== userId) throw new ForbiddenError()
+    if (booking.isPaid) throw new ConflictError('Booking already paid')
 
     const stripe = await getStripe()
 
@@ -53,7 +53,7 @@ export const paymentsService = {
     }
 
     const booking = await paymentsDal.findBookingById(bookingId)
-    if (!booking) throw new AppError('Booking not found', 404)
+    if (!booking) throw new NotFoundError('Booking')
     if (booking.isPaid) {
       logger.info('Booking already paid — skipping', { bookingId })
       return null
@@ -103,16 +103,30 @@ export const paymentsService = {
   },
 
   async handleWebhook(rawBody: Buffer, signature: string) {
+    if (!signature) {
+      throw new BadRequestError('Missing Stripe signature header')
+    }
+
     const stripe = await getStripe()
 
-    const event = stripe.webhooks.constructEvent(rawBody, signature, config.payments.stripeWebhookSecret)
+    let event: any
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, config.payments.stripeWebhookSecret)
+    } catch (err: any) {
+      logger.error('Stripe webhook signature verification failed', { error: err.message })
+      throw new BadRequestError('Invalid webhook signature')
+    }
 
     logger.info('Stripe webhook received', { type: event.type })
 
     if (event.type === 'payment_intent.succeeded') {
       const intent = event.data.object as { id: string }
-      await paymentsDal.markBookingPaid(intent.id)
-      logger.info('Booking marked as paid', { paymentIntentId: intent.id })
+      try {
+        await paymentsDal.markBookingPaid(intent.id)
+        logger.info('Booking marked as paid', { paymentIntentId: intent.id })
+      } catch (err) {
+        logger.error('Failed to mark booking as paid', { paymentIntentId: intent.id, err })
+      }
     }
 
     return { received: true }
