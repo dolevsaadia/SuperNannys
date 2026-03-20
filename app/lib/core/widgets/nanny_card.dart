@@ -82,7 +82,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                           color: Colors.white,
                           padding: const EdgeInsets.all(1.5),
                           child: ClipOval(
-                            child: nanny.user?.avatarUrl != null && nanny.user!.avatarUrl!.isNotEmpty
+                            child: (nanny.user?.avatarUrl ?? '').isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: nanny.user!.avatarUrl!,
                                     width: 64,
@@ -204,20 +204,20 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                             boxShadow: [
-                              BoxShadow(color: const Color(0xFF4285F4).withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2)),
+                              BoxShadow(color: const Color(0xFF4285F4).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 2)),
                             ],
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.navigation_rounded, size: 20, color: Colors.white),
-                              SizedBox(height: 2),
-                              Text('Navigate', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.white)),
+                              Icon(Icons.navigation_rounded, size: 15, color: Colors.white),
+                              SizedBox(height: 1),
+                              Text('Navigate', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: Colors.white, height: 1)),
                             ],
                           ),
                         ),

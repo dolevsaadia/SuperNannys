@@ -34,6 +34,10 @@ export const resendOTPSchema = z.object({
   email: z.string().email(),
 })
 
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(10, 'refreshToken is required'),
+})
+
 export const sendPhoneCodeSchema = z.object({
   phone: z.string().min(9).max(15),
 })

@@ -1,4 +1,5 @@
-import { AppError } from '../../shared/errors/app-error'
+import type { DocumentType } from '@prisma/client'
+import { AppError, NotFoundError, BadRequestError } from '../../shared/errors/app-error'
 import { logger } from '../../shared/utils/logger'
 import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { nanniesDal } from './nannies.dal'
@@ -16,7 +17,7 @@ const orderByMap: Record<string, Record<string, string>> = {
 
 export const nanniesService = {
   async search(params: SearchNanniesInput) {
-    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params as any
+    const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params
 
     const where: Record<string, unknown> = {}
     if (city) where.city = { contains: city, mode: 'insensitive' }
@@ -63,13 +64,13 @@ export const nanniesService = {
 
   async getMyProfile(userId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return profile
   },
 
   async getById(profileId: string) {
     const profile = await nanniesDal.findById(profileId)
-    if (!profile) throw new AppError('Nanny not found', 404)
+    if (!profile) throw new NotFoundError('Nanny')
 
     const reviews = await nanniesDal.getReviewsForNanny(profile.userId)
     return { profile, reviews }
@@ -80,29 +81,17 @@ export const nanniesService = {
     const profile = await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
-      // Group slots by day to support multiple time ranges per day
-      const slotsByDay = new Map<number, typeof availability>()
-      for (const slot of availability) {
-        const existing = slotsByDay.get(slot.dayOfWeek) ?? []
-        existing.push(slot)
-        slotsByDay.set(slot.dayOfWeek, existing)
-      }
-
-      // For each day, delete old slots then create new ones
-      for (const [dayOfWeek, daySlots] of slotsByDay) {
-        try {
-          await nanniesDal.deleteAvailabilityForDay(profile.id, dayOfWeek)
-          for (const slot of daySlots) {
-            await nanniesDal.upsertAvailability(profile.id, slot)
-          }
-        } catch (err) {
-          logger.error('Failed to update availability slots', {
-            userId,
-            profileId: profile.id,
-            dayOfWeek,
-            error: err instanceof Error ? err.message : String(err),
-          })
-        }
+      try {
+        // Atomically replace all availability slots in a single transaction
+        await nanniesDal.replaceAllAvailability(profile.id, availability)
+      } catch (err) {
+        logger.error('Failed to update availability slots', {
+          userId,
+          profileId: profile.id,
+          slotCount: availability.length,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        // Don't throw — availability update failure shouldn't block profile save
       }
     }
 
@@ -110,52 +99,61 @@ export const nanniesService = {
     return profile
   },
 
-  async addDocument(userId: string, type: string, url: string) {
+  async addDocument(userId: string, type: DocumentType, url: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.createDocument(profile.id, type, url)
   },
 
   async getDocuments(userId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.getDocuments(profile.id)
   },
 
   async deleteDocument(userId: string, docId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.deleteDocument(profile.id, docId)
   },
 
   // ── Date-specific availability ─────────────────────────────
   async upsertDateAvailability(userId: string, data: { date: Date; startTime: string; endTime: string; isBlocked?: boolean }) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.upsertDateAvailability(profile.id, data)
   },
 
   async deleteDateAvailability(userId: string, slotId: string) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.deleteDateAvailability(profile.id, slotId)
   },
 
   async blockDate(userId: string, date: Date) {
     const profile = await nanniesDal.findByUserId(userId)
-    if (!profile) throw new AppError('Profile not found', 404)
+    if (!profile) throw new NotFoundError('Profile')
     return nanniesDal.blockDate(profile.id, date)
   },
 
   async getAvailabilityCalendar(nannyProfileId: string, month?: string) {
     const profile = await nanniesDal.findById(nannyProfileId)
-    if (!profile) throw new AppError('Nanny not found', 404)
+    if (!profile) throw new NotFoundError('Nanny')
 
     // Determine date range for the requested month
     let startDate: Date
     let endDate: Date
     if (month) {
-      const [year, m] = month.split('-').map(Number)
+      // Validate month format "YYYY-MM"
+      const parts = month.split('-')
+      if (parts.length !== 2) {
+        throw new BadRequestError('Invalid month format. Expected YYYY-MM')
+      }
+      const year = Number(parts[0])
+      const m = Number(parts[1])
+      if (isNaN(year) || isNaN(m) || m < 1 || m > 12 || year < 2000 || year > 2100) {
+        throw new BadRequestError('Invalid month value')
+      }
       startDate = new Date(year, m - 1, 1)
       endDate = new Date(year, m, 0, 23, 59, 59) // last day of month
     } else {

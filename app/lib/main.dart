@@ -11,6 +11,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
+import 'core/services/app_logger.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 
@@ -23,14 +24,24 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
+    appLog.info('app', 'startup', 'App starting');
+
+    // Initialize persistent crash log storage (errors → disk for post-crash analysis)
+    await appLog.initPersistentStorage();
+
     // Catch Flutter framework errors (layout, rendering, etc.)
     FlutterError.onError = (details) {
       FlutterError.presentError(details); // logs to console
+      appLog.error('flutter', 'framework_error', details.exceptionAsString(),
+        error: details.exception, stackTrace: details.stack,
+      );
     };
 
     // Catch platform errors (native plugin crashes surfaced to Dart)
     PlatformDispatcher.instance.onError = (error, stack) {
-      debugPrint('PlatformDispatcher error: $error');
+      appLog.error('platform', 'native_error', error.toString(),
+        error: error, stackTrace: stack,
+      );
       return true; // handled — don't crash
     };
 
@@ -60,9 +71,12 @@ void main() {
     ));
 
     runApp(const ProviderScope(child: SuperNannyApp()));
+    appLog.info('app', 'startup', 'App initialized successfully');
   }, (error, stack) {
     // Last-resort error handler — prevent isolate crash
-    debugPrint('Uncaught error: $error');
+    appLog.error('app', 'uncaught_error', error.toString(),
+      error: error, stackTrace: stack,
+    );
   });
 }
 

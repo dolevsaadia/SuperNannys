@@ -1,13 +1,6 @@
 import { z } from 'zod'
 
-export const confirmStartSchema = z.object({
-  // no body needed — bookingId comes from URL param
-}).optional()
-
-export const requestEndSchema = z.object({
-  // no body needed
-}).optional()
-
-export const confirmEndSchema = z.object({
-  // no body needed
-}).optional()
+/** Validates that bookingId URL param is a non-empty string */
+export const bookingIdParamSchema = z.object({
+  bookingId: z.string().min(1, 'bookingId is required'),
+})

@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/badge_chip.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/rating_bar_widget.dart';
 import '../../../core/widgets/app_button.dart';
@@ -29,9 +31,11 @@ class NannyProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: async.when(
+      body: async.authAwareWhen(
+        ref,
         loading: () => const FullScreenLoader(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        errorTitle: 'Could not load profile',
+        onRetry: () => ref.invalidate(_nannyDetailProvider(nannyId)),
         data: (data) {
           final profile = NannyModel.fromJson(data['profile'] as Map<String, dynamic>);
           final reviews = data['reviews'] as List<dynamic>? ?? [];
@@ -42,7 +46,7 @@ class NannyProfileScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileBody extends StatefulWidget {
+class _ProfileBody extends ConsumerStatefulWidget {
   final NannyModel profile;
   final List<dynamic> reviews;
   final String nannyId;
@@ -50,10 +54,10 @@ class _ProfileBody extends StatefulWidget {
   const _ProfileBody({required this.profile, required this.reviews, required this.nannyId});
 
   @override
-  State<_ProfileBody> createState() => _ProfileBodyState();
+  ConsumerState<_ProfileBody> createState() => _ProfileBodyState();
 }
 
-class _ProfileBodyState extends State<_ProfileBody> {
+class _ProfileBodyState extends ConsumerState<_ProfileBody> {
   bool _isFavorited = false;
   bool _favLoading = true;
 
@@ -87,6 +91,8 @@ class _ProfileBodyState extends State<_ProfileBody> {
     setState(() => _isFavorited = !_isFavorited);
     try {
       await apiClient.dio.post('/favorites/toggle', data: {'nannyUserId': profile.userId});
+      // Trigger refresh so favorites screen and home sections update
+      triggerDataRefresh(ref);
     } catch (_) {
       if (mounted) setState(() => _isFavorited = prev);
     }
@@ -109,9 +115,19 @@ class _ProfileBodyState extends State<_ProfileBody> {
 
   @override
   Widget build(BuildContext context) {
+    // Inside HomeShell, SafeArea is applied and MediaQuery.removePadding
+    // zeros out padding.top. Restore it so SliverAppBar correctly offsets
+    // its toolbar buttons below the status bar area.
+    final mq = MediaQuery.of(context);
+    final restoredTop = mq.padding.top > 0 ? mq.padding.top : mq.viewPadding.top;
+
     return Stack(
       children: [
-        CustomScrollView(
+        MediaQuery(
+          data: mq.copyWith(
+            padding: mq.padding.copyWith(top: restoredTop),
+          ),
+          child: CustomScrollView(
           slivers: [
             // ── Parallax Hero ──────────────────────
             SliverAppBar(
@@ -239,7 +255,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
             // ── Floating Stats Card ──────────────────
             SliverToBoxAdapter(
               child: Transform.translate(
-                offset: const Offset(0, -24),
+                offset: const Offset(0, -16),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
@@ -442,7 +458,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
               ),
             ),
           ],
-        ),
+        )),
 
         // ── Sticky Book Now Bar ──────────────────
         Positioned(
@@ -578,96 +594,118 @@ class _FloatingStatItem extends StatelessWidget {
       );
 }
 
-// ── Availability grid ──────────────────
+// ── Availability grid (supports multiple slots per day) ──────────────────
 class _AvailabilityGrid extends StatelessWidget {
   final List<AvailabilitySlot> slots;
   const _AvailabilityGrid({required this.slots});
 
   static const _hebrewDays = ['\u05D0\'', '\u05D1\'', '\u05D2\'', '\u05D3\'', '\u05D4\'', '\u05D5\'', '\u05E9\''];
+  static const _dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: AppShadows.sm,
-        ),
-        child: Column(
-          children: slots.map((slot) {
-            final isOn = slot.isAvailable;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isOn ? AppColors.success.withValues(alpha: 0.06) : AppColors.bg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isOn ? AppColors.success.withValues(alpha: 0.15) : AppColors.divider.withValues(alpha: 0.5),
-                ),
+  Widget build(BuildContext context) {
+    // Group slots by day, preserving order 0–6
+    final grouped = <int, List<AvailabilitySlot>>{};
+    for (final slot in slots) {
+      (grouped[slot.dayOfWeek] ??= []).add(slot);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppShadows.sm,
+      ),
+      child: Column(
+        children: List.generate(7, (day) {
+          final daySlots = grouped[day]?.where((s) => s.isAvailable).toList() ?? [];
+          final isOn = daySlots.isNotEmpty;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isOn ? AppColors.success.withValues(alpha: 0.06) : AppColors.bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isOn ? AppColors.success.withValues(alpha: 0.15) : AppColors.divider.withValues(alpha: 0.5),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: isOn ? AppColors.success.withValues(alpha: 0.12) : AppColors.bg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _hebrewDays[slot.dayOfWeek],
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isOn ? AppColors.success : AppColors.textHint,
-                        ),
-                      ),
-                    ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isOn ? AppColors.success.withValues(alpha: 0.12) : AppColors.bg,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
+                  child: Center(
                     child: Text(
-                      slot.dayName,
+                      _hebrewDays[day],
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isOn ? AppColors.textPrimary : AppColors.textHint,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isOn ? AppColors.success : AppColors.textHint,
                       ),
                     ),
                   ),
-                  if (isOn)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${slot.fromTime} - ${slot.toTime}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _dayNames[day],
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isOn ? AppColors.textPrimary : AppColors.textHint,
                         ),
                       ),
-                    )
-                  else
-                    Text(
-                      'Unavailable',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textHint.withValues(alpha: 0.6),
+                      if (!isOn)
+                        Text(
+                          'Unavailable',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textHint.withValues(alpha: 0.6),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (isOn)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: daySlots.map((slot) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${slot.fromTime} - ${slot.toTime}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      );
+                    )).toList(),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
 }
 
 // ── Review card ──────────────────

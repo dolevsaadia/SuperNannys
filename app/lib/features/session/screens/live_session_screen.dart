@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/avatar_widget.dart';
@@ -89,6 +90,29 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 canPop: true,
                 phase: session.phase,
               ),
+
+              // ── Connection lost indicator ────────
+              if (!session.socketConnected && session.phase == SessionPhase.active)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  color: AppColors.warning.withValues(alpha: 0.15),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.warning),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Reconnecting to session...',
+                        style: TextStyle(fontSize: 12, color: AppColors.warning, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
 
               // ── Progress indicator ───────────────
               SessionProgressIndicator(phase: session.phase),
@@ -506,6 +530,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         'rating': _reviewRating,
         'comment': _reviewController.text.trim().isEmpty ? null : _reviewController.text.trim(),
       });
+      triggerDataRefresh(ref);
       setState(() {
         _reviewSubmitted = true;
         _reviewSubmitting = false;
@@ -515,7 +540,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
       setState(() => _reviewSubmitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit review: $e'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Could not submit review. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -578,7 +603,14 @@ class _TopBar extends StatelessWidget {
         children: [
           if (canPop)
             IconButton(
-              onPressed: () => context.pop(),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  // Fallback: go to dashboard/home if no route to pop to
+                  context.go('/home');
+                }
+              },
               icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
             )
           else

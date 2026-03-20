@@ -8,6 +8,7 @@ export const createBookingSchema = z.object({
   childrenCount: z.number().int().min(1).max(10).default(1),
   childrenAges: z.array(z.string()).optional(),
   address: z.string().optional(),
+  isRecurring: z.boolean().optional(),
   // Structured address fields
   bookingCity: z.string().optional(),
   bookingStreet: z.string().optional(),

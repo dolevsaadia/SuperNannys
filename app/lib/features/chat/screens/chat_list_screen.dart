@@ -4,13 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _conversationsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
+  ref.watch(dataRefreshProvider);
   final resp = await apiClient.dio.get('/messages/conversations');
   return resp.data['data'] as List<dynamic>;
 });
@@ -30,9 +33,11 @@ class ChatListScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      body: async.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (e, _) => EmptyState(title: 'Error', subtitle: e.toString()),
+      body: async.authAwareWhen(
+        ref,
+        loading: () => const SkeletonList(count: 6, skeleton: ChatSkeleton()),
+        errorTitle: 'Could not load messages',
+        onRetry: () => ref.invalidate(_conversationsProvider),
         data: (conversations) {
           if (conversations.isEmpty) {
             return Center(

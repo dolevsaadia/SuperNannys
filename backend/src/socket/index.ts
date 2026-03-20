@@ -15,6 +15,9 @@ interface AuthSocket extends Socket {
 /** Track which userIds are currently connected (at least one socket). */
 const onlineUsers = new Set<string>()
 
+/** Track total active sockets for diagnostics */
+let totalConnections = 0
+
 /**
  * Simple per-socket rate limiter for message:send events.
  * Allows `maxMessages` per `windowMs`.
@@ -47,36 +50,79 @@ export function initSocketIO(io: SocketIOServer): void {
   // Restore timers for any IN_PROGRESS bookings (server restart recovery)
   sessionTimer.restoreTimers()
 
-  // Auth middleware for Socket.IO
+  // ── Auth middleware for Socket.IO ───────────────────────
   io.use((socket: AuthSocket, next) => {
     const token =
       socket.handshake.auth?.token ||
       (socket.handshake.headers.authorization || '').replace('Bearer ', '')
 
-    if (!token) { next(new Error('Authentication required')); return }
+    if (!token) {
+      logger.warn('Socket auth failed: no token', {
+        socketId: socket.id,
+        transport: socket.conn?.transport?.name,
+        ip: socket.handshake.address,
+      })
+      next(new Error('Authentication required'))
+      return
+    }
     try {
       const payload = verifyToken(token)
       socket.userId = payload.userId
       socket.role = payload.role
       next()
-    } catch {
+    } catch (err) {
+      logger.warn('Socket auth failed: invalid token', {
+        socketId: socket.id,
+        ip: socket.handshake.address,
+        error: err instanceof Error ? err.message : String(err),
+      })
       next(new Error('Invalid token'))
     }
   })
 
+  // ── Connection handler ─────────────────────────────────
   io.on('connection', (socket: AuthSocket) => {
     const userId = socket.userId!
-    logger.debug('Socket connected', { userId, socketId: socket.id })
+    totalConnections++
+
+    logger.info('Socket connected', {
+      userId,
+      socketId: socket.id,
+      transport: socket.conn?.transport?.name,
+      ip: socket.handshake.address,
+      totalConnections,
+      onlineUsers: onlineUsers.size,
+    })
+
     socket.join(`user:${userId}`)
     onlineUsers.add(userId)
 
     // Broadcast online status to anyone in shared booking rooms
     socket.broadcast.emit('user:online', { userId })
 
+    // ── Transport upgrade tracking ────────────────────────
+    socket.conn?.on('upgrade', (transport: any) => {
+      logger.info('Socket transport upgraded', {
+        userId,
+        socketId: socket.id,
+        transport: transport?.name || 'unknown',
+      })
+    })
+
+    // ── Error tracking on socket level ────────────────────
+    socket.on('error', (err) => {
+      logger.error('Socket error', {
+        userId,
+        socketId: socket.id,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    })
+
     // Validate bookingId before joining/leaving rooms
     socket.on('booking:join', (bookingId: string) => {
       if (typeof bookingId !== 'string' || !bookingId.trim()) return
       socket.join(`booking:${bookingId}`)
+      logger.info('Socket joined booking room', { userId, socketId: socket.id, bookingId })
     })
     socket.on('booking:leave', (bookingId: string) => {
       if (typeof bookingId !== 'string' || !bookingId.trim()) return
@@ -195,17 +241,39 @@ export function initSocketIO(io: SocketIOServer): void {
       }
     })
 
-    socket.on('disconnect', () => {
+    // ── Disconnect ────────────────────────────────────────
+    socket.on('disconnect', (reason) => {
+      totalConnections = Math.max(0, totalConnections - 1)
       messageCounts.delete(socket.id)
+
       // Check if user has any other connected sockets
       const userRoom = io.sockets.adapter.rooms.get(`user:${userId}`)
-      if (!userRoom || userRoom.size === 0) {
+      const remainingSockets = userRoom?.size ?? 0
+      if (remainingSockets === 0) {
         onlineUsers.delete(userId)
         socket.broadcast.emit('user:offline', { userId })
       }
-      logger.debug('Socket disconnected', { userId, socketId: socket.id })
+
+      logger.info('Socket disconnected', {
+        userId,
+        socketId: socket.id,
+        reason,
+        remainingSockets,
+        totalConnections,
+        onlineUsers: onlineUsers.size,
+      })
     })
   })
+
+  // ── Periodic stats (every 2 min) ────────────────────────
+  setInterval(() => {
+    logger.info('Socket stats', {
+      totalConnections,
+      onlineUsers: onlineUsers.size,
+      onlineUserIds: [...onlineUsers],
+      rateLimitBuckets: messageCounts.size,
+    })
+  }, 2 * 60_000)
 
   // Periodic cleanup of stale rate limit entries (every 5 min)
   setInterval(() => {

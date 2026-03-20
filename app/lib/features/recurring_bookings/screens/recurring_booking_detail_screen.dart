@@ -9,6 +9,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
 final _recurringDetailProvider =
@@ -49,9 +50,11 @@ class _RecurringBookingDetailScreenState extends ConsumerState<RecurringBookingD
         title: const Text('Recurring Details'),
         leading: BackButton(onPressed: () => context.pop()),
       ),
-      body: async.when(
+      body: async.authAwareWhen(
+        ref,
         loading: () => const FullScreenLoader(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        errorTitle: 'Could not load details',
+        onRetry: () => ref.invalidate(_recurringDetailProvider(widget.id)),
         data: (rb) => _DetailBody(
           rb: rb,
           myRole: myRole,

@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import { config } from '../../config'
-import { signToken } from '../../shared/utils/jwt'
-import { AppError } from '../../shared/errors/app-error'
+import { signToken, signRefreshToken, generateTokenPair, generateTokenPairWithExpiry, verifyRefreshToken } from '../../shared/utils/jwt'
+import { AppError, NotFoundError, ConflictError, AuthenticationError, ForbiddenError, ServiceUnavailableError, BadRequestError } from '../../shared/errors/app-error'
 import { generateOTP } from '../../shared/utils/otp'
 import { emailService } from '../../shared/services/email.service'
 import { logger } from '../../shared/utils/logger'
@@ -33,7 +33,7 @@ async function sendOTP(email: string, userId?: string) {
       userId,
       error: err instanceof Error ? err.message : String(err),
     })
-    throw new AppError('Failed to send verification email', 500)
+    throw new ServiceUnavailableError('Failed to send verification email')
   }
 }
 
@@ -41,10 +41,10 @@ export const authService = {
   async register(data: RegisterInput) {
     const email = data.email.toLowerCase()
     const existing = await authDal.findUserByEmail(email)
-    if (existing) throw new AppError('Email already in use', 409)
+    if (existing) throw new ConflictError('Email already in use')
 
     const passwordHash = await bcrypt.hash(data.password, 12)
-    const user = await authDal.createUser({
+    const userData = {
       email,
       passwordHash,
       fullName: data.fullName,
@@ -57,16 +57,17 @@ export const authService = {
       houseNumber: data.houseNumber,
       postalCode: data.postalCode,
       apartmentFloor: data.apartmentFloor,
-    })
-
-    if (data.role === 'NANNY') {
-      await authDal.createNannyProfile(user.id)
     }
+
+    // Atomic: create user + nanny profile in a single transaction if NANNY role
+    const user = data.role === 'NANNY'
+      ? await authDal.createUserWithNannyProfile(userData)
+      : await authDal.createUser(userData)
 
     logger.info('User registered', { userId: user.id, email, role: data.role })
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role })
-    return { token, user }
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
+    return { ...tokens, user }
   },
 
   async login(data: LoginInput) {
@@ -75,24 +76,24 @@ export const authService = {
 
     if (!user || !user.passwordHash) {
       logger.warn('Login failed', { email, reason: 'invalid_credentials' })
-      throw new AppError('Invalid credentials', 401)
+      throw new AuthenticationError('Invalid credentials')
     }
     if (!user.isActive) {
       logger.warn('Login failed', { email, reason: 'account_deactivated' })
-      throw new AppError('Account deactivated', 403)
+      throw new ForbiddenError('Account deactivated')
     }
 
     const valid = await bcrypt.compare(data.password, user.passwordHash)
     if (!valid) {
       logger.warn('Login failed', { email, reason: 'invalid_credentials' })
-      throw new AppError('Invalid credentials', 401)
+      throw new AuthenticationError('Invalid credentials')
     }
 
     logger.info('User logged in', { userId: user.id, email })
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
-      token,
+      ...tokens,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
@@ -102,10 +103,7 @@ export const authService = {
 
   async googleSignIn(data: GoogleSignInInput) {
     if (!config.google.isConfigured) {
-      throw new AppError(
-        'Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env',
-        503,
-      )
+      throw new ServiceUnavailableError('Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env')
     }
 
     const client = getGoogleClient()
@@ -120,9 +118,9 @@ export const authService = {
       logger.warn('Google token verification failed', {
         error: err instanceof Error ? err.message : String(err),
       })
-      throw new AppError('Invalid or expired Google token', 401)
+      throw new AuthenticationError('Invalid or expired Google token')
     }
-    if (!payload?.email) throw new AppError('Invalid Google token', 401)
+    if (!payload?.email) throw new AuthenticationError('Invalid Google token')
 
     let user = await authDal.findByGoogleSubOrEmail(payload.sub!, payload.email)
     let isNewUser = false
@@ -145,24 +143,25 @@ export const authService = {
       // New user with role — create account.
       // Google already verified the email, so sign in directly (no OTP needed).
       isNewUser = true
-      const created = await authDal.createUser({
+      const googleUserData = {
         email: payload.email,
         fullName: payload.name || payload.email,
         avatarUrl: payload.picture,
         role: data.role,
-        authProvider: 'GOOGLE',
+        authProvider: 'GOOGLE' as const,
         googleSub: payload.sub,
         isVerified: true,
-      })
-      if (data.role === 'NANNY') {
-        await authDal.createNannyProfile(created.id)
       }
+      // Atomic: create user + nanny profile in a single transaction if NANNY role
+      const created = data.role === 'NANNY'
+        ? await authDal.createUserWithNannyProfile(googleUserData)
+        : await authDal.createUser(googleUserData)
 
       logger.info('Google sign-in', { email: payload.email, isNewUser: true, userId: created.id })
 
-      const newToken = signToken({ userId: created.id, email: created.email, role: created.role })
+      const newTokens = generateTokenPairWithExpiry({ userId: created.id, email: created.email, role: created.role })
       return {
-        token: newToken,
+        ...newTokens,
         isNewUser: true,
         user: {
           id: created.id, email: created.email, fullName: created.fullName,
@@ -179,9 +178,9 @@ export const authService = {
     logger.info('Google sign-in', { email: payload.email, isNewUser: false, userId: user.id })
 
     // Google already verified the email, so sign in directly (no OTP needed).
-    const existingToken = signToken({ userId: user.id, email: user.email, role: user.role })
+    const existingTokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
-      token: existingToken,
+      ...existingTokens,
       isNewUser: false,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
@@ -194,19 +193,19 @@ export const authService = {
     const email = data.email.toLowerCase()
     const record = await verificationDal.findValidCode(email, data.code)
     if (!record) {
-      throw new AppError('Invalid or expired verification code', 400)
+      throw new BadRequestError('Invalid or expired verification code')
     }
 
     await verificationDal.markUsed(record.id)
 
     const user = await authDal.findUserByEmail(email)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
 
     logger.info('OTP verified', { userId: user.id, email })
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role })
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
-      token,
+      ...tokens,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
@@ -217,18 +216,51 @@ export const authService = {
   async resendOTP(email: string) {
     const normalizedEmail = email.toLowerCase()
     const user = await authDal.findUserByEmail(normalizedEmail)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
 
     await sendOTP(normalizedEmail, user.id)
     logger.info('OTP resent', { userId: user.id, email: normalizedEmail })
     return { message: 'Verification code sent' }
   },
 
+  /**
+   * Refresh access token using a valid refresh token.
+   * Returns a new access token + new refresh token (rotation).
+   */
+  async refreshToken(refreshTokenStr: string) {
+    let payload
+    try {
+      payload = verifyRefreshToken(refreshTokenStr)
+    } catch (err) {
+      logger.warn('Refresh token invalid', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      throw new AuthenticationError('Invalid or expired refresh token')
+    }
+
+    // Verify user still exists and is active
+    const user = await authDal.findUserWithProfile(payload.userId)
+    if (!user) throw new NotFoundError('User')
+    if (!user.isActive) throw new ForbiddenError('Account deactivated')
+
+    logger.info('Token refreshed', { userId: user.id })
+
+    // Issue new token pair (refresh token rotation)
+    const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
+    return {
+      ...tokens,
+      user: {
+        id: user.id, email: user.email, fullName: user.fullName,
+        role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+      },
+    }
+  },
+
   // Note: req.user! non-null assertion in controllers is safe —
   // requireAuth middleware guarantees the user object is present.
   async getMe(userId: string) {
     const user = await authDal.findUserWithProfile(userId)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
     return user
   },
 
@@ -239,7 +271,7 @@ export const authService = {
    */
   async sendPhoneCode(userId: string, phone: string) {
     const user = await authDal.findUserWithProfile(userId)
-    if (!user) throw new AppError('User not found', 404)
+    if (!user) throw new NotFoundError('User')
 
     // Invalidate any existing phone codes
     await verificationDal.invalidateExisting(`phone:${phone}`)
@@ -264,7 +296,7 @@ export const authService = {
   async verifyPhone(userId: string, phone: string, code: string) {
     const record = await verificationDal.findValidCode(`phone:${phone}`, code)
     if (!record) {
-      throw new AppError('Invalid or expired verification code', 400)
+      throw new BadRequestError('Invalid or expired verification code')
     }
 
     await verificationDal.markUsed(record.id)

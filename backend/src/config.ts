@@ -8,7 +8,9 @@ export const config = {
 
   jwt: {
     secret: process.env.JWT_SECRET || 'fallback-secret-CHANGE-in-production-32chars+',
-    expiresIn: process.env.JWT_EXPIRES_IN || '14d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'refresh-fallback-secret-CHANGE-in-production-48chars+',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   },
 
   google: {
@@ -46,7 +48,7 @@ export const config = {
 
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
-    max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
+    max: parseInt(process.env.RATE_LIMIT_MAX || '300', 10),
   },
 
   platformFeePercent: 15,

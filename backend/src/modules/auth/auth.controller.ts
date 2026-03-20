@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { ok, created } from '../../shared/utils/response'
 import { authService } from './auth.service'
-import { registerSchema, loginSchema, googleSignInSchema, verifyOTPSchema, resendOTPSchema, sendPhoneCodeSchema, verifyPhoneSchema } from './auth.validation'
+import { registerSchema, loginSchema, googleSignInSchema, verifyOTPSchema, resendOTPSchema, refreshTokenSchema, sendPhoneCodeSchema, verifyPhoneSchema } from './auth.validation'
 
 export const authController = {
   async register(req: Request, res: Response): Promise<void> {
@@ -31,6 +31,12 @@ export const authController = {
   async resendOTP(req: Request, res: Response): Promise<void> {
     const data = resendOTPSchema.parse(req.body)
     const result = await authService.resendOTP(data.email)
+    ok(res, result)
+  },
+
+  async refreshToken(req: Request, res: Response): Promise<void> {
+    const data = refreshTokenSchema.parse(req.body)
+    const result = await authService.refreshToken(data.refreshToken)
     ok(res, result)
   },
 

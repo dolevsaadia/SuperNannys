@@ -39,7 +39,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
-      final resp = await apiClient.dio.put('/users/me', data: {
+      await apiClient.dio.put('/users/me', data: {
         'fullName': _name.text.trim(),
         'phone': _phone.text.trim(),
       });

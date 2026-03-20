@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_provider.dart' show authProvider, AuthState, navigatorKey;
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/role_select_screen.dart';
@@ -37,6 +37,7 @@ import '../../features/profile/screens/privacy_screen.dart';
 import '../../features/profile/screens/help_screen.dart';
 import '../../features/profile/screens/about_screen.dart';
 import '../../features/favorites/screens/favorites_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/verification/screens/verification_request_screen.dart';
 import '../../features/profile/screens/language_screen.dart';
 import '../../features/auth/screens/phone_verification_screen.dart';
@@ -55,6 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthNotifierBridge(ref);
 
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/splash',
     refreshListenable: notifier,
     redirect: (context, state) {
@@ -176,6 +178,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'about', builder: (_, __) => const AboutScreen()),
             ],
           ),
+          GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
           GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
           GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
           GoRoute(

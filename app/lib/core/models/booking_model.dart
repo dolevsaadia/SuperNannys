@@ -80,6 +80,38 @@ class BookingModel {
   int get bookedDurationMin =>
       endTime.difference(startTime).inMinutes;
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'parentUserId': parentUserId,
+        'nannyUserId': nannyUserId,
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+        'notes': notes,
+        'status': status,
+        'hourlyRateNis': hourlyRateNis,
+        'totalAmountNis': totalAmountNis,
+        'isPaid': isPaid,
+        'childrenCount': childrenCount,
+        'childrenAges': childrenAges,
+        'address': address,
+        'recurringBookingId': recurringBookingId,
+        'isRecurring': isRecurring,
+        'occurrenceDate': occurrenceDate?.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+        'parent': parent?.toJson(),
+        'nanny': nanny?.toJson(),
+        'review': review?.toJson(),
+        'parentConfirmedStart': parentConfirmedStart,
+        'nannyConfirmedStart': nannyConfirmedStart,
+        'actualStartTime': actualStartTime?.toIso8601String(),
+        'actualEndTime': actualEndTime?.toIso8601String(),
+        'parentConfirmedEnd': parentConfirmedEnd,
+        'nannyConfirmedEnd': nannyConfirmedEnd,
+        'actualDurationMin': actualDurationMin,
+        'finalAmountNis': finalAmountNis,
+        'overtimeAmountNis': overtimeAmountNis,
+      };
+
   factory BookingModel.fromJson(Map<String, dynamic> json) => BookingModel(
         id: json['id'] as String,
         parentUserId: json['parentUserId'] as String,
@@ -124,6 +156,18 @@ class BookingUser {
 
   const BookingUser({required this.id, required this.fullName, this.avatarUrl, this.phone, this.latitude, this.longitude, this.city});
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'fullName': fullName,
+        'avatarUrl': avatarUrl,
+        'phone': phone,
+        'nannyProfile': {
+          'latitude': latitude,
+          'longitude': longitude,
+          'city': city,
+        },
+      };
+
   factory BookingUser.fromJson(Map<String, dynamic> json) {
     final profile = json['nannyProfile'] as Map<String, dynamic>?;
     return BookingUser(
@@ -143,6 +187,11 @@ class BookingReview {
   final String? comment;
 
   const BookingReview({required this.rating, this.comment});
+
+  Map<String, dynamic> toJson() => {
+        'rating': rating,
+        'comment': comment,
+      };
 
   factory BookingReview.fromJson(Map<String, dynamic> json) => BookingReview(
         rating: json['rating'] as int,

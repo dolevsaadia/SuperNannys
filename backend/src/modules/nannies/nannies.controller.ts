@@ -1,7 +1,9 @@
+import type { DocumentType } from '@prisma/client'
 import { Request, Response } from 'express'
+import { AppError, BadRequestError, ValidationError } from '../../shared/errors/app-error'
 import { ok } from '../../shared/utils/response'
 import { nanniesService } from './nannies.service'
-import { searchNanniesSchema, updateNannyProfileSchema } from './nannies.validation'
+import { searchNanniesSchema, updateNannyProfileSchema, dateAvailabilitySchema, blockDateSchema } from './nannies.validation'
 
 export const nanniesController = {
   async search(req: Request, res: Response): Promise<void> {
@@ -28,14 +30,12 @@ export const nanniesController = {
 
   async uploadDocument(req: Request, res: Response): Promise<void> {
     if (!req.file) {
-      res.status(400).json({ message: 'No file uploaded' })
-      return
+      throw new BadRequestError('No file uploaded')
     }
-    const type = req.body.type || 'OTHER'
-    const validTypes = ['ID_CARD', 'POLICE_CHECK', 'FIRST_AID_CERT', 'CHILDCARE_CERT', 'OTHER']
+    const validTypes: DocumentType[] = ['ID_CARD', 'POLICE_CHECK', 'FIRST_AID_CERT', 'CHILDCARE_CERT', 'OTHER']
+    const type = (req.body.type || 'OTHER') as DocumentType
     if (!validTypes.includes(type)) {
-      res.status(400).json({ message: `Invalid document type. Must be one of: ${validTypes.join(', ')}` })
-      return
+      throw new ValidationError(`Invalid document type. Must be one of: ${validTypes.join(', ')}`)
     }
     const url = `/uploads/${req.file.filename}`
     const doc = await nanniesService.addDocument(req.user!.userId, type, url)
@@ -54,16 +54,12 @@ export const nanniesController = {
 
   // ── Date availability management ─────────────────────────
   async upsertDateAvailability(req: Request, res: Response): Promise<void> {
-    const { date, startTime, endTime, isBlocked } = req.body
-    if (!date || !startTime || !endTime) {
-      res.status(400).json({ message: 'date, startTime, and endTime are required' })
-      return
-    }
+    const data = dateAvailabilitySchema.parse(req.body)
     const result = await nanniesService.upsertDateAvailability(req.user!.userId, {
-      date: new Date(date),
-      startTime,
-      endTime,
-      isBlocked: isBlocked ?? false,
+      date: new Date(data.date),
+      startTime: data.startTime,
+      endTime: data.endTime,
+      isBlocked: data.isBlocked ?? false,
     })
     ok(res, result)
   },
@@ -74,12 +70,8 @@ export const nanniesController = {
   },
 
   async blockDate(req: Request, res: Response): Promise<void> {
-    const { date } = req.body
-    if (!date) {
-      res.status(400).json({ message: 'date is required' })
-      return
-    }
-    const result = await nanniesService.blockDate(req.user!.userId, new Date(date))
+    const data = blockDateSchema.parse(req.body)
+    const result = await nanniesService.blockDate(req.user!.userId, new Date(data.date))
     ok(res, result)
   },
 

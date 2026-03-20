@@ -27,7 +27,7 @@ class ProfileScreen extends ConsumerWidget {
               decoration: const BoxDecoration(
                 gradient: LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: Column(
                 children: [
                   Stack(
@@ -160,35 +160,48 @@ class ProfileScreen extends ConsumerWidget {
         );
       }
     } else {
-      // Enable biometric - authenticate first, then save token
-      try {
-        final authenticated = await biometric.authenticate(
-          reason: 'Verify your identity to enable biometric login',
-        );
-        if (!authenticated) return;
+      // Enable biometric — authenticate first, then save token
+      final result = await biometric.authenticate(
+        reason: 'Verify your identity to enable biometric login',
+      );
 
-        final token = await ref.read(authProvider.notifier).getStoredToken();
-        if (token != null) {
-          await biometric.enable(token);
+      switch (result) {
+        case BiometricResult.success:
+          // Continue to enable
+          break;
+        case BiometricResult.cancelledByUser:
+        case BiometricResult.timeout:
+          // User cancelled — do nothing, no error
+          return;
+        case BiometricResult.unavailable:
+        case BiometricResult.lockedOut:
+        case BiometricResult.error:
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${Platform.isIOS ? "Face ID / Touch ID" : "Fingerprint"} login enabled!'),
-                backgroundColor: AppColors.success,
+                content: Text(biometric.lastError ?? 'Biometric error occurred'),
+                backgroundColor: AppColors.error,
               ),
             );
           }
-        } else {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please sign in again to enable biometric login'), backgroundColor: AppColors.error),
-            );
-          }
-        }
-      } catch (e) {
+          return;
+      }
+
+      final token = await ref.read(authProvider.notifier).getStoredToken();
+      if (token != null) {
+        await biometric.enable(token);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Biometric error: $e'), backgroundColor: AppColors.error),
+            SnackBar(
+              content: Text('${Platform.isIOS ? "Face ID / Touch ID" : "Fingerprint"} login enabled!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please sign in again to enable biometric login'), backgroundColor: AppColors.error),
           );
         }
       }
@@ -199,12 +212,22 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
+        content: const Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dc), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dc),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () async {
               Navigator.pop(dc);
               await Future.delayed(const Duration(milliseconds: 150));

@@ -8,7 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/loading_indicator.dart';
+import '../../../core/utils/async_value_ui.dart';
 
 final _verificationStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
   try {
@@ -101,7 +101,7 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Submission failed. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -120,9 +120,10 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      body: statusAsync.when(
-        loading: () => const Center(child: LoadingIndicator()),
-        error: (_, __) => const Center(child: Text('Error loading status')),
+      body: statusAsync.authAwareWhen(
+        ref,
+        errorTitle: 'Could not load verification status',
+        onRetry: () => ref.invalidate(_verificationStatusProvider),
         data: (existing) {
           if (existing != null) {
             return _StatusView(request: existing);

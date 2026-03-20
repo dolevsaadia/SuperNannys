@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/services/booking_reminder_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -75,6 +76,17 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
     super.initState();
     _loadNanny();
     _loadUserAddress();
+  }
+
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _streetCtrl.dispose();
+    _houseNumCtrl.dispose();
+    _postalCodeCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserAddress() async {
@@ -280,6 +292,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         'locationType': _locationType,
       });
 
+      triggerDataRefresh(ref);
+
       if (mounted) {
         context.go('/home/nanny/${widget.nannyId}/book/success', extra: {'isRecurring': true});
       }
@@ -333,6 +347,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       });
 
       final booking = resp.data['data'] as Map<String, dynamic>;
+
+      triggerDataRefresh(ref);
 
       // Schedule reminders in a separate try-catch — notification permission
       // failures must NOT block navigation to the success screen.
@@ -521,6 +537,11 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                     Text(
                                       '~\u20AA$_weeklyEstimate/week estimated (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                                    ),
+                                  if (_minimumHours > 0)
+                                    Text(
+                                      'Minimum charge: ${_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)} hours',
+                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
                                     ),
                                   const SizedBox(height: 4),
                                   Text(
