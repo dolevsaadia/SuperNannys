@@ -60,6 +60,15 @@ export const adminDal = {
           },
         },
         idNumber: true,
+        verificationRequests: {
+          select: {
+            id: true, status: true,
+            idCardUrl: true, idAppendixUrl: true, policeClearanceUrl: true,
+            adminNotes: true, submittedAt: true, reviewedAt: true,
+          },
+          orderBy: { submittedAt: 'desc' as const },
+          take: 1,
+        },
       },
     })
   },

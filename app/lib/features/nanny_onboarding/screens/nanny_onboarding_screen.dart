@@ -225,7 +225,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
             ],
           ),
         );
-        if (mounted) context.go('/home');
+        if (mounted) context.go('/dashboard');
       }
     } catch (e) {
       if (mounted) {

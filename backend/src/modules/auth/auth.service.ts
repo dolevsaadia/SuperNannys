@@ -37,6 +37,13 @@ async function sendOTP(email: string, userId?: string) {
   }
 }
 
+/** Check if a nanny has completed onboarding (city must be set). */
+async function getNannyOnboardingCompleted(userId: string, role: string): Promise<boolean> {
+  if (role !== 'NANNY') return true
+  const profile = await authDal.findNannyProfileCity(userId)
+  return profile != null && profile.city !== ''
+}
+
 export const authService = {
   async register(data: RegisterInput) {
     const email = data.email.toLowerCase()
@@ -67,7 +74,8 @@ export const authService = {
     logger.info('User registered', { userId: user.id, email, role: data.role })
 
     const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
-    return { ...tokens, user }
+    // New nannies always need onboarding
+    return { ...tokens, user: { ...user, nannyOnboardingCompleted: data.role !== 'NANNY' ? true : false } }
   },
 
   async login(data: LoginInput) {
@@ -91,12 +99,14 @@ export const authService = {
 
     logger.info('User logged in', { userId: user.id, email })
 
+    const nannyOnboardingCompleted = await getNannyOnboardingCompleted(user.id, user.role)
     const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
       ...tokens,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+        nannyOnboardingCompleted,
       },
     }
   },
@@ -166,6 +176,7 @@ export const authService = {
         user: {
           id: created.id, email: created.email, fullName: created.fullName,
           role: created.role, avatarUrl: created.avatarUrl, isVerified: created.isVerified,
+          nannyOnboardingCompleted: data.role !== 'NANNY' ? true : false,
         },
       }
     }
@@ -177,6 +188,7 @@ export const authService = {
 
     logger.info('Google sign-in', { email: payload.email, isNewUser: false, userId: user.id })
 
+    const nannyOnboardingCompleted = await getNannyOnboardingCompleted(user.id, user.role)
     // Google already verified the email, so sign in directly (no OTP needed).
     const existingTokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
@@ -185,6 +197,7 @@ export const authService = {
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+        nannyOnboardingCompleted,
       },
     }
   },
@@ -203,12 +216,14 @@ export const authService = {
 
     logger.info('OTP verified', { userId: user.id, email })
 
+    const nannyOnboardingCompleted = await getNannyOnboardingCompleted(user.id, user.role)
     const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
       ...tokens,
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+        nannyOnboardingCompleted,
       },
     }
   },
@@ -245,6 +260,7 @@ export const authService = {
 
     logger.info('Token refreshed', { userId: user.id })
 
+    const nannyOnboardingCompleted = await getNannyOnboardingCompleted(user.id, user.role)
     // Issue new token pair (refresh token rotation)
     const tokens = generateTokenPairWithExpiry({ userId: user.id, email: user.email, role: user.role })
     return {
@@ -252,6 +268,7 @@ export const authService = {
       user: {
         id: user.id, email: user.email, fullName: user.fullName,
         role: user.role, avatarUrl: user.avatarUrl, isVerified: user.isVerified,
+        nannyOnboardingCompleted,
       },
     }
   },
@@ -261,7 +278,9 @@ export const authService = {
   async getMe(userId: string) {
     const user = await authDal.findUserWithProfile(userId)
     if (!user) throw new NotFoundError('User')
-    return user
+    // Derive onboarding status from profile data
+    const nannyOnboardingCompleted = user.role !== 'NANNY' || (user.nannyProfile?.city ?? '') !== ''
+    return { ...user, nannyOnboardingCompleted }
   },
 
   /**

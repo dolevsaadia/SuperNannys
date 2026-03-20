@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 export const submitVerificationSchema = z.object({
-  idCardUrl: z.string().url().optional(),
-  idAppendixUrl: z.string().url().optional(),
-  policeClearanceUrl: z.string().url().optional(),
+  idCardUrl: z.string().min(1).optional(),
+  idAppendixUrl: z.string().min(1).optional(),
+  policeClearanceUrl: z.string().min(1).optional(),
 }).refine(
   (data) => data.idCardUrl || data.idAppendixUrl || data.policeClearanceUrl,
   { message: 'At least one document URL must be provided' },

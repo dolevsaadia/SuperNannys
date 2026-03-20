@@ -61,6 +61,13 @@ export const authDal = {
     })
   },
 
+  findNannyProfileCity(userId: string) {
+    return prisma.nannyProfile.findUnique({
+      where: { userId },
+      select: { city: true },
+    })
+  },
+
   findUserWithProfile(userId: string) {
     return prisma.user.findUnique({
       where: { id: userId },

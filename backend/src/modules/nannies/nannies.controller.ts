@@ -32,7 +32,7 @@ export const nanniesController = {
     if (!req.file) {
       throw new BadRequestError('No file uploaded')
     }
-    const validTypes: DocumentType[] = ['ID_CARD', 'POLICE_CHECK', 'FIRST_AID_CERT', 'CHILDCARE_CERT', 'OTHER']
+    const validTypes: DocumentType[] = ['ID_CARD', 'ID_APPENDIX', 'POLICE_CHECK', 'POLICE_CLEARANCE', 'FIRST_AID_CERT', 'CHILDCARE_CERT', 'OTHER']
     const type = (req.body.type || 'OTHER') as DocumentType
     if (!validTypes.includes(type)) {
       throw new ValidationError(`Invalid document type. Must be one of: ${validTypes.join(', ')}`)

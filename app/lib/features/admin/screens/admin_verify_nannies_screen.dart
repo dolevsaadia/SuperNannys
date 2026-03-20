@@ -318,6 +318,81 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
                           ],
                         ],
 
+                        // ── Verification Request Documents ──
+                        if (n['verificationRequests'] is List && (n['verificationRequests'] as List).isNotEmpty) ...[
+                          () {
+                            final vr = (n['verificationRequests'] as List).first as Map<String, dynamic>;
+                            final docs = <MapEntry<String, String>>[];
+                            if (vr['idCardUrl'] != null) docs.add(MapEntry('ID Card', vr['idCardUrl'] as String));
+                            if (vr['idAppendixUrl'] != null) docs.add(MapEntry('ID Appendix', vr['idAppendixUrl'] as String));
+                            if (vr['policeClearanceUrl'] != null) docs.add(MapEntry('Police Clearance', vr['policeClearanceUrl'] as String));
+                            if (docs.isEmpty) return const SizedBox.shrink();
+                            final serverRoot = AppConstants.apiBaseUrl.replaceAll(RegExp(r'/api$'), '');
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Text('Verification Documents', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.info.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        (vr['status'] as String? ?? 'pending').toUpperCase(),
+                                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.info),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                SizedBox(
+                                  height: 110,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: docs.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                    itemBuilder: (_, di) {
+                                      final label = docs[di].key;
+                                      final rawUrl = docs[di].value;
+                                      final fullUrl = rawUrl.startsWith('http') ? rawUrl : '$serverRoot$rawUrl';
+                                      return GestureDetector(
+                                        onTap: () => _showDocumentFullScreen(context, fullUrl, label),
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              width: 80, height: 80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: AppColors.info, width: 2),
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  fullUrl, fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) => const Center(
+                                                    child: Icon(Icons.description_rounded, color: AppColors.textHint, size: 28),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            );
+                          }(),
+                        ],
+
                         // ── ID Number ──
                         if (n['idNumber'] != null) ...[
                           const SizedBox(height: 4),

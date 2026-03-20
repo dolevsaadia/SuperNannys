@@ -40,7 +40,9 @@ enum RecurringBookingStatus {
 
 enum DocumentType {
   ID_CARD
+  ID_APPENDIX
   POLICE_CHECK
+  POLICE_CLEARANCE
   FIRST_AID_CERT
   CHILDCARE_CERT
   OTHER
