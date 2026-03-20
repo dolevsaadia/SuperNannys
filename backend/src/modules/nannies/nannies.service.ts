@@ -19,7 +19,10 @@ export const nanniesService = {
   async search(params: SearchNanniesInput) {
     const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating', hasRecurringRate } = params
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = {
+      // Only show nannies whose user account is verified and active
+      user: { isVerified: true, isActive: true },
+    }
     if (city) where.city = { contains: city, mode: 'insensitive' }
     if (minRate || maxRate) {
       const r: Record<string, number> = {}
