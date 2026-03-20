@@ -24,6 +24,7 @@ import '../../features/nanny_dashboard/screens/earnings_screen.dart';
 import '../../features/nanny_dashboard/screens/documents_screen.dart';
 import '../../features/nanny_onboarding/screens/nanny_onboarding_screen.dart';
 import '../../features/admin/screens/admin_screen.dart';
+import '../../features/admin/screens/admin_shell.dart';
 import '../../features/admin/screens/admin_users_screen.dart';
 import '../../features/admin/screens/admin_bookings_screen.dart';
 import '../../features/admin/screens/admin_verify_nannies_screen.dart';
@@ -74,6 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (loc == '/splash') {
         if (isAuth) {
           final user = authState.user;
+          if (user?.isAdmin == true) return '/admin';
           return user?.isNanny == true ? '/dashboard' : '/home';
         }
         return '/onboarding';
@@ -85,6 +87,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isAuth && !isPublic) return '/onboarding';
       if (isAuth && isPublic) {
         final user = authState.user;
+        if (user?.isAdmin == true) return '/admin';
         if (user?.isNanny == true) return '/dashboard';
         return '/home';
       }
@@ -202,6 +205,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'verification', builder: (_, __) => const VerificationRequestScreen()),
             ],
           ),
+        ],
+      ),
+
+      // Admin shell with dedicated bottom nav
+      ShellRoute(
+        builder: (context, state, child) => AdminShell(child: child),
+        routes: [
           GoRoute(
             path: '/admin',
             builder: (_, __) => const AdminScreen(),

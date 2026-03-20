@@ -58,13 +58,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final user = ref.watch(currentUserProvider);
     final location = GoRouterState.of(context).matchedLocation;
     final isNanny = user?.isNanny == true;
-    final isAdmin = user?.isAdmin == true;
 
     final routes = isNanny
         ? ['/dashboard', '/bookings', '/chat', '/profile']
-        : isAdmin
-            ? ['/home', '/bookings', '/map', '/admin', '/profile']
-            : ['/home', '/bookings', '/map', '/chat', '/profile'];
+        : ['/home', '/bookings', '/map', '/chat', '/profile'];
 
     int currentIndex = routes.indexWhere((r) => location.startsWith(r));
     if (currentIndex < 0) currentIndex = 0;
@@ -76,21 +73,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
             _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
           ]
-        : isAdmin
-            ? const [
-                _NavItem(Icons.search_outlined, Icons.search_rounded, 'Find'),
-                _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Bookings'),
-                _NavItem(Icons.map_outlined, Icons.map_rounded, 'Map'),
-                _NavItem(Icons.admin_panel_settings_outlined, Icons.admin_panel_settings_rounded, 'Admin'),
-                _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
-              ]
-            : const [
-                _NavItem(Icons.search_outlined, Icons.search_rounded, 'Find'),
-                _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Bookings'),
-                _NavItem(Icons.map_outlined, Icons.map_rounded, 'Map'),
-                _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
-                _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
-              ];
+        : const [
+            _NavItem(Icons.search_outlined, Icons.search_rounded, 'Find'),
+            _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Bookings'),
+            _NavItem(Icons.map_outlined, Icons.map_rounded, 'Map'),
+            _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
+            _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+          ];
 
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 50;
     final connectivity = ref.watch(connectivityProvider);

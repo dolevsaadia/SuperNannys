@@ -66,14 +66,12 @@ export const nanniesDal = {
 
   /** Atomically replace all availability slots for a nanny profile */
   replaceAllAvailability(nannyProfileId: string, slots: { dayOfWeek: number; fromTime: string; toTime: string; isAvailable: boolean }[]) {
-    return prisma.$transaction([
-      prisma.availability.deleteMany({ where: { nannyProfileId } }),
-      ...slots.map(slot =>
-        prisma.availability.create({
-          data: { nannyProfileId, ...slot },
-        })
-      ),
-    ])
+    return prisma.$transaction(async (tx) => {
+      await tx.availability.deleteMany({ where: { nannyProfileId } })
+      for (const slot of slots) {
+        await tx.availability.create({ data: { nannyProfileId, ...slot } })
+      }
+    })
   },
 
   createDocument(nannyProfileId: string, type: DocumentType, url: string) {
