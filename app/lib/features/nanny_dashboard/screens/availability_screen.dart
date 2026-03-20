@@ -60,10 +60,24 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      await apiClient.dio.put('/nannies/me', data: {
+      final resp = await apiClient.dio.put('/nannies/me', data: {
         'availability': _slots,
         'recurringHourlyRateNis': _enableRecurring ? _recurringRate : null,
       });
+      // Sync local state with server response
+      final profile = resp.data['data'] as Map<String, dynamic>?;
+      if (profile != null) {
+        final avail = (profile['availability'] as List<dynamic>?) ?? [];
+        setState(() {
+          _slots = List.generate(7, (day) {
+            final existing = avail.firstWhere(
+              (a) => (a as Map<String, dynamic>)['dayOfWeek'] == day,
+              orElse: () => {'dayOfWeek': day, 'fromTime': '09:00', 'toTime': '18:00', 'isAvailable': false},
+            ) as Map<String, dynamic>;
+            return Map<String, dynamic>.from(existing);
+          });
+        });
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Availability saved'), backgroundColor: AppColors.success),

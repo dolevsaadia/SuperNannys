@@ -138,7 +138,7 @@ export const authService = {
         role: data.role,
         authProvider: 'GOOGLE',
         googleSub: payload.sub,
-        isVerified: true,
+        isVerified: data.role !== 'NANNY',  // Nannies require admin verification
       })
       if (data.role === 'NANNY') {
         await authDal.createNannyProfile(created.id)

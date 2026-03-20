@@ -18,7 +18,10 @@ export const nanniesService = {
   async search(params: SearchNanniesInput) {
     const { city, minRate, maxRate, minYears, language, skill, minRating, lat, lng, radiusKm, sortBy = 'rating' } = params
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = {
+      // Only show nannies whose user account is verified and active
+      user: { isVerified: true, isActive: true },
+    }
     if (city) where.city = { contains: city, mode: 'insensitive' }
     if (minRate || maxRate) {
       const r: Record<string, number> = {}
@@ -76,24 +79,29 @@ export const nanniesService = {
 
   async updateMyProfile(userId: string, data: UpdateNannyProfileInput) {
     const { availability, ...profileData } = data
-    const profile = await nanniesDal.updateProfile(userId, profileData)
+    await nanniesDal.updateProfile(userId, profileData)
 
     if (availability) {
-      for (const slot of availability) {
-        try {
-          await nanniesDal.upsertAvailability(profile.id, slot)
-        } catch (err) {
-          logger.error('Failed to upsert availability slot', {
-            userId,
-            profileId: profile.id,
-            dayOfWeek: slot.dayOfWeek,
-            error: err instanceof Error ? err.message : String(err),
-          })
+      // Get the profile id for availability upserts
+      const existing = await nanniesDal.findByUserId(userId)
+      if (existing) {
+        for (const slot of availability) {
+          try {
+            await nanniesDal.upsertAvailability(existing.id, slot)
+          } catch (err) {
+            logger.error('Failed to upsert availability slot', {
+              userId,
+              profileId: existing.id,
+              dayOfWeek: slot.dayOfWeek,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          }
         }
       }
     }
 
     logger.info('Nanny profile updated', { userId })
-    return profile
+    // Return full profile with availability included
+    return nanniesDal.findByUserId(userId)
   },
 }
