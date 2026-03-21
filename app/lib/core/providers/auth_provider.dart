@@ -329,6 +329,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await apiClient.dio.delete('/users/me');
       appLog.info('auth', 'account_deleted', 'Account deleted by user');
+      // Wipe biometric binding so deleted user can never re-enter via Face ID
+      try { await BiometricService().disable(); } catch (_) {}
       await logout();
       return true;
     } catch (e) {
@@ -347,10 +349,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _storage.delete(key: AppConstants.userKey);
       await _storage.delete(key: AppConstants.refreshTokenKey);
-    } catch (_) {}
-    // Clear biometric binding so deleted/logged-out users can't re-enter
-    try {
-      await BiometricService().disable();
     } catch (_) {}
     state = const AuthState();
   }
