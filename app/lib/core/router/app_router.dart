@@ -28,7 +28,8 @@ import '../../features/admin/screens/admin_shell.dart';
 import '../../features/admin/screens/admin_users_screen.dart';
 import '../../features/admin/screens/admin_bookings_screen.dart';
 import '../../features/admin/screens/admin_verify_nannies_screen.dart';
-import '../../features/map/screens/map_screen.dart';
+import '../../features/nearby/screens/nearby_screen.dart';
+import '../../features/nearby/screens/full_map_screen.dart';
 import '../../features/auth/screens/otp_verification_screen.dart';
 import '../../features/session/screens/live_session_screen.dart';
 import '../../features/recurring_bookings/screens/recurring_bookings_screen.dart';
@@ -43,6 +44,8 @@ import '../../features/verification/screens/verification_request_screen.dart';
 import '../../features/profile/screens/language_screen.dart';
 import '../../features/auth/screens/phone_verification_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
+import 'package:latlong2/latlong.dart';
+import '../models/nanny_model.dart';
 
 /// Bridges Riverpod [AuthState] changes into a [Listenable] that GoRouter can
 /// use via [refreshListenable] — this re-evaluates the redirect function
@@ -196,7 +199,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+          GoRoute(
+            path: '/nearby',
+            builder: (_, __) => const NearbyScreen(),
+            routes: [
+              GoRoute(
+                path: 'fullmap',
+                builder: (_, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return FullMapScreen(
+                    initialUserLocation: extra?['userLocation'] as LatLng?,
+                    initialNannies: extra?['nannies'] as List<NannyModel>?,
+                  );
+                },
+              ),
+            ],
+          ),
           GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
           GoRoute(
             path: '/recurring-bookings',
