@@ -1,53 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 
-class RoleSelectScreen extends ConsumerStatefulWidget {
+class RoleSelectScreen extends StatefulWidget {
   const RoleSelectScreen({super.key});
 
   @override
-  ConsumerState<RoleSelectScreen> createState() => _RoleSelectScreenState();
+  State<RoleSelectScreen> createState() => _RoleSelectScreenState();
 }
 
-class _RoleSelectScreenState extends ConsumerState<RoleSelectScreen> {
+class _RoleSelectScreenState extends State<RoleSelectScreen> {
   String? _selected;
   bool _isLoading = false;
 
-  /// If coming from Google Sign-In, this will contain the idToken
-  String? get _googleIdToken {
+  Map<String, dynamic>? get _extras {
     final extra = GoRouterState.of(context).extra;
-    if (extra is Map<String, dynamic>) return extra['googleIdToken'] as String?;
-    return null;
+    return extra is Map<String, dynamic> ? extra : null;
   }
 
+  String? get _googleIdToken => _extras?['googleIdToken'] as String?;
   bool get _isGoogleFlow => _googleIdToken != null;
 
   Future<void> _continue() async {
     if (_selected == null) return;
 
-    final googleToken = _googleIdToken;
-    if (googleToken != null) {
-      // Google Sign-In flow — re-login with role
-      setState(() => _isLoading = true);
-      final result = await ref.read(authProvider.notifier).loginWithGoogle(googleToken, role: _selected);
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      if (result.success) {
-        if (result.pendingVerification && result.email != null) {
-          // OTP verification required after role selection
-          context.go('/verify-otp', extra: {'email': result.email});
-        } else {
-          context.go('/home');
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Failed to set role'), backgroundColor: AppColors.error),
-        );
-      }
+    if (_isGoogleFlow) {
+      // Google flow — navigate to register screen with prefill data
+      context.go('/register', extra: {
+        'role': _selected,
+        'googleIdToken': _googleIdToken,
+        'googleEmail': _extras?['googleEmail'],
+        'googleName': _extras?['googleName'],
+        'googleAvatar': _extras?['googleAvatar'],
+      });
     } else {
       // Normal registration flow
       context.go('/register', extra: {'role': _selected});

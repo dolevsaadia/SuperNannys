@@ -64,8 +64,9 @@ model User {
   email        String       @unique
   passwordHash String?
   fullName     String
-  phone        String?
+  phone        String?      @unique
   idNumber     String?      @unique  // Israeli ID number
+  dateOfBirth  DateTime?
   avatarUrl    String?
   role         Role         @default(PARENT)
   authProvider AuthProvider @default(LOCAL)

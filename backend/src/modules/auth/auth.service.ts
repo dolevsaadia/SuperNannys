@@ -50,13 +50,19 @@ export const authService = {
     const existing = await authDal.findUserByEmail(email)
     if (existing) throw new ConflictError('Email already in use')
 
+    // Check phone uniqueness if provided
+    if (data.phone) {
+      const phoneExists = await authDal.findUserByPhone(data.phone)
+      if (phoneExists) throw new ConflictError('This phone number is already registered to another account.')
+    }
+
     const passwordHash = await bcrypt.hash(data.password, 12)
     const userData = {
       email,
       passwordHash,
       fullName: data.fullName,
       phone: data.phone,
-      idNumber: data.idNumber,
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
       role: data.role,
       // Structured address
       city: data.city,
@@ -153,6 +159,13 @@ export const authService = {
       // New user with role — create account.
       // Google already verified the email, so sign in directly (no OTP needed).
       isNewUser = true
+
+      // Check phone uniqueness if provided
+      if (data.phone) {
+        const phoneExists = await authDal.findUserByPhone(data.phone)
+        if (phoneExists) throw new ConflictError('This phone number is already registered to another account.')
+      }
+
       const googleUserData = {
         email: payload.email,
         fullName: payload.name || payload.email,
@@ -161,6 +174,8 @@ export const authService = {
         authProvider: 'GOOGLE' as const,
         googleSub: payload.sub,
         isVerified: data.role !== 'NANNY',  // Nannies require admin verification
+        phone: data.phone,
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
       }
       // Atomic: create user + nanny profile in a single transaction if NANNY role
       const created = data.role === 'NANNY'

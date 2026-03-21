@@ -5,7 +5,7 @@ export const registerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   fullName: z.string().min(2).max(100),
   phone: z.string().optional(),
-  idNumber: z.string().min(5).max(9).optional(),
+  dateOfBirth: z.string().optional(), // ISO date string e.g. "2000-01-15"
   role: z.enum(['PARENT', 'NANNY']),
   // Structured address fields
   city: z.string().optional(),
@@ -23,6 +23,8 @@ export const loginSchema = z.object({
 export const googleSignInSchema = z.object({
   idToken: z.string().min(1, 'idToken is required'),
   role: z.enum(['PARENT', 'NANNY']).optional(),
+  phone: z.string().optional(),
+  dateOfBirth: z.string().optional(), // ISO date string
 })
 
 export const verifyOTPSchema = z.object({
