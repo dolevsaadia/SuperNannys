@@ -12,7 +12,7 @@ export const adminService = {
     const [user] = await Promise.all([adminDal.countUsers({ id: userId })])
     if (!user) throw new NotFoundError('User')
 
-    const result = await usersDal.softDeleteUser(userId)
+    const result = await usersDal.softDeleteUser(userId, adminUserId)
     logger.info('Admin deleted user', { adminUserId, targetUserId: userId, ...result })
     return { message: 'User deleted successfully', ...result }
   },
@@ -32,7 +32,7 @@ export const adminService = {
   },
 
   async getUsers(filters: { search?: string; role?: string; isActive?: string; page?: string; limit?: string }) {
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { deletedAt: null }
     if (filters.role) where.role = filters.role
     if (filters.isActive !== undefined) where.isActive = filters.isActive === 'true'
     if (filters.search) {
@@ -46,6 +46,25 @@ export const adminService = {
 
     const [users, total] = await Promise.all([
       adminDal.searchUsers(where, skip, limit),
+      adminDal.countUsers(where),
+    ])
+
+    return { users, pagination: paginationMeta(total, page, limit) }
+  },
+
+  async getDeletedUsers(filters: { search?: string; page?: string; limit?: string }) {
+    const where: Record<string, unknown> = { deletedAt: { not: null } }
+    if (filters.search) {
+      where.OR = [
+        { preDeleteName: { contains: filters.search, mode: 'insensitive' } },
+        { preDeleteEmail: { contains: filters.search, mode: 'insensitive' } },
+      ]
+    }
+
+    const { page, limit, skip } = parsePagination(filters, 100)
+
+    const [users, total] = await Promise.all([
+      adminDal.searchDeletedUsers(where, skip, limit),
       adminDal.countUsers(where),
     ])
 

@@ -20,6 +20,11 @@ export const adminController = {
     ok(res, result)
   },
 
+  async getDeletedUsers(req: Request, res: Response): Promise<void> {
+    const result = await adminService.getDeletedUsers(req.query as Record<string, string>)
+    ok(res, result)
+  },
+
   async updateUser(req: Request, res: Response): Promise<void> {
     const data = updateUserSchema.parse(req.body)
     const user = await adminService.updateUser(req.params.id, data)

@@ -9,16 +9,25 @@ export const usersDal = {
    * 2. Cancel future REQUESTED / ACCEPTED bookings
    * 3. Cancel PENDING / ACTIVE recurring bookings
    */
-  async softDeleteUser(userId: string) {
+  async softDeleteUser(userId: string, adminUserId?: string) {
     return prisma.$transaction(async (tx) => {
       const now = new Date()
 
-      // 1. Deactivate + anonymise
+      // 0. Read original name/email before anonymizing
+      const original = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { fullName: true, email: true },
+      })
+
+      // 1. Deactivate + anonymise, preserving pre-delete info
       await tx.user.update({
         where: { id: userId },
         data: {
           isActive: false,
           deletedAt: now,
+          deletedByAdminId: adminUserId ?? null,
+          preDeleteName: original.fullName,
+          preDeleteEmail: original.email,
           fullName: 'Deleted User',
           avatarUrl: null,
           phone: null,

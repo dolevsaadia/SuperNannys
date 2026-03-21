@@ -8,6 +8,7 @@ router.use(requireAuth, requireRole('ADMIN'))
 
 router.get('/stats',                       asyncHandler(adminController.getStats))
 router.get('/users',                       asyncHandler(adminController.getUsers))
+router.get('/users/deleted',               asyncHandler(adminController.getDeletedUsers))
 router.patch('/users/:id',                 asyncHandler(adminController.updateUser))
 router.delete('/users/:id',                asyncHandler(adminController.deleteUser))
 router.get('/nannies/pending-verification', asyncHandler(adminController.getPendingNannies))
