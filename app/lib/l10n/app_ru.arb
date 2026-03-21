@@ -582,5 +582,8 @@
   "deleteConfirmTerminal": "Это бронирование будет удалено навсегда. Это действие нельзя отменить.",
   "deleteConfirmActive": "Бронирование будет отменено и удалено навсегда. Это действие нельзя отменить.",
   "bookingsAppearHere": "Ваши бронирования появятся здесь",
-  "childrenCountLabel": "{count} ребёнок/детей"
+  "childrenCountLabel": "{count} ребёнок/детей",
+  "pendingPayment": "Ожидает оплаты",
+  "paymentCancelled": "Отменено",
+  "paymentStatus": "Статус оплаты"
 }

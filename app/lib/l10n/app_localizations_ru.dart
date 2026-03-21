@@ -1891,4 +1891,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String childrenCountLabel(int count) {
     return '$count ребёнок/детей';
   }
+
+  @override
+  String get pendingPayment => 'Ожидает оплаты';
+
+  @override
+  String get paymentCancelled => 'Отменено';
+
+  @override
+  String get paymentStatus => 'Статус оплаты';
 }

@@ -82,6 +82,17 @@ class BookingModel {
   int get bookedDurationMin =>
       endTime.difference(startTime).inMinutes;
 
+  // ── Payment status — single source of truth ─────────────────
+  /// Derives payment status from booking state + isPaid flag.
+  /// Returns one of: 'PAID', 'PENDING_PAYMENT', 'PROCESSING', 'CANCELLED', 'NOT_REQUIRED'
+  String get paymentStatus {
+    if (isCancelled || isDeclined) return 'CANCELLED';
+    if (isPaid) return 'PAID';
+    if (isCompleted) return 'PROCESSING'; // completed but payment not yet confirmed
+    // REQUESTED, ACCEPTED, IN_PROGRESS → payment is pending
+    return 'PENDING_PAYMENT';
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'parentUserId': parentUserId,

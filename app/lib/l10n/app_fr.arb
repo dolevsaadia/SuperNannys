@@ -582,5 +582,8 @@
   "deleteConfirmTerminal": "Cette réservation sera définitivement supprimée. Cette action est irréversible.",
   "deleteConfirmActive": "Cette réservation sera annulée et définitivement supprimée. Cette action est irréversible.",
   "bookingsAppearHere": "Vos réservations apparaîtront ici",
-  "childrenCountLabel": "{count} enfant(s)"
+  "childrenCountLabel": "{count} enfant(s)",
+  "pendingPayment": "En attente de paiement",
+  "paymentCancelled": "Annulé",
+  "paymentStatus": "Statut de paiement"
 }
