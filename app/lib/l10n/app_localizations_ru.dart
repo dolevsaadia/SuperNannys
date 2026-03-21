@@ -1863,4 +1863,32 @@ class AppLocalizationsRu extends AppLocalizations {
   String deletedDate(String date) {
     return 'Удалено: $date';
   }
+
+  @override
+  String get declined => 'Отклонено';
+
+  @override
+  String get keep => 'Оставить';
+
+  @override
+  String get bookingDeleted => 'Бронирование удалено';
+
+  @override
+  String get failedToDeleteBooking => 'Не удалось удалить бронирование';
+
+  @override
+  String get deleteConfirmTerminal =>
+      'Это бронирование будет удалено навсегда. Это действие нельзя отменить.';
+
+  @override
+  String get deleteConfirmActive =>
+      'Бронирование будет отменено и удалено навсегда. Это действие нельзя отменить.';
+
+  @override
+  String get bookingsAppearHere => 'Ваши бронирования появятся здесь';
+
+  @override
+  String childrenCountLabel(int count) {
+    return '$count ребёнок/детей';
+  }
 }

@@ -1840,4 +1840,32 @@ class AppLocalizationsHe extends AppLocalizations {
   String deletedDate(String date) {
     return 'נמחק: $date';
   }
+
+  @override
+  String get declined => 'נדחה';
+
+  @override
+  String get keep => 'השאר';
+
+  @override
+  String get bookingDeleted => 'ההזמנה נמחקה';
+
+  @override
+  String get failedToDeleteBooking => 'מחיקת ההזמנה נכשלה';
+
+  @override
+  String get deleteConfirmTerminal =>
+      'פעולה זו תמחק את ההזמנה לצמיתות. לא ניתן לבטל פעולה זו.';
+
+  @override
+  String get deleteConfirmActive =>
+      'פעולה זו תבטל את ההזמנה ותמחק אותה לצמיתות. לא ניתן לבטל פעולה זו.';
+
+  @override
+  String get bookingsAppearHere => 'ההזמנות שלך יופיעו כאן';
+
+  @override
+  String childrenCountLabel(int count) {
+    return '$count ילד(ים)';
+  }
 }

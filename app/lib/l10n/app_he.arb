@@ -574,5 +574,13 @@
   "pending": "ממתין",
   "accepted": "אושר",
   "cancelled": "בוטל",
-  "deletedDate": "נמחק: {date}"
+  "deletedDate": "נמחק: {date}",
+  "declined": "נדחה",
+  "keep": "השאר",
+  "bookingDeleted": "ההזמנה נמחקה",
+  "failedToDeleteBooking": "מחיקת ההזמנה נכשלה",
+  "deleteConfirmTerminal": "פעולה זו תמחק את ההזמנה לצמיתות. לא ניתן לבטל פעולה זו.",
+  "deleteConfirmActive": "פעולה זו תבטל את ההזמנה ותמחק אותה לצמיתות. לא ניתן לבטל פעולה זו.",
+  "bookingsAppearHere": "ההזמנות שלך יופיעו כאן",
+  "childrenCountLabel": "{count} ילד(ים)"
 }

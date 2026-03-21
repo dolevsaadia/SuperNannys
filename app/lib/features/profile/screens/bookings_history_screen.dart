@@ -11,6 +11,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/utils/async_value_ui.dart';
+import '../../../core/services/booking_reminder_service.dart';
 import '../../../l10n/app_localizations.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose.family<List<BookingModel>, String?>((ref, status) async {
@@ -90,6 +91,7 @@ class _BookingsList extends ConsumerWidget {
   Color _statusColor(String s) => switch (s) {
         'REQUESTED' => AppColors.warning,
         'ACCEPTED' => AppColors.success,
+        'IN_PROGRESS' => AppColors.accent,
         'COMPLETED' => AppColors.primary,
         _ => AppColors.error,
       };
@@ -97,18 +99,30 @@ class _BookingsList extends ConsumerWidget {
   IconData _statusIcon(String s) => switch (s) {
         'REQUESTED' => Icons.schedule_rounded,
         'ACCEPTED' => Icons.check_circle_outline_rounded,
+        'IN_PROGRESS' => Icons.timer_rounded,
         'COMPLETED' => Icons.check_circle_rounded,
         _ => Icons.cancel_rounded,
+      };
+
+  String _localizedStatus(AppLocalizations l, String s) => switch (s) {
+        'REQUESTED' => l.pending,
+        'ACCEPTED' => l.accepted,
+        'IN_PROGRESS' => l.inProgress,
+        'COMPLETED' => l.completed,
+        'DECLINED' => l.declined,
+        'CANCELLED' => l.cancelled,
+        _ => s,
       };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_bookingsProvider(status));
+    final l = AppLocalizations.of(context);
 
     return async.authAwareWhen(
       ref,
       loading: () => const SkeletonList(count: 4, skeleton: BookingCardSkeleton()),
-      errorTitle: 'Could not load bookings',
+      errorTitle: l.couldNotLoadBooking,
       onRetry: () => ref.invalidate(_bookingsProvider(status)),
       data: (bookings) {
         if (bookings.isEmpty) {
@@ -126,9 +140,9 @@ class _BookingsList extends ConsumerWidget {
                   child: const Icon(Icons.calendar_today_outlined, size: 28, color: AppColors.primary),
                 ),
                 const SizedBox(height: 12),
-                Text(AppLocalizations.of(context).noBookingsFound, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(l.noBookingsFound, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                const Text('Your bookings will appear here', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                Text(l.bookingsAppearHere, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               ],
             ),
           );
@@ -144,9 +158,11 @@ class _BookingsList extends ConsumerWidget {
               final b = bookings[i];
               final fmt = DateFormat('MMM d, yyyy • HH:mm');
               final sColor = _statusColor(b.status);
+              final isActive = b.isRequested || b.isAccepted;
 
               return GestureDetector(
                 onTap: () => context.go('/bookings/${b.id}'),
+                onLongPress: () => _showDeleteDialog(context, ref, b.id, isActive),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
@@ -210,7 +226,7 @@ class _BookingsList extends ConsumerWidget {
                                       Icon(_statusIcon(b.status), size: 12, color: sColor),
                                       const SizedBox(width: 4),
                                       Text(
-                                        b.status,
+                                        _localizedStatus(l, b.status),
                                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: sColor),
                                       ),
                                     ],
@@ -245,7 +261,7 @@ class _BookingsList extends ConsumerWidget {
                                 const Icon(Icons.child_care_rounded, size: 14, color: AppColors.textHint),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${b.childrenCount} child(ren)',
+                                  l.childrenCountLabel(b.childrenCount),
                                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                                 ),
                               ],
@@ -266,5 +282,46 @@ class _BookingsList extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _showDeleteDialog(BuildContext context, WidgetRef ref, String bookingId, bool isActive) async {
+    final l = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          isActive ? l.cancelAndDeleteQuestion : l.deleteBookingQuestion,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: Text(isActive ? l.deleteConfirmActive : l.deleteConfirmTerminal),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.keep)),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isActive ? l.cancelAndDelete : l.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await apiClient.dio.delete('/bookings/$bookingId');
+      await BookingReminderService.instance.cancelReminders(bookingId);
+      triggerDataRefresh(ref);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.bookingDeleted)));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.failedToDeleteBooking), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 }

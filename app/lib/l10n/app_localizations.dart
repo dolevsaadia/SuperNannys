@@ -3529,6 +3529,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deleted: {date}'**
   String deletedDate(String date);
+
+  /// Declined status label
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get declined;
+
+  /// Keep button in confirmation dialogs
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get keep;
+
+  /// Snackbar message after booking deletion
+  ///
+  /// In en, this message translates to:
+  /// **'Booking deleted'**
+  String get bookingDeleted;
+
+  /// Error message when booking deletion fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete booking'**
+  String get failedToDeleteBooking;
+
+  /// Delete confirmation for completed/cancelled bookings
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete this booking. This action cannot be undone.'**
+  String get deleteConfirmTerminal;
+
+  /// Delete confirmation for active/requested bookings
+  ///
+  /// In en, this message translates to:
+  /// **'This will cancel the booking and permanently delete it. This action cannot be undone.'**
+  String get deleteConfirmActive;
+
+  /// Empty bookings list subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Your bookings will appear here'**
+  String get bookingsAppearHere;
+
+  /// Children count label on booking card
+  ///
+  /// In en, this message translates to:
+  /// **'{count} child(ren)'**
+  String childrenCountLabel(int count);
 }
 
 class _AppLocalizationsDelegate
