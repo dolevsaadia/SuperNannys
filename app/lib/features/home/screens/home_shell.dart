@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/biometric_prompt_dialog.dart';
 import '../../session/widgets/session_banner.dart';
+import '../../../l10n/app_localizations.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -68,19 +69,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     int currentIndex = routes.indexWhere((r) => location.startsWith(r));
     if (currentIndex < 0) currentIndex = 0;
 
+    final l10n = AppLocalizations.of(context);
     final navItems = isNanny
-        ? const [
-            _NavItem(Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard'),
-            _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Jobs'),
-            _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
-            _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+        ? [
+            _NavItem(Icons.dashboard_outlined, Icons.dashboard_rounded, l10n.dashboard),
+            _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, l10n.jobs),
+            _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, l10n.chat),
+            _NavItem(Icons.person_outline_rounded, Icons.person_rounded, l10n.profile),
           ]
-        : const [
-            _NavItem(Icons.search_outlined, Icons.search_rounded, 'Find'),
-            _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Bookings'),
-            _NavItem(Icons.explore_outlined, Icons.explore_rounded, 'Nearby'),
-            _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
-            _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+        : [
+            _NavItem(Icons.search_outlined, Icons.search_rounded, l10n.find),
+            _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, l10n.bookings),
+            _NavItem(Icons.explore_outlined, Icons.explore_rounded, l10n.nearby),
+            _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, l10n.chat),
+            _NavItem(Icons.person_outline_rounded, Icons.person_rounded, l10n.profile),
           ];
 
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 50;

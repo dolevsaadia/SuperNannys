@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../l10n/app_localizations.dart';
 
 class BookingSummaryScreen extends StatelessWidget {
   final Map<String, dynamic> bookingData;
@@ -10,7 +11,8 @@ class BookingSummaryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nannyName = bookingData['nannyName'] as String? ?? 'Nanny';
+    final l = AppLocalizations.of(context);
+    final nannyName = bookingData['nannyName'] as String? ?? l.nanny;
     final isRecurring = bookingData['isRecurring'] as bool? ?? false;
     final hourlyRate = bookingData['hourlyRate'] as int? ?? 0;
     final totalAmount = bookingData['totalAmount'] as int? ?? 0;
@@ -22,7 +24,7 @@ class BookingSummaryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Booking Summary'),
+        title: Text(l.bookingSummary),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
@@ -60,7 +62,7 @@ class BookingSummaryScreen extends StatelessWidget {
                               children: [
                                 Text(nannyName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                                 Text(
-                                  isRecurring ? 'Recurring Booking' : 'One-time Booking',
+                                  isRecurring ? l.recurringBookingLabel : l.oneTimeBookingLabel,
                                   style: TextStyle(fontSize: 13, color: isRecurring ? AppColors.accent : AppColors.primary),
                                 ),
                               ],
@@ -81,16 +83,16 @@ class BookingSummaryScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          _DetailRow(icon: Icons.schedule_rounded, label: 'Duration', value: '${durationHours.toStringAsFixed(1)} hours'),
+                          _DetailRow(icon: Icons.schedule_rounded, label: l.duration, value: l.hoursLabel(durationHours.toStringAsFixed(1))),
                           const Divider(height: 20),
-                          _DetailRow(icon: Icons.child_care_rounded, label: 'Children', value: '$childrenCount'),
+                          _DetailRow(icon: Icons.child_care_rounded, label: l.children, value: '$childrenCount'),
                           if (address.isNotEmpty) ...[
                             const Divider(height: 20),
-                            _DetailRow(icon: Icons.location_on_outlined, label: 'Address', value: address),
+                            _DetailRow(icon: Icons.location_on_outlined, label: l.address, value: address),
                           ],
                           if (notes.isNotEmpty) ...[
                             const Divider(height: 20),
-                            _DetailRow(icon: Icons.note_outlined, label: 'Notes', value: notes),
+                            _DetailRow(icon: Icons.note_outlined, label: l.notes, value: notes),
                           ],
                         ],
                       ),
@@ -109,7 +111,7 @@ class BookingSummaryScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Hourly Rate', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+                              Text(l.hourlyRate, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
                               Text('\u20AA$hourlyRate/hr', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                             ],
                           ),
@@ -117,7 +119,7 @@ class BookingSummaryScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Estimated Total', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+                              Text(l.estimatedTotal, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
                               Text('~\u20AA$totalAmount', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                             ],
                           ),
@@ -134,14 +136,14 @@ class BookingSummaryScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.info.withValues(alpha: 0.2)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.info_outline_rounded, color: AppColors.info, size: 18),
-                          SizedBox(width: 8),
+                          const Icon(Icons.info_outline_rounded, color: AppColors.info, size: 18),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Payment is charged only after the session ends, based on actual hours.',
-                              style: TextStyle(color: AppColors.info, fontSize: 12, fontWeight: FontWeight.w500),
+                              l.paymentChargedAfterSession,
+                              style: const TextStyle(color: AppColors.info, fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ),
                         ],

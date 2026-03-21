@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Shows a friendly "session expired" dialog that the user must acknowledge.
 /// Returns a Future that completes when the user taps "Sign In".
 Future<void> showSessionExpiredDialog(BuildContext context) {
+  final l = AppLocalizations.of(context);
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -22,16 +24,15 @@ Future<void> showSessionExpiredDialog(BuildContext context) {
             child: Icon(Icons.lock_clock_outlined, size: 32, color: Colors.orange.shade700),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Session Expired',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            l.sessionExpired,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Your session has expired for security reasons. '
-            'Please sign in again to continue.',
+          Text(
+            l.sessionExpiredMessage,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.black54, height: 1.4),
+            style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.4),
           ),
           const SizedBox(height: 24),
         ],
@@ -45,7 +46,7 @@ Future<void> showSessionExpiredDialog(BuildContext context) {
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Sign In', style: TextStyle(fontSize: 16)),
+            child: Text(l.signIn, style: const TextStyle(fontSize: 16)),
           ),
         ),
         const SizedBox(height: 8),

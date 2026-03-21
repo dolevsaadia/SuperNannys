@@ -17,6 +17,7 @@ import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/services/booking_reminder_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../l10n/app_localizations.dart';
 import 'booking_map_screen.dart';
 
 final _bookingDetailProvider = FutureProvider.autoDispose.family<BookingModel, String>((ref, id) async {
@@ -31,18 +32,19 @@ class BookingDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final async = ref.watch(_bookingDetailProvider(bookingId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Booking Details'),
+        title: Text(l.bookingDetails),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: async.authAwareWhen(
         ref,
         loading: () => const FullScreenLoader(),
-        errorTitle: 'Could not load booking',
+        errorTitle: l.couldNotLoadBooking,
         onRetry: () => ref.invalidate(_bookingDetailProvider(bookingId)),
         data: (booking) => _BookingDetailBody(booking: booking),
       ),
@@ -74,6 +76,7 @@ class _BookingDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final user = ref.watch(currentUserProvider);
     final isParent = user?.isParent == true;
     final isNanny = user?.isNanny == true;
@@ -111,7 +114,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _statusDescription(booking.status),
+                  _statusDescription(context, booking.status),
                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -142,7 +145,7 @@ class _BookingDetailBody extends ConsumerWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Part of Recurring Booking',
+                        l.partOfRecurringBooking,
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent),
                       ),
                     ),
@@ -176,7 +179,7 @@ class _BookingDetailBody extends ConsumerWidget {
                     ),
                   ),
                   child: Text(
-                    isParent ? 'Your Nanny' : 'Parent',
+                    isParent ? l.yourNanny : l.parent,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                 ),
@@ -238,7 +241,7 @@ class _BookingDetailBody extends ConsumerWidget {
             const SizedBox(height: 12),
             () {
               final otherPhone = isParent ? booking.nanny?.phone : booking.parent?.phone;
-              final otherName = isParent ? booking.nanny?.fullName ?? 'Nanny' : booking.parent?.fullName ?? 'Parent';
+              final otherName = isParent ? booking.nanny?.fullName ?? l.nanny : booking.parent?.fullName ?? l.parent;
               if (otherPhone != null && otherPhone.isNotEmpty) {
                 return GestureDetector(
                   onTap: () async {
@@ -270,7 +273,7 @@ class _BookingDetailBody extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Call $otherName', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.success)),
+                              Text(l.callName(otherName), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.success)),
                               Text(otherPhone, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
                             ],
                           ),
@@ -351,7 +354,7 @@ class _BookingDetailBody extends ConsumerWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              booking.nanny?.city ?? 'See on map',
+                              booking.nanny?.city ?? l.seeOnMap,
                               style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -370,12 +373,12 @@ class _BookingDetailBody extends ConsumerWidget {
                                 color: AppColors.success.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.navigation_rounded, size: 14, color: AppColors.success),
-                                  SizedBox(width: 4),
-                                  Text('Navigate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.success)),
+                                  const Icon(Icons.navigation_rounded, size: 14, color: AppColors.success),
+                                  const SizedBox(width: 4),
+                                  Text(l.navigate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.success)),
                                 ],
                               ),
                             ),
@@ -395,14 +398,14 @@ class _BookingDetailBody extends ConsumerWidget {
           _PremiumInfoCard(
             icon: Icons.event_rounded,
             iconColor: AppColors.primary,
-            title: 'Schedule',
+            title: l.schedule,
             child: Column(
               children: [
-                _PremiumRow(icon: Icons.play_circle_outline_rounded, label: 'Start', value: fmt.format(booking.startTime)),
+                _PremiumRow(icon: Icons.play_circle_outline_rounded, label: l.start, value: fmt.format(booking.startTime)),
                 _premiumDivider(),
-                _PremiumRow(icon: Icons.stop_circle_outlined, label: 'End', value: fmt.format(booking.endTime)),
+                _PremiumRow(icon: Icons.stop_circle_outlined, label: l.end, value: fmt.format(booking.endTime)),
                 _premiumDivider(),
-                _PremiumRow(icon: Icons.timer_outlined, label: 'Duration', value: '${booking.durationHours.toStringAsFixed(1)} hours'),
+                _PremiumRow(icon: Icons.timer_outlined, label: l.duration, value: l.hoursLabel(booking.durationHours.toStringAsFixed(1))),
               ],
             ),
           ),
@@ -412,16 +415,16 @@ class _BookingDetailBody extends ConsumerWidget {
           _PremiumInfoCard(
             icon: Icons.receipt_long_rounded,
             iconColor: AppColors.success,
-            title: 'Payment',
+            title: l.payment,
             child: Column(
               children: [
-                _PremiumRow(icon: Icons.attach_money_rounded, label: 'Rate', value: '\u20AA${booking.hourlyRateNis}/hr'),
+                _PremiumRow(icon: Icons.attach_money_rounded, label: l.rate, value: '\u20AA${booking.hourlyRateNis}/hr'),
                 _premiumDivider(),
                 _PremiumRow(
                   icon: Icons.receipt_rounded,
                   label: booking.isCompleted
-                      ? (booking.finalAmountNis != null ? 'Booked' : 'Total')
-                      : 'Estimated',
+                      ? (booking.finalAmountNis != null ? l.booked : l.total)
+                      : l.estimated,
                   value: '\u20AA${booking.totalAmountNis}',
                   valueBold: booking.isCompleted && booking.finalAmountNis == null,
                 ),
@@ -429,7 +432,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      'Final price calculated by session timer',
+                      l.finalPriceByTimer,
                       style: TextStyle(fontSize: 11, color: AppColors.textHint, fontStyle: FontStyle.italic),
                     ),
                   ),
@@ -437,7 +440,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   _premiumDivider(),
                   _PremiumRow(
                     icon: Icons.more_time_rounded,
-                    label: 'Overtime',
+                    label: l.overtime,
                     value: '+\u20AA${booking.overtimeAmountNis}',
                     valueColor: AppColors.warning,
                   ),
@@ -446,7 +449,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   _premiumDivider(),
                   _PremiumRow(
                     icon: Icons.receipt_rounded,
-                    label: 'Final Total',
+                    label: l.finalTotal,
                     value: '\u20AA${booking.finalAmountNis}',
                     valueBold: true,
                   ),
@@ -455,15 +458,15 @@ class _BookingDetailBody extends ConsumerWidget {
                   _premiumDivider(),
                   _PremiumRow(
                     icon: Icons.timer_rounded,
-                    label: 'Actual Duration',
-                    value: '${booking.actualDurationMin} min',
+                    label: l.actualDuration,
+                    value: '${booking.actualDurationMin} ${l.minLabel}',
                   ),
                 ],
                 _premiumDivider(),
                 _PremiumRow(
                   icon: booking.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
-                  label: 'Status',
-                  value: booking.isPaid ? 'Paid' : (booking.isCompleted ? 'Processing' : 'Pending session'),
+                  label: l.statusLabel,
+                  value: booking.isPaid ? l.paid : (booking.isCompleted ? l.processing : l.pendingSessionStatus),
                   valueColor: booking.isPaid ? AppColors.success : AppColors.warning,
                 ),
               ],
@@ -475,7 +478,7 @@ class _BookingDetailBody extends ConsumerWidget {
             _PremiumInfoCard(
               icon: Icons.notes_rounded,
               iconColor: AppColors.accent,
-              title: 'Notes',
+              title: l.notes,
               child: Text(booking.notes!, style: const TextStyle(color: AppColors.textSecondary, height: 1.6)),
             ),
           ],
@@ -488,7 +491,7 @@ class _BookingDetailBody extends ConsumerWidget {
               children: [
                 Expanded(
                   child: AppButton(
-                    label: 'Decline',
+                    label: l.decline,
                     variant: AppButtonVariant.outline,
                     onTap: () => _updateStatus(context, ref, 'DECLINED'),
                   ),
@@ -496,7 +499,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: AppButton(
-                    label: 'Accept',
+                    label: l.accept,
                     variant: AppButtonVariant.gradient,
                     onTap: () => _updateStatus(context, ref, 'ACCEPTED'),
                   ),
@@ -508,7 +511,7 @@ class _BookingDetailBody extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: AppButton(
-                label: 'Cancel Booking',
+                label: l.cancelBooking,
                 variant: AppButtonVariant.danger,
                 onTap: () => _updateStatus(context, ref, 'CANCELLED'),
               ),
@@ -517,7 +520,7 @@ class _BookingDetailBody extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: AppButton(
-                label: 'Start Live Session',
+                label: l.startLiveSession,
                 variant: AppButtonVariant.gradient,
                 prefixIcon: const Icon(Icons.play_circle_outline_rounded, color: Colors.white, size: 20),
                 onTap: () => context.push('/session/${booking.id}', extra: {
@@ -531,7 +534,7 @@ class _BookingDetailBody extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: AppButton(
-                label: 'View Live Session',
+                label: l.viewLiveSession,
                 variant: AppButtonVariant.gradient,
                 prefixIcon: const Icon(Icons.timer_rounded, color: Colors.white, size: 20),
                 onTap: () => context.push('/session/${booking.id}', extra: {
@@ -545,7 +548,7 @@ class _BookingDetailBody extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: AppButton(
-                label: 'Leave a Review',
+                label: l.leaveReview,
                 variant: AppButtonVariant.outline,
                 prefixIcon: const Icon(Icons.star_outline_rounded, color: AppColors.primary, size: 20),
                 onTap: () => _showReviewDialog(context, ref, booking.id),
@@ -559,7 +562,7 @@ class _BookingDetailBody extends ConsumerWidget {
               child: TextButton.icon(
                 onPressed: () => _showDeleteDialog(context, ref, booking.id, false),
                 icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 18),
-                label: const Text('Delete Booking', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                label: Text(AppLocalizations.of(context).deleteBooking, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
               ),
             ),
           if ((isParent || isNanny) && (booking.isRequested || booking.isAccepted))
@@ -568,7 +571,7 @@ class _BookingDetailBody extends ConsumerWidget {
               child: TextButton.icon(
                 onPressed: () => _showDeleteDialog(context, ref, booking.id, true),
                 icon: const Icon(Icons.delete_forever_rounded, color: AppColors.error, size: 18),
-                label: const Text('Cancel & Delete', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                label: Text(AppLocalizations.of(context).cancelAndDelete, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
               ),
             ),
           const SizedBox(height: 20),
@@ -577,15 +580,18 @@ class _BookingDetailBody extends ConsumerWidget {
     );
   }
 
-  String _statusDescription(String status) => switch (status) {
-        'REQUESTED' => 'Waiting for nanny to respond',
-        'ACCEPTED' => 'Booking confirmed! Start the session when ready',
-        'IN_PROGRESS' => 'Session is currently active',
-        'COMPLETED' => 'This session has been completed',
-        'DECLINED' => 'The nanny declined this request',
-        'CANCELLED' => 'This booking was cancelled',
-        _ => '',
-      };
+  String _statusDescription(BuildContext context, String status) {
+    final l = AppLocalizations.of(context);
+    return switch (status) {
+      'REQUESTED' => l.waitingForNannyResponse,
+      'ACCEPTED' => l.bookingConfirmedStartReady,
+      'IN_PROGRESS' => l.sessionCurrentlyActive,
+      'COMPLETED' => l.sessionHasBeenCompleted,
+      'DECLINED' => l.nannyDeclinedRequest,
+      'CANCELLED' => l.bookingWasCancelled,
+      _ => '',
+    };
+  }
 
   Widget _premiumDivider() => Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -604,13 +610,14 @@ class _BookingDetailBody extends ConsumerWidget {
       triggerDataRefresh(ref);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking $status')));
+        final l = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l.bookingDetails} - $status')));
         context.pop();
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Action failed. Please try again.'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppLocalizations.of(context).actionFailed), backgroundColor: AppColors.error),
         );
       }
     }
@@ -621,7 +628,7 @@ class _BookingDetailBody extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isActive ? 'Cancel & Delete?' : 'Delete Booking?', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(isActive ? AppLocalizations.of(context).cancelAndDeleteQuestion : AppLocalizations.of(context).deleteBookingQuestion, style: const TextStyle(fontWeight: FontWeight.w700)),
         content: Text(
           isActive
               ? 'This will cancel the booking and permanently delete it. This action cannot be undone.'
@@ -635,7 +642,7 @@ class _BookingDetailBody extends ConsumerWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(isActive ? 'Cancel & Delete' : 'Delete'),
+            child: Text(isActive ? AppLocalizations.of(context).cancelAndDelete : AppLocalizations.of(context).delete),
           ),
         ],
       ),
@@ -667,7 +674,7 @@ class _BookingDetailBody extends ConsumerWidget {
       builder: (_) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Leave a Review', style: TextStyle(fontWeight: FontWeight.w700)),
+          title: Text(AppLocalizations.of(ctx).leaveReview, style: const TextStyle(fontWeight: FontWeight.w700)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -690,7 +697,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 controller: controller,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Write your review (optional)',
+                  hintText: AppLocalizations.of(ctx).writeYourReview,
                   hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
                   filled: true,
                   fillColor: AppColors.bg,
@@ -703,7 +710,7 @@ class _BookingDetailBody extends ConsumerWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(ctx).cancelBooking)),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -718,7 +725,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 triggerDataRefresh(ref);
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text('Submit'),
+              child: Text(AppLocalizations.of(ctx).submit),
             ),
           ],
         ),

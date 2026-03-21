@@ -6,6 +6,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _adminStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final resp = await apiClient.dio.get('/admin/stats');
@@ -16,18 +17,19 @@ class AdminScreen extends ConsumerWidget {
   const AdminScreen({super.key});
 
   void _logout(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text(l10n.signOut, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(l10n.signOutConfirmation, style: const TextStyle(color: AppColors.textSecondary)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -41,7 +43,7 @@ class AdminScreen extends ConsumerWidget {
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) context.go('/onboarding');
             },
-            child: const Text('Sign Out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
@@ -51,11 +53,12 @@ class AdminScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_adminStatsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: Text(l10n.adminDashboard),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
@@ -63,14 +66,14 @@ class AdminScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Sign Out',
+            tooltip: l10n.signOut,
             onPressed: () => _logout(context, ref),
           ),
         ],
       ),
       body: async.authAwareWhen(
         ref,
-        errorTitle: 'Could not load admin data',
+        errorTitle: l10n.couldNotLoadAdminData,
         onRetry: () => ref.invalidate(_adminStatsProvider),
         data: (stats) {
           final users = stats['users'] as Map<String, dynamic>;
@@ -82,69 +85,69 @@ class AdminScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Platform Overview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(l10n.platformOverview, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
 
                 // Users
-                _SectionHeader('Users'),
+                _SectionHeader(l10n.users),
                 Row(
                   children: [
-                    Expanded(child: _StatCard('Total', '${users['total']}', AppColors.primary)),
+                    Expanded(child: _StatCard(l10n.total, '${users['total']}', AppColors.primary)),
                     const SizedBox(width: 10),
-                    Expanded(child: _StatCard('Parents', '${users['parents']}', AppColors.accent)),
+                    Expanded(child: _StatCard(l10n.parents, '${users['parents']}', AppColors.accent)),
                     const SizedBox(width: 10),
-                    Expanded(child: _StatCard('Nannies', '${users['nannies']}', AppColors.success)),
+                    Expanded(child: _StatCard(l10n.nannies, '${users['nannies']}', AppColors.success)),
                   ],
                 ),
                 const SizedBox(height: 16),
 
                 // Bookings
-                _SectionHeader('Bookings'),
+                _SectionHeader(l10n.bookings),
                 Row(
                   children: [
-                    Expanded(child: _StatCard('Total', '${bookings['total']}', AppColors.primary)),
+                    Expanded(child: _StatCard(l10n.total, '${bookings['total']}', AppColors.primary)),
                     const SizedBox(width: 10),
-                    Expanded(child: _StatCard('Pending', '${bookings['pending']}', AppColors.warning)),
+                    Expanded(child: _StatCard(l10n.pendingRequests, '${bookings['pending']}', AppColors.warning)),
                     const SizedBox(width: 10),
-                    Expanded(child: _StatCard('Completed', '${bookings['completed']}', AppColors.success)),
+                    Expanded(child: _StatCard(l10n.completed, '${bookings['completed']}', AppColors.success)),
                   ],
                 ),
                 const SizedBox(height: 16),
 
                 // Revenue
-                _SectionHeader('Revenue'),
+                _SectionHeader(l10n.revenue),
                 Row(
                   children: [
                     Expanded(
-                      child: _StatCard('Platform Fees', '₪${revenue['platformFees']}', AppColors.primary),
+                      child: _StatCard(l10n.platformFees, '₪${revenue['platformFees']}', AppColors.primary),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _StatCard('Gross Volume', '₪${revenue['grossVolume']}', AppColors.success),
+                      child: _StatCard(l10n.grossVolume, '₪${revenue['grossVolume']}', AppColors.success),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
                 // Quick links
-                _SectionHeader('Management'),
+                _SectionHeader(l10n.management),
                 const SizedBox(height: 8),
                 _MenuTile(
                   icon: Icons.people_rounded,
-                  title: 'Manage Users',
-                  subtitle: 'View, activate, or deactivate accounts',
+                  title: l10n.manageUsers,
+                  subtitle: l10n.viewActivateDeactivate,
                   onTap: () => context.push('/admin/users'),
                 ),
                 _MenuTile(
                   icon: Icons.calendar_today_rounded,
-                  title: 'Review Bookings',
-                  subtitle: 'Monitor and manage all bookings',
+                  title: l10n.reviewBookings,
+                  subtitle: l10n.monitorManageBookings,
                   onTap: () => context.push('/admin/bookings'),
                 ),
                 _MenuTile(
                   icon: Icons.verified_user_rounded,
-                  title: 'Verify Nannies',
-                  subtitle: 'Review and approve nanny applications',
+                  title: l10n.verifyNannies,
+                  subtitle: l10n.reviewApproveNannies,
                   onTap: () => context.push('/admin/verify-nannies'),
                 ),
               ],

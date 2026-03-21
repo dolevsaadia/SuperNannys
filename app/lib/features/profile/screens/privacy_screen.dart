@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../l10n/app_localizations.dart';
 
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -42,6 +43,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   }
 
   void _showDeleteAccountDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
@@ -49,17 +51,17 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           children: [
             const Icon(Icons.warning_rounded, color: AppColors.error, size: 22),
             const SizedBox(width: 8),
-            const Text('Delete Account'),
+            Text(l10n.deleteAccount),
           ],
         ),
-        content: const Text(
-          'This action is permanent and cannot be undone. All your data will be removed.',
-          style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+        content: Text(
+          l10n.deleteAccountWarning,
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -71,7 +73,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                 ),
               );
             },
-            child: const Text('Delete'),
+            child: Text(l10n.deleteAccount),
           ),
         ],
       ),
@@ -80,10 +82,11 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Privacy & Security'),
+        title: Text(l10n.privacySettings),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: _loaded
@@ -121,7 +124,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                const Text('Account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
+                Text(l10n.account, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
@@ -140,7 +143,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                       ),
                       child: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
                     ),
-                    title: const Text('Delete Account', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.error)),
+                    title: Text(l10n.deleteAccount, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.error)),
                     trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
                     onTap: _showDeleteAccountDialog,
                   ),

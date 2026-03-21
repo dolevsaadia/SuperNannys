@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../l10n/app_localizations.dart';
 
 class LanguageScreen extends ConsumerWidget {
   const LanguageScreen({super.key});
@@ -12,11 +13,12 @@ class LanguageScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentLocale = ref.watch(localeProvider);
     final currentCode = currentLocale?.languageCode;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Language'),
+        title: Text(l10n.language),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: Padding(
@@ -32,7 +34,7 @@ class LanguageScreen extends ConsumerWidget {
             children: [
               // System default option
               _LanguageTile(
-                title: 'System Default',
+                title: l10n.systemDefault,
                 subtitle: 'Follow device language',
                 isSelected: currentCode == null,
                 onTap: () {

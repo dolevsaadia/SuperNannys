@@ -7,6 +7,7 @@ import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/utils/async_value_ui.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _notificationsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -23,12 +24,13 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_notificationsProvider);
 
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          l.notifications,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
@@ -49,9 +51,9 @@ class NotificationsScreen extends ConsumerWidget {
                 ref.invalidate(_notificationsProvider);
               } catch (_) {}
             },
-            child: const Text(
-              'Mark all read',
-              style: TextStyle(
+            child: Text(
+              l.markAllRead,
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.primary,
@@ -63,7 +65,7 @@ class NotificationsScreen extends ConsumerWidget {
       body: async.authAwareWhen(
         ref,
         loading: () => const FullScreenLoader(),
-        errorTitle: 'Could not load notifications',
+        errorTitle: l.couldNotLoadNotifications,
         onRetry: () => ref.invalidate(_notificationsProvider),
         data: (notifications) {
           if (notifications.isEmpty) {
@@ -84,17 +86,17 @@ class NotificationsScreen extends ConsumerWidget {
                           size: 40, color: AppColors.primary),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'No notifications yet',
-                      style: TextStyle(
+                    Text(
+                      l.noNotificationsYet,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'When you receive booking updates, messages, or other alerts, they\'ll appear here.',
+                    Text(
+                      l.notificationsEmptyDescription,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
@@ -170,17 +172,18 @@ class _NotificationTile extends StatelessWidget {
     final icon = _typeIcons[type] ?? Icons.notifications_rounded;
     final color = _typeColors[type] ?? AppColors.textHint;
 
+    final l = AppLocalizations.of(context);
     String timeAgo = '';
     if (createdAt != null) {
       try {
         final dt = DateTime.parse(createdAt);
         final diff = DateTime.now().difference(dt);
         if (diff.inMinutes < 60) {
-          timeAgo = '${diff.inMinutes}m ago';
+          timeAgo = l.minutesAgo(diff.inMinutes);
         } else if (diff.inHours < 24) {
-          timeAgo = '${diff.inHours}h ago';
+          timeAgo = l.hoursAgo(diff.inHours);
         } else if (diff.inDays < 7) {
-          timeAgo = '${diff.inDays}d ago';
+          timeAgo = l.daysAgo(diff.inDays);
         } else {
           timeAgo = DateFormat('MMM d').format(dt);
         }

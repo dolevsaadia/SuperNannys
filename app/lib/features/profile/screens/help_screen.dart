@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../l10n/app_localizations.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -31,17 +32,18 @@ class HelpScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Help & Support'),
+        title: Text(l10n.helpAndSupport),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // ── FAQ Section ──────────────────────
-          const Text('Frequently Asked Questions', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
+          Text(l10n.faq, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
@@ -82,7 +84,7 @@ class HelpScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // ── Contact Section ──────────────────
-          const Text('Contact Us', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
+          Text(l10n.contactUs, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(

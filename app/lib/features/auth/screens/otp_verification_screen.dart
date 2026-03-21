@@ -8,6 +8,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String email;
@@ -64,9 +65,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   String get _code => _controllers.map((c) => c.text).join();
 
   Future<void> _verify() async {
+    final l = AppLocalizations.of(context);
     final code = _code;
     if (code.length != 6) {
-      setState(() => _error = 'Please enter all 6 digits');
+      setState(() => _error = l.enterAllDigits);
       return;
     }
 
@@ -91,12 +93,13 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       context.go('/home');
     } catch (e) {
       if (!mounted) return;
+      final l = AppLocalizations.of(context);
       String msg;
       try {
         final resp = (e as dynamic).response;
-        msg = resp?.data?['message'] as String? ?? 'Verification failed';
+        msg = resp?.data?['message'] as String? ?? l.verificationFailed;
       } catch (_) {
-        msg = 'Network error. Please try again.';
+        msg = l.networkError;
       }
       setState(() {
         _isLoading = false;
@@ -111,6 +114,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   }
 
   Future<void> _resend() async {
+    final l = AppLocalizations.of(context);
     setState(() {
       _error = null;
       _isLoading = true;
@@ -124,8 +128,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       _startCountdown();
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A new code has been sent to your email'),
+        SnackBar(
+          content: Text(l.newCodeSentToEmail),
           backgroundColor: AppColors.success,
         ),
       );
@@ -133,8 +137,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to resend code. Please try again.'),
+        SnackBar(
+          content: Text(l.failedToResendCodeRetry),
           backgroundColor: AppColors.error,
         ),
       );
@@ -164,6 +168,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -191,9 +197,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               const SizedBox(height: 36),
 
               // ── Title ─────────────────────────────
-              const Text(
-                'Verify your email',
-                style: TextStyle(
+              Text(
+                l.verifyYourEmail,
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
@@ -201,9 +207,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'We sent a 6-digit code to',
-                style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+              Text(
+                l.weSentCodeTo,
+                style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 4),
               Text(
@@ -258,7 +264,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
                     const SizedBox(height: 24),
                     AppButton(
-                      label: 'Verify',
+                      label: l.verify,
                       onTap: _code.length == 6 ? _verify : null,
                       isLoading: _isLoading,
                     ),
@@ -270,7 +276,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               // ── Resend ────────────────────────────
               if (_countdown > 0)
                 Text(
-                  'Resend code in ${_countdown}s',
+                  l.resendCodeIn(_countdown),
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textHint,
@@ -280,9 +286,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               else
                 TextButton(
                   onPressed: _isLoading ? null : _resend,
-                  child: const Text(
-                    'Resend code',
-                    style: TextStyle(
+                  child: Text(
+                    l.resendCode,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
@@ -296,13 +302,13 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               TextButton(
                 onPressed: () => context.go('/login'),
                 child: RichText(
-                  text: const TextSpan(
-                    text: 'Wrong email? ',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  text: TextSpan(
+                    text: '${l.wrongEmail} ',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                     children: [
                       TextSpan(
-                        text: 'Go back',
-                        style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                        text: l.goBack,
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),

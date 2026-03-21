@@ -3,6 +3,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../providers/nannies_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 class FilterBottomSheet extends StatefulWidget {
   final NannyFilter currentFilter;
@@ -76,6 +77,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -101,8 +103,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Filters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  TextButton(onPressed: _reset, child: const Text('Reset all')),
+                  Text(l10n.filters, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  TextButton(onPressed: _reset, child: Text(l10n.resetAll)),
                 ],
               ),
             ),
@@ -129,11 +131,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   )),
 
                   // Booking type toggle
-                  _Section(title: 'Care Type', child: Row(
+                  _Section(title: l10n.careType, child: Row(
                     children: [
                       Expanded(
                         child: _FilterChip(
-                          label: 'One-time',
+                          label: l10n.oneTime,
                           selected: !_showRecurringRate,
                           onTap: () => setState(() => _showRecurringRate = false),
                         ),
@@ -141,7 +143,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _FilterChip(
-                          label: 'Ongoing Care',
+                          label: l10n.ongoingCare,
                           selected: _showRecurringRate,
                           onTap: () => setState(() => _showRecurringRate = true),
                         ),
@@ -150,7 +152,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   )),
 
                   // Price range
-                  _Section(title: _showRecurringRate ? 'Recurring Rate (₪)' : 'Hourly Rate (₪)', child: Column(
+                  _Section(title: _showRecurringRate ? l10n.recurringRateLabel : l10n.hourlyRateLabel, child: Column(
                     children: [
                       RangeSlider(
                         values: _rateRange,
@@ -171,27 +173,27 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   )),
 
                   // Min rating
-                  _Section(title: 'Minimum Rating', child: Wrap(
+                  _Section(title: l10n.minimumRating, child: Wrap(
                     spacing: 8,
                     children: [null, 3.0, 3.5, 4.0, 4.5].map((r) => _FilterChip(
-                      label: r == null ? 'Any' : '${r}★',
+                      label: r == null ? l10n.any : '${r}★',
                       selected: _minRating == r,
                       onTap: () => setState(() => _minRating = r),
                     )).toList(),
                   )),
 
                   // Min years experience
-                  _Section(title: 'Min. Experience', child: Wrap(
+                  _Section(title: l10n.minExperience, child: Wrap(
                     spacing: 8,
                     children: [null, 1, 2, 3, 5, 8].map((y) => _FilterChip(
-                      label: y == null ? 'Any' : '$y+ yrs',
+                      label: y == null ? l10n.any : '$y+ yrs',
                       selected: _minYears == y,
                       onTap: () => setState(() => _minYears = y),
                     )).toList(),
                   )),
 
                   // Language
-                  _Section(title: 'Language', child: Wrap(
+                  _Section(title: l10n.language, child: Wrap(
                     spacing: 8,
                     children: AppConstants.languages.map((l) => _FilterChip(
                       label: l,
@@ -201,7 +203,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   )),
 
                   // Skill
-                  _Section(title: 'Specialization', child: Wrap(
+                  _Section(title: l10n.specialization, child: Wrap(
                     spacing: 8,
                     children: AppConstants.skills.take(10).map((s) => _FilterChip(
                       label: s,
@@ -216,7 +218,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: AppButton(label: 'Apply Filters', onTap: _apply),
+              child: AppButton(label: l10n.applyFilters, onTap: _apply),
             ),
           ],
         ),

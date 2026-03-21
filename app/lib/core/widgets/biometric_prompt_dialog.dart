@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import '../services/biometric_service.dart';
 import '../theme/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Shows a one-time dialog asking user to enable biometric login.
 /// Call this after successful login/register.
@@ -17,7 +18,8 @@ Future<void> showBiometricPrompt(BuildContext context, String token) async {
   final hasFace = types.isNotEmpty
       ? types.any((t) => t.name == 'face')
       : Platform.isIOS; // Default to Face ID on iOS, Fingerprint on Android
-  final label = hasFace ? 'Face ID' : 'Fingerprint';
+  final l = AppLocalizations.of(context);
+  final label = hasFace ? l.faceId : l.fingerprint;
 
   final result = await showDialog<bool>(
     context: context,
@@ -29,9 +31,9 @@ Future<void> showBiometricPrompt(BuildContext context, String token) async {
         size: 48,
         color: AppColors.primary,
       ),
-      title: Text('Enable $label?'),
+      title: Text(l.enableLabelQuestion(label)),
       content: Text(
-        'Sign in faster next time using $label. You can change this in settings.',
+        l.signInFasterWithLabel(label),
         textAlign: TextAlign.center,
         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
       ),
@@ -39,12 +41,12 @@ Future<void> showBiometricPrompt(BuildContext context, String token) async {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Not Now'),
+          child: Text(l.notNow),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
           style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-          child: Text('Enable $label'),
+          child: Text(l.enableLabel(label)),
         ),
       ],
     ),

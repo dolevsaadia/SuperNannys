@@ -12,6 +12,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _conversationsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   ref.watch(dataRefreshProvider);
@@ -45,22 +46,22 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 
   void _showDeleteDialog(BuildContext context, WidgetRef ref, String bookingId, String otherName) {
+    final l = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Chat', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        title: Text(l.deleteChat, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         content: Text(
-          'Hide your conversation with $otherName?\n\n'
-          'This only removes it from your list. The other person can still see the chat.',
+          l.hideChatMessage(otherName),
           style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(l.cancel, style: const TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -75,18 +76,18 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                 ref.invalidate(_conversationsProvider);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Chat removed'), backgroundColor: AppColors.textSecondary),
+                    SnackBar(content: Text(l.chatRemoved), backgroundColor: AppColors.textSecondary),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not delete chat'), backgroundColor: AppColors.error),
+                    SnackBar(content: Text(l.couldNotDeleteChat), backgroundColor: AppColors.error),
                   );
                 }
               }
             },
-            child: const Text('Delete'),
+            child: Text(l.delete),
           ),
         ],
       ),
@@ -98,17 +99,18 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     final async = ref.watch(_conversationsProvider);
     final currentUser = ref.watch(currentUserProvider);
 
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: Text(l.messages),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
       body: async.authAwareWhen(
         ref,
         loading: () => const SkeletonList(count: 6, skeleton: ChatSkeleton()),
-        errorTitle: 'Could not load messages',
+        errorTitle: l.couldNotLoadMessages,
         onRetry: () => ref.invalidate(_conversationsProvider),
         data: (conversations) {
           if (conversations.isEmpty) {
@@ -126,14 +128,14 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                     child: const Icon(Icons.chat_bubble_outline_rounded, size: 36, color: AppColors.primary),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'No messages yet',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  Text(
+                    l.noMessagesYet,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Start a conversation by booking a nanny',
-                    style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  Text(
+                    l.startConversationByBooking,
+                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -229,7 +231,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                lastMsg?['text'] as String? ?? 'No messages yet',
+                                lastMsg?['text'] as String? ?? l.noMessagesYet,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

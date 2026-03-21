@@ -20,6 +20,7 @@ import '../../../core/widgets/promo_carousel.dart';
 import '../providers/nannies_provider.dart';
 import '../providers/home_sections_provider.dart';
 import '../widgets/filter_bottom_sheet.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -488,8 +489,8 @@ class _SearchBarState extends State<_SearchBar> {
                       child: TextField(
                         controller: widget.controller,
                         focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          hintText: 'Search by city or area...',
+                        decoration: InputDecoration(
+                          hintText: AppLocalizations.of(context).searchByCityOrArea,
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
@@ -627,7 +628,7 @@ class _HorizontalNannyList extends ConsumerWidget {
       ),
       error: (_, __) => const InlineAsyncError(height: 100),
       data: (nannies) {
-        if (nannies.isEmpty) return const SizedBox(height: 100, child: Center(child: Text('No nannies found', style: TextStyle(color: AppColors.textHint))));
+        if (nannies.isEmpty) return SizedBox(height: 100, child: Center(child: Text(AppLocalizations.of(context).noNanniesFound, style: const TextStyle(color: AppColors.textHint))));
         return SizedBox(
           height: 210,
           child: ListView.builder(
@@ -681,9 +682,9 @@ class _SearchResults extends ConsumerWidget {
     final state = ref.watch(nanniesProvider);
     if (state.isLoading) return const SkeletonList(count: 4, skeleton: NannyCardSkeleton());
     if (state.error != null) {
-      return EmptyState(title: 'Could not load nannies', subtitle: state.error!, icon: Icons.wifi_off_rounded, actionLabel: 'Retry', onAction: () => ref.read(nanniesProvider.notifier).loadNannies());
+      return EmptyState(title: AppLocalizations.of(context).couldNotLoadNannies, subtitle: state.error!, icon: Icons.wifi_off_rounded, actionLabel: 'Retry', onAction: () => ref.read(nanniesProvider.notifier).loadNannies());
     }
-    if (state.nannies.isEmpty) return const EmptyState(title: 'No nannies found', subtitle: 'Try adjusting your search or filters', icon: Icons.search_off_rounded);
+    if (state.nannies.isEmpty) return EmptyState(title: AppLocalizations.of(context).noNanniesFound, subtitle: AppLocalizations.of(context).tryAdjustingSearch, icon: Icons.search_off_rounded);
 
     final currentSort = ref.read(nanniesProvider.notifier).currentFilter.sortBy;
 
@@ -695,7 +696,7 @@ class _SearchResults extends ConsumerWidget {
           child: Row(
             children: [
               Text(
-                '${state.total} nannies found',
+                '${state.total} ${AppLocalizations.of(context).nanniesFound}',
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
               ),
               const Spacer(),
@@ -732,17 +733,21 @@ class _SortDropdown extends StatelessWidget {
 
   const _SortDropdown({required this.currentSort, required this.onChanged});
 
-  static const _options = {
-    'rating': 'Top Rated',
-    'rate_asc': 'Price: Low → High',
-    'rate_desc': 'Price: High → Low',
-    'experience': 'Most Experienced',
-    'reviews': 'Most Reviews',
-    'newest': 'Newest',
-  };
+  Map<String, String> _getOptions(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return {
+      'rating': l10n.topRated,
+      'rate_asc': l10n.priceLowToHigh,
+      'rate_desc': l10n.priceHighToLow,
+      'experience': l10n.mostExperienced,
+      'reviews': l10n.mostReviews,
+      'newest': l10n.newest,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
+    final _options = _getOptions(context);
     return PopupMenuButton<String>(
       onSelected: onChanged,
       shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
@@ -760,7 +765,7 @@ class _SortDropdown extends StatelessWidget {
             const Icon(Icons.sort_rounded, size: 14, color: AppColors.textSecondary),
             const SizedBox(width: 4),
             Text(
-              _options[currentSort] ?? 'Sort',
+              _options[currentSort] ?? AppLocalizations.of(context).sortBy,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
             ),
             const Icon(Icons.arrow_drop_down_rounded, size: 16, color: AppColors.textSecondary),
@@ -852,7 +857,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
           const SizedBox(height: AppSpacing.xl),
           Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppRadius.borderXs)),
           const SizedBox(height: AppSpacing.xxxl),
-          Text('Select Location', style: AppTextStyles.heading2),
+          Text(AppLocalizations.of(context).selectLocation, style: AppTextStyles.heading2),
           const SizedBox(height: AppSpacing.xl),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
@@ -863,8 +868,8 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                 controller: _searchController,
                 autofocus: true,
                 onChanged: _onSearchChanged,
-                decoration: const InputDecoration(
-                  hintText: 'Search city...',
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context).searchCity,
                   prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textHint),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(vertical: 12),
@@ -874,7 +879,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
           ),
           ListTile(
             leading: const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 20),
-            title: Text('Use My Location', style: AppTextStyles.label.copyWith(color: AppColors.primary)),
+            title: Text(AppLocalizations.of(context).useMyLocation, style: AppTextStyles.label.copyWith(color: AppColors.primary)),
             onTap: widget.onUseMyLocation,
           ),
           const Divider(height: 1),

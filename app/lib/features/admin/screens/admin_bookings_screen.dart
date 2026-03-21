@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String?>((ref, status) async {
@@ -40,11 +41,12 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(_bookingsProvider(_statusFilter));
     final df = DateFormat('dd/MM/yyyy HH:mm');
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Review Bookings'),
+        title: Text(l10n.reviewBookings),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: Column(
@@ -84,7 +86,7 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                       children: [
                         Icon(Icons.calendar_today_rounded, size: 48, color: AppColors.textHint),
                         const SizedBox(height: 8),
-                        const Text('No bookings found', style: TextStyle(color: AppColors.textSecondary)),
+                        Text(l10n.noBookingsFound, style: const TextStyle(color: AppColors.textSecondary)),
                       ],
                     ),
                   );

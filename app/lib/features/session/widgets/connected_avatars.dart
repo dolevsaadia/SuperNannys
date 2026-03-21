@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/avatar_widget.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Two avatars facing each other with a connecting line between them.
 /// Shows confirmation status for each party.
@@ -189,7 +190,7 @@ class _AvatarSide extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          confirmed ? 'Confirmed' : 'Waiting...',
+          confirmed ? AppLocalizations.of(context).confirmed : AppLocalizations.of(context).waiting,
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,

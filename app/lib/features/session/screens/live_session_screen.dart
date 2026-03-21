@@ -12,6 +12,7 @@ import '../widgets/session_progress_indicator.dart';
 import '../widgets/connected_avatars.dart';
 import '../widgets/session_timer_display.dart';
 import '../widgets/session_summary_card.dart';
+import '../../../l10n/app_localizations.dart';
 
 class LiveSessionScreen extends ConsumerStatefulWidget {
   final String bookingId;
@@ -97,18 +98,18 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   color: AppColors.warning.withValues(alpha: 0.15),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 12,
                         height: 12,
                         child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.warning),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Reconnecting to session...',
-                        style: TextStyle(fontSize: 12, color: AppColors.warning, fontWeight: FontWeight.w600),
+                        AppLocalizations.of(context).reconnectingToSession,
+                        style: const TextStyle(fontSize: 12, color: AppColors.warning, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -157,6 +158,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         : session.parentConfirmedStart;
     final isWaiting = session.phase == SessionPhase.waitingStartConfirmation;
 
+    final l = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -166,7 +168,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
           // Connected avatars
           if (isWaiting)
             ConnectedAvatars(
-              userName: 'You',
+              userName: l.you,
               userAvatar: null,
               userConfirmed: myConfirmed,
               otherUserName: widget.otherUserName,
@@ -213,11 +215,11 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                   child: Text(
                     isWaiting
                         ? myConfirmed
-                            ? 'Waiting for ${widget.otherUserName} to confirm...'
-                            : 'Both parties need to confirm to start the session'
+                            ? l.waitingForUserToConfirm(widget.otherUserName)
+                            : l.bothPartiesNeedConfirm
                         : widget.isParent
-                            ? 'Confirm that the nanny has arrived and the session can begin'
-                            : 'Confirm that you have arrived and the session can begin',
+                            ? l.confirmNannyArrived
+                            : l.confirmYouArrived,
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.primary,
@@ -238,7 +240,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
               scale: _pulseAnim,
               child: _CircleActionButton(
                 icon: Icons.play_arrow_rounded,
-                label: 'Start Session',
+                label: l.startSession,
                 color: AppColors.success,
                 isLoading: session.isLoading,
                 onTap: () {
@@ -259,9 +261,9 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Waiting for confirmation...',
-                  style: TextStyle(
+                Text(
+                  l.waitingForConfirmation,
+                  style: const TextStyle(
                     fontSize: 15,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
@@ -272,7 +274,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 TextButton.icon(
                   onPressed: session.isLoading ? null : () => _showCancelDialog(),
                   icon: const Icon(Icons.close_rounded, size: 18),
-                  label: const Text('Cancel'),
+                  label: Text(AppLocalizations.of(context).cancel),
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                 ),
               ],
@@ -300,6 +302,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
   // ── ACTIVE PHASE (active + waiting end merged)
   // ═══════════════════════════════════════════════════════
   Widget _buildActivePhase(SessionState session) {
+    final l = AppLocalizations.of(context);
     final isEndingFlow = session.phase == SessionPhase.waitingEndConfirmation;
     final myConfirmedEnd = widget.isParent
         ? session.parentConfirmedEnd
@@ -320,7 +323,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         // If ending flow — show connected avatars
         if (isEndingFlow) ...[
           ConnectedAvatars(
-            userName: 'You',
+            userName: l.you,
             userAvatar: null,
             userConfirmed: myConfirmedEnd,
             otherUserName: widget.otherUserName,
@@ -328,9 +331,9 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
             otherConfirmed: otherConfirmedEnd,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Session auto-ends in 10 min if unconfirmed',
-            style: TextStyle(
+          Text(
+            l.sessionAutoEnds,
+            style: const TextStyle(
               fontSize: 11,
               color: AppColors.textHint,
             ),
@@ -346,7 +349,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
             children: [
               if (isEndingFlow && !myConfirmedEnd)
                 AppButton(
-                  label: 'Confirm End',
+                  label: l.confirmEnd,
                   variant: AppButtonVariant.gradient,
                   isLoading: session.isLoading,
                   onTap: () {
@@ -357,9 +360,9 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
               else if (isEndingFlow)
                 Column(
                   children: [
-                    const Text(
-                      'Waiting for the other party to confirm...',
-                      style: TextStyle(
+                    Text(
+                      l.waitingForOtherParty,
+                      style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                       ),
@@ -369,14 +372,14 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                     TextButton.icon(
                       onPressed: session.isLoading ? null : () => _showCancelDialog(),
                       icon: const Icon(Icons.close_rounded, size: 18),
-                      label: const Text('Cancel Session Instead'),
+                      label: Text(l.cancelSessionInstead),
                       style: TextButton.styleFrom(foregroundColor: AppColors.error),
                     ),
                   ],
                 )
               else
                 AppButton(
-                  label: 'End Session',
+                  label: l.endSession,
                   variant: AppButtonVariant.danger,
                   isLoading: session.isLoading,
                   onTap: _showEndConfirmDialog,
@@ -386,7 +389,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 TextButton.icon(
                   onPressed: session.isLoading ? null : () => _showCancelDialog(),
                   icon: const Icon(Icons.close_rounded, size: 18),
-                  label: const Text('Cancel Session'),
+                  label: Text(l.cancelSession),
                   style: TextButton.styleFrom(foregroundColor: AppColors.textHint),
                 ),
               ],
@@ -402,6 +405,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
   // ── ENDED PHASE
   // ═══════════════════════════════════════════════════════
   Widget _buildEndedPhase(SessionState session) {
+    final l = AppLocalizations.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
@@ -423,18 +427,18 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
             child: const Icon(Icons.check_rounded, size: 40, color: Colors.white),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Session Complete!',
-            style: TextStyle(
+          Text(
+            l.sessionCompleteExclamation,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Great job! Here\'s your session summary.',
-            style: TextStyle(
+          Text(
+            l.sessionSummarySubtitle,
+            style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
             ),
@@ -464,9 +468,9 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'Rate Your Experience',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    Text(
+                      l.rateYourExperience,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -495,7 +499,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                       controller: _reviewController,
                       maxLines: 2,
                       decoration: InputDecoration(
-                        hintText: 'Add a comment (optional)',
+                        hintText: l.addCommentOptional,
                         hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -506,7 +510,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                     ),
                     const SizedBox(height: 12),
                     AppButton(
-                      label: _reviewSubmitting ? 'Submitting...' : 'Submit Review',
+                      label: _reviewSubmitting ? l.submitting : l.submitReview,
                       variant: AppButtonVariant.gradient,
                       onTap: _reviewRating == 0 || _reviewSubmitting
                           ? null
@@ -528,13 +532,13 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                   color: AppColors.success.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
-                    SizedBox(width: 8),
-                    Text('Thank you for your review!',
-                        style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+                    const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                    const SizedBox(width: 8),
+                    Text(l.thankYouForReview,
+                        style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -547,13 +551,13 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
             child: Column(
               children: [
                 AppButton(
-                  label: 'Back to Booking',
+                  label: l.backToBooking,
                   variant: AppButtonVariant.gradient,
                   onTap: () => context.pop(),
                 ),
                 const SizedBox(height: 12),
                 AppButton(
-                  label: 'Go Home',
+                  label: l.goHome,
                   variant: AppButtonVariant.outline,
                   onTap: () => context.go('/home'),
                 ),
@@ -585,7 +589,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
       setState(() => _reviewSubmitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not submit review. Please try again.'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppLocalizations.of(context).couldNotSubmitReview), backgroundColor: AppColors.error),
         );
       }
     }
@@ -593,6 +597,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
 
   // ── Cancel Confirmation Dialog ────────────────────────────
   void _showCancelDialog() {
+    final l = AppLocalizations.of(context);
     final session = ref.read(sessionProvider);
     final isActive = session.phase == SessionPhase.active ||
         session.phase == SessionPhase.waitingEndConfirmation;
@@ -602,19 +607,19 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          isActive ? 'Cancel Active Session?' : 'Cancel Session Start?',
+          isActive ? l.cancelActiveSessionQuestion : l.cancelSessionStartQuestion,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         content: Text(
           isActive
-              ? 'This will cancel the active session. No charges will be applied. Both parties will need to confirm again to restart.'
-              : 'This will cancel the confirmation. You can restart the session later — both parties will need to confirm again.',
+              ? l.cancelActiveSessionMessage
+              : l.cancelSessionStartMessage,
           style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Keep Going'),
+            child: Text(l.keepGoing),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -626,7 +631,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
               HapticFeedback.heavyImpact();
               ref.read(sessionProvider.notifier).cancelSession();
             },
-            child: const Text('Cancel Session', style: TextStyle(color: Colors.white)),
+            child: Text(l.cancelSession, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -635,19 +640,20 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
 
   // ── End Confirmation Dialog ────────────────────────────
   void _showEndConfirmDialog() {
+    final l = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('End Session?', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text(
-          'Both parties need to confirm. The other party will be notified.',
-          style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+        title: Text(l.endSessionQuestion, style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(
+          l.endSessionConfirmMessage,
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -659,7 +665,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
               HapticFeedback.heavyImpact();
               ref.read(sessionProvider.notifier).requestEnd();
             },
-            child: const Text('End Session', style: TextStyle(color: Colors.white)),
+            child: Text(l.endSession, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -674,16 +680,17 @@ class _TopBar extends StatelessWidget {
 
   const _TopBar({required this.canPop, required this.phase});
 
-  String get _title => switch (phase) {
-        SessionPhase.idle || SessionPhase.promptStart => 'Start Session',
-        SessionPhase.waitingStartConfirmation => 'Confirming...',
-        SessionPhase.active => 'Live Session',
-        SessionPhase.waitingEndConfirmation => 'Ending...',
-        SessionPhase.ended => 'Session Complete',
+  String _title(AppLocalizations l) => switch (phase) {
+        SessionPhase.idle || SessionPhase.promptStart => l.startSession,
+        SessionPhase.waitingStartConfirmation => l.confirming,
+        SessionPhase.active => l.liveSession,
+        SessionPhase.waitingEndConfirmation => l.ending,
+        SessionPhase.ended => l.sessionComplete,
       };
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
@@ -704,7 +711,7 @@ class _TopBar extends StatelessWidget {
             const SizedBox(width: 48),
           Expanded(
             child: Text(
-              _title,
+              _title(l),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 17,

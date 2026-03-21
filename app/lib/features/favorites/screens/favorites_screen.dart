@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/nanny_card.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _favoritesProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   ref.watch(dataRefreshProvider); // re-fetch when favorites toggled elsewhere
@@ -23,12 +24,13 @@ class FavoritesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_favoritesProvider);
 
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text(
-          'Saved Nannies',
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          l.savedNannies,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
@@ -38,7 +40,7 @@ class FavoritesScreen extends ConsumerWidget {
       body: async.authAwareWhen(
         ref,
         loading: () => const FullScreenLoader(),
-        errorTitle: 'Could not load favorites',
+        errorTitle: l.couldNotLoadFavorites,
         onRetry: () => ref.invalidate(_favoritesProvider),
         data: (favorites) {
           if (favorites.isEmpty) {
@@ -58,13 +60,13 @@ class FavoritesScreen extends ConsumerWidget {
                       child: const Icon(Icons.favorite_border_rounded, size: 40, color: AppColors.primary),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'No saved nannies yet',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    Text(
+                      l.noSavedNanniesYet,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Tap the heart icon on a nanny\'s profile to save them here for quick access.',
+                    Text(
+                      l.savedNanniesEmptyDescription,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
                     ),
@@ -72,7 +74,7 @@ class FavoritesScreen extends ConsumerWidget {
                     OutlinedButton.icon(
                       onPressed: () => context.go('/home'),
                       icon: const Icon(Icons.search_rounded, size: 18),
-                      label: const Text('Browse Nannies'),
+                      label: Text(l.browseNannies),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.primary),

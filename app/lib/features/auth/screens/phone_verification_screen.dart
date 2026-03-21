@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
   final String phone;
@@ -26,9 +27,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   }
 
   Future<void> _verify() async {
+    final l = AppLocalizations.of(context);
     final code = _codeController.text.trim();
     if (code.length != 6) {
-      setState(() => _error = 'Please enter the 6-digit code');
+      setState(() => _error = l.enterSixDigitCode);
       return;
     }
 
@@ -45,19 +47,20 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Phone verified successfully!')),
+          SnackBar(content: Text(l.phoneVerified)),
         );
         context.pop(true); // return success
       }
     } catch (e) {
       setState(() {
-        _error = 'Invalid or expired code. Please try again.';
+        _error = l.invalidOrExpiredCode;
         _loading = false;
       });
     }
   }
 
   Future<void> _resend() async {
+    final l = AppLocalizations.of(context);
     setState(() {
       _resending = true;
       _error = null;
@@ -70,12 +73,12 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Code resent!')),
+          SnackBar(content: Text(l.codeResent)),
         );
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'Failed to resend code');
+        setState(() => _error = l.failedToResendCode);
       }
     } finally {
       if (mounted) setState(() => _resending = false);
@@ -84,10 +87,12 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Verify Phone'),
+        title: Text(l.verifyPhone),
         leading: BackButton(onPressed: () => context.pop(false)),
       ),
       body: Padding(
@@ -106,13 +111,13 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               child: const Icon(Icons.phone_android_rounded, color: AppColors.primary, size: 36),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Enter Verification Code',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            Text(
+              l.enterVerificationCode,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
-              'We sent a 6-digit code to\n${widget.phone}',
+              l.weSentCodeToPhone(widget.phone),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
             ),
@@ -166,7 +171,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 ),
                 child: _loading
                     ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Verify', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    : Text(l.verify, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
             const SizedBox(height: 16),
@@ -174,7 +179,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               onPressed: _resending ? null : _resend,
               child: _resending
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text("Didn't receive it? Resend code"),
+                  : Text(l.didntReceiveResend),
             ),
           ],
         ),

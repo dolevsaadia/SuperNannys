@@ -4,8 +4,11 @@
   "appTitle": "SuperNanny",
   "@appTitle": { "description": "The application name" },
 
-  "welcomeBack": "Welcome back",
+  "welcomeBack": "Welcome back!",
   "@welcomeBack": { "description": "Greeting on login screen" },
+
+  "signInToAccount": "Sign in to your SuperNanny account",
+  "@signInToAccount": { "description": "Login subtitle" },
 
   "signIn": "Sign In",
   "@signIn": { "description": "Sign in button" },
@@ -22,11 +25,14 @@
   "confirmPassword": "Confirm Password",
   "@confirmPassword": { "description": "Confirm password field label" },
 
-  "forgotPassword": "Forgot Password?",
+  "forgotPassword": "Forgot password?",
   "@forgotPassword": { "description": "Forgot password link" },
 
   "continueWithGoogle": "Continue with Google",
   "@continueWithGoogle": { "description": "Google sign-in button" },
+
+  "signUpWithGoogle": "Sign up with Google",
+  "@signUpWithGoogle": { "description": "Google sign-up button" },
 
   "signInWithBiometric": "Sign in with Biometric",
   "@signInWithBiometric": { "description": "Biometric sign-in button" },
@@ -36,6 +42,12 @@
 
   "signInWithFaceId": "Sign in with Face ID",
   "@signInWithFaceId": { "description": "Face ID sign-in button" },
+
+  "signInWithFaceRecognition": "Sign in with Face Recognition",
+  "@signInWithFaceRecognition": { "description": "Face Recognition sign-in button" },
+
+  "signInWithIrisScan": "Sign in with Iris Scan",
+  "@signInWithIrisScan": { "description": "Iris scan sign-in button" },
 
   "dontHaveAccount": "Don't have an account?",
   "@dontHaveAccount": { "description": "Sign up prompt" },
@@ -49,11 +61,17 @@
   "phoneNumber": "Phone Number",
   "@phoneNumber": { "description": "Phone number field label" },
 
+  "phone": "Phone",
+  "@phone": { "description": "Phone field label" },
+
   "createAccount": "Create Account",
   "@createAccount": { "description": "Create account button" },
 
   "orContinueWith": "Or continue with",
   "@orContinueWith": { "description": "Social login separator text" },
+
+  "or": "OR",
+  "@or": { "description": "OR divider text" },
 
   "searchNanniesCities": "Search nannies, cities...",
   "@searchNanniesCities": { "description": "Home search placeholder" },
@@ -81,6 +99,9 @@
 
   "sortBy": "Sort By",
   "@sortBy": { "description": "Sort by label" },
+
+  "sort": "Sort",
+  "@sort": { "description": "Sort label" },
 
   "rating": "Rating",
   "@rating": { "description": "Rating label" },
@@ -343,25 +364,19 @@
   "yearsExperience": "{count} years experience",
   "@yearsExperience": {
     "description": "Years of experience",
-    "placeholders": {
-      "count": { "type": "int" }
-    }
+    "placeholders": { "count": { "type": "int" } }
   },
 
   "childrenCount": "{count, plural, =1{1 child} other{{count} children}}",
   "@childrenCount": {
     "description": "Number of children",
-    "placeholders": {
-      "count": { "type": "int" }
-    }
+    "placeholders": { "count": { "type": "int" } }
   },
 
   "reviewsCount": "{count, plural, =0{No reviews} =1{1 review} other{{count} reviews}}",
   "@reviewsCount": {
     "description": "Number of reviews",
-    "placeholders": {
-      "count": { "type": "int" }
-    }
+    "placeholders": { "count": { "type": "int" } }
   },
 
   "km": "km",
@@ -488,5 +503,1334 @@
   "@thankYouForReview": { "description": "Review submitted message" },
 
   "version": "Version",
-  "@version": { "description": "App version label" }
+  "@version": { "description": "App version label" },
+
+  "enterValidEmail": "Enter a valid email",
+  "@enterValidEmail": { "description": "Email validation error" },
+
+  "passwordTooShort": "Password too short",
+  "@passwordTooShort": { "description": "Password too short validation" },
+
+  "signInFirstBiometric": "Sign in first to enable {label} for quick login.",
+  "@signInFirstBiometric": {
+    "description": "Biometric not enabled message",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "biometricNotSetUp": "{label} is not set up. Please enable it in your device settings first.",
+  "@biometricNotSetUp": {
+    "description": "Biometric not configured",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "biometricLocked": "{label} is locked. Try again later or use your passcode.",
+  "@biometricLocked": {
+    "description": "Biometric locked out",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "biometricErrorOccurred": "{label} error occurred.",
+  "@biometricErrorOccurred": {
+    "description": "Biometric error",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "useBiometricToSignIn": "Use {label} to sign in",
+  "@useBiometricToSignIn": {
+    "description": "Biometric auth reason",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "googleSignInNotConfigured": "Google Sign-In is not configured yet. Please use email login.",
+  "@googleSignInNotConfigured": { "description": "Google not configured error" },
+
+  "googleSignInFailedNoToken": "Google Sign-In failed: no ID token",
+  "@googleSignInFailedNoToken": { "description": "Google sign-in no token error" },
+
+  "googleSignInConfigError": "Google Sign-In configuration error. Please check SHA-1 fingerprint in Firebase Console.",
+  "@googleSignInConfigError": { "description": "Google config error" },
+
+  "networkError": "Network error. Please check your internet connection.",
+  "@networkError": { "description": "Network error message" },
+
+  "loginFailed": "Login failed",
+  "@loginFailed": { "description": "Login failure message" },
+
+  "googleLoginFailed": "Google login failed",
+  "@googleLoginFailed": { "description": "Google login failure" },
+
+  "faceId": "Face ID",
+  "@faceId": { "description": "Face ID label" },
+
+  "faceRecognition": "Face Recognition",
+  "@faceRecognition": { "description": "Face recognition label" },
+
+  "fingerprint": "Fingerprint",
+  "@fingerprint": { "description": "Fingerprint label" },
+
+  "irisScan": "Iris Scan",
+  "@irisScan": { "description": "Iris scan label" },
+
+  "biometric": "Biometric",
+  "@biometric": { "description": "Generic biometric label" },
+
+  "enableBiometric": "Enable {label}?",
+  "@enableBiometric": {
+    "description": "Enable biometric dialog title",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "signInFasterWithBiometric": "Sign in faster next time using {label}. You can change this in settings.",
+  "@signInFasterWithBiometric": {
+    "description": "Enable biometric dialog body",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "notNow": "Not Now",
+  "@notNow": { "description": "Not now button" },
+
+  "sessionExpiredTitle": "Session Expired",
+  "@sessionExpiredTitle": { "description": "Session expired dialog title" },
+
+  "sessionExpiredMessage": "Your session has expired for security reasons. Please sign in again to continue.",
+  "@sessionExpiredMessage": { "description": "Session expired dialog body" },
+
+  "signingUpAsRole": "Signing up as {role}",
+  "@signingUpAsRole": {
+    "description": "Role badge on register screen",
+    "placeholders": { "role": { "type": "String" } }
+  },
+
+  "nanny": "Nanny",
+  "@nanny": { "description": "Nanny role label" },
+
+  "parent": "Parent",
+  "@parent": { "description": "Parent role label" },
+
+  "iAmA": "I am a...",
+  "@iAmA": { "description": "Role select title" },
+
+  "oneMoreStep": "One more step!",
+  "@oneMoreStep": { "description": "Google role select title" },
+
+  "chooseRoleToGetStarted": "Choose your role to get started",
+  "@chooseRoleToGetStarted": { "description": "Role select subtitle" },
+
+  "chooseRoleToCompleteSignUp": "Choose your role to complete sign-up",
+  "@chooseRoleToCompleteSignUp": { "description": "Google role select subtitle" },
+
+  "parentRoleTitle": "Parent",
+  "@parentRoleTitle": { "description": "Parent role card title" },
+
+  "parentRoleSubtitle": "I want to find and hire a babysitter for my children",
+  "@parentRoleSubtitle": { "description": "Parent role card subtitle" },
+
+  "nannyRoleTitle": "Nanny / Babysitter",
+  "@nannyRoleTitle": { "description": "Nanny role card title" },
+
+  "nannyRoleSubtitle": "I want to offer childcare services and find families",
+  "@nannyRoleSubtitle": { "description": "Nanny role card subtitle" },
+
+  "completeSignUp": "Complete Sign-Up",
+  "@completeSignUp": { "description": "Complete sign-up button" },
+
+  "continueButton": "Continue",
+  "@continueButton": { "description": "Continue button" },
+
+  "enterYourFullName": "Enter your full name",
+  "@enterYourFullName": { "description": "Full name validation" },
+
+  "emailRequired": "Email is required",
+  "@emailRequired": { "description": "Email required validation" },
+
+  "enterValidEmailAddress": "Enter a valid email address",
+  "@enterValidEmailAddress": { "description": "Email format validation" },
+
+  "enterValidPhoneNumber": "Enter a valid phone number",
+  "@enterValidPhoneNumber": { "description": "Phone validation" },
+
+  "dateOfBirth": "Date of Birth",
+  "@dateOfBirth": { "description": "Date of birth field label" },
+
+  "selectYourDateOfBirth": "Select your date of birth",
+  "@selectYourDateOfBirth": { "description": "Date of birth picker hint" },
+
+  "dateOfBirthRequired": "Date of birth is required",
+  "@dateOfBirthRequired": { "description": "Date of birth validation" },
+
+  "passwordMinLength": "Password must be at least 8 characters",
+  "@passwordMinLength": { "description": "Password min length validation" },
+
+  "passwordLettersAndNumbers": "Password must contain letters and numbers",
+  "@passwordLettersAndNumbers": { "description": "Password complexity validation" },
+
+  "completeRegistration": "Complete Registration",
+  "@completeRegistration": { "description": "Complete registration button" },
+
+  "registrationFailed": "Registration failed",
+  "@registrationFailed": { "description": "Registration failure" },
+
+  "googleAccountLinked": "Google account linked! Please complete the remaining fields.",
+  "@googleAccountLinked": { "description": "Google account linked snackbar" },
+
+  "googleAccountLinkedInfo": "Google account linked. Complete the fields below to finish registration.",
+  "@googleAccountLinkedInfo": { "description": "Google linked banner" },
+
+  "agreeToTerms": "By creating an account, you agree to our Terms of Service and Privacy Policy.",
+  "@agreeToTerms": { "description": "Terms agreement text" },
+
+  "googleSignUpNotConfigured": "Google Sign-In is not configured yet. Please use email registration.",
+  "@googleSignUpNotConfigured": { "description": "Google not configured for signup" },
+
+  "verifyPhone": "Verify Phone",
+  "@verifyPhone": { "description": "Verify phone screen title" },
+
+  "enterVerificationCode": "Enter Verification Code",
+  "@enterVerificationCode": { "description": "Phone verification title" },
+
+  "weSentCodeToPhone": "We sent a 6-digit code to\n{phone}",
+  "@weSentCodeToPhone": {
+    "description": "Phone code sent message",
+    "placeholders": { "phone": { "type": "String" } }
+  },
+
+  "enterSixDigitCode": "Please enter the 6-digit code",
+  "@enterSixDigitCode": { "description": "6-digit code validation" },
+
+  "phoneVerified": "Phone verified successfully!",
+  "@phoneVerified": { "description": "Phone verified success" },
+
+  "invalidOrExpiredCode": "Invalid or expired code. Please try again.",
+  "@invalidOrExpiredCode": { "description": "Invalid code error" },
+
+  "codeResent": "Code resent!",
+  "@codeResent": { "description": "Code resent success" },
+
+  "failedToResendCode": "Failed to resend code",
+  "@failedToResendCode": { "description": "Resend code failure" },
+
+  "verify": "Verify",
+  "@verify": { "description": "Verify button" },
+
+  "didntReceiveResend": "Didn't receive it? Resend code",
+  "@didntReceiveResend": { "description": "Resend code link" },
+
+  "verifyYourEmail": "Verify your email",
+  "@verifyYourEmail": { "description": "Email verification title" },
+
+  "weSentCodeTo": "We sent a 6-digit code to",
+  "@weSentCodeTo": { "description": "Email code sent prefix" },
+
+  "enterAllDigits": "Please enter all 6 digits",
+  "@enterAllDigits": { "description": "OTP incomplete validation" },
+
+  "verificationFailed": "Verification failed",
+  "@verificationFailed": { "description": "OTP verification failure" },
+
+  "newCodeSentToEmail": "A new code has been sent to your email",
+  "@newCodeSentToEmail": { "description": "Resend OTP success" },
+
+  "failedToResendCodeRetry": "Failed to resend code. Please try again.",
+  "@failedToResendCodeRetry": { "description": "Resend OTP failure" },
+
+  "resendCodeIn": "Resend code in {seconds}s",
+  "@resendCodeIn": {
+    "description": "Resend countdown",
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+
+  "resendCode": "Resend code",
+  "@resendCode": { "description": "Resend code button" },
+
+  "wrongEmail": "Wrong email?",
+  "@wrongEmail": { "description": "Wrong email link" },
+
+  "goBack": "Go back",
+  "@goBack": { "description": "Go back link" },
+
+  "bookingDetails": "Booking Details",
+  "@bookingDetails": { "description": "Booking detail screen title" },
+
+  "couldNotLoadBooking": "Could not load booking",
+  "@couldNotLoadBooking": { "description": "Booking load error" },
+
+  "requested": "Requested",
+  "@requested": { "description": "Requested status" },
+
+  "accepted": "Accepted",
+  "@accepted": { "description": "Accepted status" },
+
+  "declinedStatus": "Declined",
+  "@declinedStatus": { "description": "Declined status" },
+
+  "waitingForNannyResponse": "Waiting for nanny to respond",
+  "@waitingForNannyResponse": { "description": "Requested status description" },
+
+  "bookingConfirmedStartReady": "Booking confirmed! Start the session when ready",
+  "@bookingConfirmedStartReady": { "description": "Accepted status description" },
+
+  "sessionCurrentlyActive": "Session is currently active",
+  "@sessionCurrentlyActive": { "description": "In progress status description" },
+
+  "sessionHasBeenCompleted": "This session has been completed",
+  "@sessionHasBeenCompleted": { "description": "Completed status description" },
+
+  "nannyDeclinedRequest": "The nanny declined this request",
+  "@nannyDeclinedRequest": { "description": "Declined status description" },
+
+  "bookingWasCancelled": "This booking was cancelled",
+  "@bookingWasCancelled": { "description": "Cancelled status description" },
+
+  "yourNanny": "Your Nanny",
+  "@yourNanny": { "description": "Nanny card header for parent" },
+
+  "partOfRecurringBooking": "Part of Recurring Booking",
+  "@partOfRecurringBooking": { "description": "Recurring booking badge" },
+
+  "schedule": "Schedule",
+  "@schedule": { "description": "Schedule section title" },
+
+  "start": "Start",
+  "@start": { "description": "Start label" },
+
+  "end": "End",
+  "@end": { "description": "End label" },
+
+  "duration": "Duration",
+  "@duration": { "description": "Duration label" },
+
+  "hoursLabel": "{count} hours",
+  "@hoursLabel": {
+    "description": "Hours display",
+    "placeholders": { "count": { "type": "String" } }
+  },
+
+  "payment": "Payment",
+  "@payment": { "description": "Payment section title" },
+
+  "rate": "Rate",
+  "@rate": { "description": "Rate label" },
+
+  "estimated": "Estimated",
+  "@estimated": { "description": "Estimated label" },
+
+  "booked": "Booked",
+  "@booked": { "description": "Booked label" },
+
+  "total": "Total",
+  "@total": { "description": "Total label" },
+
+  "finalPriceByTimer": "Final price calculated by session timer",
+  "@finalPriceByTimer": { "description": "Price calculation note" },
+
+  "overtime": "Overtime",
+  "@overtime": { "description": "Overtime label" },
+
+  "finalTotal": "Final Total",
+  "@finalTotal": { "description": "Final total label" },
+
+  "actualDuration": "Actual Duration",
+  "@actualDuration": { "description": "Actual duration label" },
+
+  "minLabel": "min",
+  "@minLabel": { "description": "Minutes abbreviation" },
+
+  "statusLabel": "Status",
+  "@statusLabel": { "description": "Status label" },
+
+  "paid": "Paid",
+  "@paid": { "description": "Paid status" },
+
+  "processing": "Processing",
+  "@processing": { "description": "Processing status" },
+
+  "pendingSessionStatus": "Pending session",
+  "@pendingSessionStatus": { "description": "Pending session payment status" },
+
+  "cancelBooking": "Cancel Booking",
+  "@cancelBooking": { "description": "Cancel booking button" },
+
+  "startLiveSession": "Start Live Session",
+  "@startLiveSession": { "description": "Start live session button" },
+
+  "viewLiveSession": "View Live Session",
+  "@viewLiveSession": { "description": "View live session button" },
+
+  "leaveReview": "Leave a Review",
+  "@leaveReview": { "description": "Leave review button" },
+
+  "writeYourReview": "Write your review (optional)",
+  "@writeYourReview": { "description": "Review input hint" },
+
+  "submit": "Submit",
+  "@submit": { "description": "Submit button" },
+
+  "actionFailed": "Action failed. Please try again.",
+  "@actionFailed": { "description": "Generic action failure" },
+
+  "navigate": "Navigate",
+  "@navigate": { "description": "Navigate button" },
+
+  "seeOnMap": "See on map",
+  "@seeOnMap": { "description": "See on map fallback" },
+
+  "callName": "Call {name}",
+  "@callName": {
+    "description": "Call person button",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
+  "recurringBookingLabel": "Recurring Booking",
+  "@recurringBookingLabel": { "description": "Recurring booking type label" },
+
+  "oneTimeBookingLabel": "One-time Booking",
+  "@oneTimeBookingLabel": { "description": "One-time booking type label" },
+
+  "children": "Children",
+  "@children": { "description": "Children label" },
+
+  "paymentChargedAfterSession": "Payment is charged only after the session ends, based on actual hours.",
+  "@paymentChargedAfterSession": { "description": "Payment info note" },
+
+  "bookingRequested": "Booking Requested!",
+  "@bookingRequested": { "description": "Booking success title" },
+
+  "bookingRequestSentMessage": "Your booking request has been sent to the nanny.\nYou'll receive a notification when they respond.",
+  "@bookingRequestSentMessage": { "description": "Booking success message" },
+
+  "pushNotification": "Push notification",
+  "@pushNotification": { "description": "Push notification pill" },
+
+  "chatAvailable": "Chat available",
+  "@chatAvailable": { "description": "Chat available pill" },
+
+  "viewBooking": "View Booking",
+  "@viewBooking": { "description": "View booking button" },
+
+  "backToHome": "Back to Home",
+  "@backToHome": { "description": "Back to home button" },
+
+  "routeTo": "Route to {name}",
+  "@routeTo": {
+    "description": "Route to person map title",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
+  "navigateWithGoogleMaps": "Navigate with Google Maps",
+  "@navigateWithGoogleMaps": { "description": "Google Maps navigation button" },
+
+  "calculatingDistance": "Calculating distance...",
+  "@calculatingDistance": { "description": "Distance calculation loading" },
+
+  "distanceValue": "Distance: {distance}",
+  "@distanceValue": {
+    "description": "Distance display",
+    "placeholders": { "distance": { "type": "String" } }
+  },
+
+  "locationNotAvailable": "Location not available",
+  "@locationNotAvailable": { "description": "No location fallback" },
+
+  "account": "Account",
+  "@account": { "description": "Account section header" },
+
+  "myBookings": "My Bookings",
+  "@myBookings": { "description": "My bookings menu item" },
+
+  "recurringBookings": "Recurring Bookings",
+  "@recurringBookings": { "description": "Recurring bookings menu item" },
+
+  "savedNannies": "Saved Nannies",
+  "@savedNannies": { "description": "Saved nannies menu item" },
+
+  "dashboard": "Dashboard",
+  "@dashboard": { "description": "Dashboard menu item" },
+
+  "manageAvailability": "Manage Availability",
+  "@manageAvailability": { "description": "Manage availability menu item" },
+
+  "getVerified": "Get Verified",
+  "@getVerified": { "description": "Get verified menu item" },
+
+  "documents": "Documents",
+  "@documents": { "description": "Documents menu item" },
+
+  "faceIdTouchId": "Face ID / Touch ID",
+  "@faceIdTouchId": { "description": "iOS biometric menu label" },
+
+  "fingerprintLogin": "Fingerprint Login",
+  "@fingerprintLogin": { "description": "Android biometric menu label" },
+
+  "helpAndSupport": "Help & Support",
+  "@helpAndSupport": { "description": "Help menu item" },
+
+  "aboutSuperNanny": "About SuperNanny",
+  "@aboutSuperNanny": { "description": "About menu item" },
+
+  "signOut": "Sign Out",
+  "@signOut": { "description": "Sign out button" },
+
+  "biometricNotAvailable": "Biometric authentication is not available on this device",
+  "@biometricNotAvailable": { "description": "Biometric not available error" },
+
+  "biometricLoginDisabled": "Biometric login disabled",
+  "@biometricLoginDisabled": { "description": "Biometric disabled message" },
+
+  "biometricLoginEnabled": "{label} login enabled!",
+  "@biometricLoginEnabled": {
+    "description": "Biometric enabled message",
+    "placeholders": { "label": { "type": "String" } }
+  },
+
+  "signInAgainBiometric": "Please sign in again to enable biometric login",
+  "@signInAgainBiometric": { "description": "Re-login for biometric" },
+
+  "verifyIdentityBiometric": "Verify your identity to enable biometric login",
+  "@verifyIdentityBiometric": { "description": "Biometric verification reason" },
+
+  "deleteAccountWarning": "Are you sure you want to permanently delete your account?\n\nThis action cannot be undone. All your data will be removed, and any upcoming bookings will be cancelled.",
+  "@deleteAccountWarning": { "description": "Delete account warning" },
+
+  "finalConfirmation": "Final Confirmation",
+  "@finalConfirmation": { "description": "Final confirmation dialog title" },
+
+  "finalDeleteWarning": "This is your last chance. Once deleted, your account and all associated data will be permanently removed.\n\nType \"DELETE\" below is not required — just tap the button to confirm.",
+  "@finalDeleteWarning": { "description": "Final delete warning" },
+
+  "keepMyAccount": "Keep My Account",
+  "@keepMyAccount": { "description": "Keep account button" },
+
+  "yesDeleteForever": "Yes, Delete Forever",
+  "@yesDeleteForever": { "description": "Confirm delete button" },
+
+  "accountDeleted": "Your account has been deleted",
+  "@accountDeleted": { "description": "Account deleted message" },
+
+  "failedToDeleteAccount": "Failed to delete account. Please try again.",
+  "@failedToDeleteAccount": { "description": "Delete account failure" },
+
+  "signOutConfirmation": "Are you sure you want to sign out?",
+  "@signOutConfirmation": { "description": "Sign out confirmation" },
+
+  "tapToChangePhoto": "Tap to change photo",
+  "@tapToChangePhoto": { "description": "Change photo hint" },
+
+  "profileUpdated": "Profile updated",
+  "@profileUpdated": { "description": "Profile updated success" },
+
+  "updateFailed": "Update failed",
+  "@updateFailed": { "description": "Update failure prefix" },
+
+  "saveChanges": "Save Changes",
+  "@saveChanges": { "description": "Save changes button" },
+
+  "required": "Required",
+  "@required": { "description": "Required field validation" },
+
+  "find": "Find",
+  "@find": { "description": "Find nav tab" },
+
+  "jobs": "Jobs",
+  "@jobs": { "description": "Jobs nav tab" },
+
+  "nearby": "Nearby",
+  "@nearby": { "description": "Nearby nav tab" },
+
+  "searchByCityOrArea": "Search by city or area...",
+  "@searchByCityOrArea": { "description": "Search bar placeholder" },
+
+  "selectLocation": "Select Location",
+  "@selectLocation": { "description": "Location picker title" },
+
+  "searchCity": "Search city...",
+  "@searchCity": { "description": "City search placeholder" },
+
+  "useMyLocation": "Use My Location",
+  "@useMyLocation": { "description": "Use my location option" },
+
+  "nanniesFound": "{count} nannies found",
+  "@nanniesFound": {
+    "description": "Search results count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "noNanniesFound": "No nannies found",
+  "@noNanniesFound": { "description": "Empty nannies list" },
+
+  "tryAdjustingSearch": "Try adjusting your search or filters",
+  "@tryAdjustingSearch": { "description": "Empty search hint" },
+
+  "couldNotLoadNannies": "Could not load nannies",
+  "@couldNotLoadNannies": { "description": "Nannies load error" },
+
+  "priceLowToHigh": "Price: Low → High",
+  "@priceLowToHigh": { "description": "Sort option" },
+
+  "priceHighToLow": "Price: High → Low",
+  "@priceHighToLow": { "description": "Sort option" },
+
+  "mostExperienced": "Most Experienced",
+  "@mostExperienced": { "description": "Sort option" },
+
+  "mostReviews": "Most Reviews",
+  "@mostReviews": { "description": "Sort option" },
+
+  "newest": "Newest",
+  "@newest": { "description": "Sort option" },
+
+  "resetAll": "Reset all",
+  "@resetAll": { "description": "Reset all filters" },
+
+  "careType": "Care Type",
+  "@careType": { "description": "Filter section title" },
+
+  "ongoingCare": "Ongoing Care",
+  "@ongoingCare": { "description": "Ongoing care filter" },
+
+  "recurringRateLabel": "Recurring Rate (₪)",
+  "@recurringRateLabel": { "description": "Recurring rate slider label" },
+
+  "hourlyRateLabel": "Hourly Rate (₪)",
+  "@hourlyRateLabel": { "description": "Hourly rate slider label" },
+
+  "minimumRating": "Minimum Rating",
+  "@minimumRating": { "description": "Filter section title" },
+
+  "any": "Any",
+  "@any": { "description": "Any option" },
+
+  "minExperience": "Min. Experience",
+  "@minExperience": { "description": "Filter section title" },
+
+  "specialization": "Specialization",
+  "@specialization": { "description": "Filter section title" },
+
+  "applyFilters": "Apply Filters",
+  "@applyFilters": { "description": "Apply filters button" },
+
+  "adminDashboard": "Admin Dashboard",
+  "@adminDashboard": { "description": "Admin dashboard title" },
+
+  "platformOverview": "Platform Overview",
+  "@platformOverview": { "description": "Admin overview title" },
+
+  "users": "Users",
+  "@users": { "description": "Users section" },
+
+  "parents": "Parents",
+  "@parents": { "description": "Parents label" },
+
+  "nannies": "Nannies",
+  "@nannies": { "description": "Nannies label" },
+
+  "management": "Management",
+  "@management": { "description": "Management section" },
+
+  "manageUsers": "Manage Users",
+  "@manageUsers": { "description": "Manage users menu" },
+
+  "viewActivateDeactivate": "View, activate, or deactivate accounts",
+  "@viewActivateDeactivate": { "description": "Users management subtitle" },
+
+  "reviewBookings": "Review Bookings",
+  "@reviewBookings": { "description": "Review bookings menu" },
+
+  "monitorManageBookings": "Monitor and manage all bookings",
+  "@monitorManageBookings": { "description": "Bookings management subtitle" },
+
+  "verifyNannies": "Verify Nannies",
+  "@verifyNannies": { "description": "Verify nannies menu" },
+
+  "reviewApproveNannies": "Review and approve nanny applications",
+  "@reviewApproveNannies": { "description": "Nanny approval subtitle" },
+
+  "approvals": "Approvals",
+  "@approvals": { "description": "Approvals tab" },
+
+  "revenue": "Revenue",
+  "@revenue": { "description": "Revenue section" },
+
+  "platformFees": "Platform Fees",
+  "@platformFees": { "description": "Platform fees label" },
+
+  "grossVolume": "Gross Volume",
+  "@grossVolume": { "description": "Gross volume label" },
+
+  "couldNotLoadAdminData": "Could not load admin data",
+  "@couldNotLoadAdminData": { "description": "Admin data error" },
+
+  "couldNotLoad": "Could not load",
+  "@couldNotLoad": { "description": "Generic load error title" },
+
+  "checkConnectionRetry": "Check your connection and try again",
+  "@checkConnectionRetry": { "description": "Generic load error subtitle" },
+
+  "failedToLoad": "Failed to load",
+  "@failedToLoad": { "description": "Inline error title" },
+
+  "profilePhotoUpdated": "Profile photo updated",
+  "@profilePhotoUpdated": { "description": "Photo upload success" },
+
+  "uploadFailed": "Upload failed. Please try again.",
+  "@uploadFailed": { "description": "Photo upload failure" },
+
+  "featureAccessRequired": "{feature} Access Required",
+  "@featureAccessRequired": {
+    "description": "Permission dialog title",
+    "placeholders": { "feature": { "type": "String" } }
+  },
+
+  "chooseFromGallery": "Choose from Gallery",
+  "@chooseFromGallery": { "description": "Gallery option subtitle" },
+
+  "useYourCamera": "Use your camera",
+  "@useYourCamera": { "description": "Camera option subtitle" },
+
+  "systemDefault": "System Default",
+  "@systemDefault": { "description": "System default language option" },
+
+  "noNotifications": "No notifications yet",
+  "@noNotifications": { "description": "Empty notifications" },
+
+  "yourFullName": "Your full name",
+  "@yourFullName": { "description": "Full name hint text" },
+
+  "nanniesNearYou": "Nannies near you",
+  "@nanniesNearYou": { "description": "Nearby section title" },
+
+  "openSettings": "Open Settings",
+  "@openSettings": { "description": "Open settings button" },
+
+  "locationRequired": "Location access is needed to show nearby nannies",
+  "@locationRequired": { "description": "Location required message" },
+
+  "verified": "Verified",
+  "@verified": { "description": "Verified badge" },
+
+  "unverified": "Unverified",
+  "@unverified": { "description": "Unverified badge" },
+
+  "active": "Active",
+  "@active": { "description": "Active status" },
+
+  "inactive": "Inactive",
+  "@inactive": { "description": "Inactive status" },
+
+  "noDataAvailable": "No data available",
+  "@noDataAvailable": { "description": "Empty data message" },
+
+  "bookingStatusUpdated": "Booking {status}",
+  "@bookingStatusUpdated": {
+    "description": "Booking status update snackbar",
+    "placeholders": { "status": { "type": "String" } }
+  },
+
+  "getStarted": "Get Started",
+  "@getStarted": { "description": "Onboarding get started button" },
+
+  "welcomeToSuperNanny": "Welcome to SuperNanny",
+  "@welcomeToSuperNanny": { "description": "Onboarding welcome title" },
+
+  "findPerfectNanny": "Find the perfect nanny for your family",
+  "@findPerfectNanny": { "description": "Onboarding subtitle" },
+
+  "liveSessionTimer": "Live Session",
+  "@liveSessionTimer": { "description": "Live session screen title" },
+
+  "sessionStarted": "Session Started",
+  "@sessionStarted": { "description": "Session started message" },
+
+  "sessionEnded": "Session Ended",
+  "@sessionEnded": { "description": "Session ended message" },
+
+  "endSessionConfirmation": "Are you sure you want to end this session?",
+  "@endSessionConfirmation": { "description": "End session confirmation" },
+
+  "sessionSummary": "Session Summary",
+  "@sessionSummary": { "description": "Session summary title" },
+
+  "totalTime": "Total Time",
+  "@totalTime": { "description": "Total time label" },
+
+  "totalCost": "Total Cost",
+  "@totalCost": { "description": "Total cost label" },
+
+  "verificationRequest": "Verification Request",
+  "@verificationRequest": { "description": "Verification screen title" },
+
+  "uploadDocuments": "Upload Documents",
+  "@uploadDocuments": { "description": "Upload documents button" },
+
+  "verificationPending": "Verification Pending",
+  "@verificationPending": { "description": "Verification pending status" },
+
+  "verificationApproved": "Verification Approved",
+  "@verificationApproved": { "description": "Verification approved status" },
+
+  "noPendingVerifications": "No pending verifications",
+  "@noPendingVerifications": { "description": "Empty verifications" },
+
+  "approve": "Approve",
+  "@approve": { "description": "Approve button" },
+
+  "reject": "Reject",
+  "@reject": { "description": "Reject button" },
+
+  "allBookings": "All Bookings",
+  "@allBookings": { "description": "All bookings title" },
+
+  "noBookingsFound": "No bookings found",
+  "@noBookingsFound": { "description": "Empty admin bookings" },
+
+  "userDetails": "User Details",
+  "@userDetails": { "description": "User details title" },
+
+  "deactivateAccount": "Deactivate Account",
+  "@deactivateAccount": { "description": "Deactivate account button" },
+
+  "activateAccount": "Activate Account",
+  "@activateAccount": { "description": "Activate account button" },
+
+  "selectDays": "Select Days",
+  "@selectDays": { "description": "Select days label" },
+
+  "fromTime": "From",
+  "@fromTime": { "description": "From time label" },
+
+  "toTime": "To",
+  "@toTime": { "description": "To time label" },
+
+  "addTimeSlot": "Add Time Slot",
+  "@addTimeSlot": { "description": "Add time slot button" },
+
+  "noAvailabilitySet": "No availability set",
+  "@noAvailabilitySet": { "description": "Empty availability" },
+
+  "earningsSummary": "Earnings Summary",
+  "@earningsSummary": { "description": "Earnings screen title" },
+
+  "thisMonth": "This Month",
+  "@thisMonth": { "description": "This month label" },
+
+  "allTime": "All Time",
+  "@allTime": { "description": "All time label" },
+
+  "noEarningsYet": "No earnings yet",
+  "@noEarningsYet": { "description": "Empty earnings" },
+
+  "chooseAddress": "Choose address",
+  "@chooseAddress": { "description": "Address selection label" },
+
+  "registeredAddress": "Registered Address",
+  "@registeredAddress": { "description": "Registered address option" },
+
+  "currentLocation": "Current Location",
+  "@currentLocation": { "description": "Current location option" },
+
+  "enterManually": "Enter Manually",
+  "@enterManually": { "description": "Manual address entry" },
+
+  "street": "Street",
+  "@street": { "description": "Street field label" },
+
+  "houseNumber": "House Number",
+  "@houseNumber": { "description": "House number field label" },
+
+  "postalCode": "Postal Code",
+  "@postalCode": { "description": "Postal code field label" },
+
+  "when": "When",
+  "@when": { "description": "Booking step: when" },
+
+  "details": "Details",
+  "@details": { "description": "Booking step: details" },
+
+  "confirmBooking": "Confirm",
+  "@confirmBooking": { "description": "Booking step: confirm" },
+
+  "selectStartDate": "Select start date",
+  "@selectStartDate": { "description": "Recurring start date" },
+
+  "selectEndDate": "Select end date",
+  "@selectEndDate": { "description": "Recurring end date" },
+
+  "locationType": "Location Type",
+  "@locationType": { "description": "Location type label" },
+
+  "parentHome": "Parent's Home",
+  "@parentHome": { "description": "Parent home option" },
+
+  "nannyHome": "Nanny's Home",
+  "@nannyHome": { "description": "Nanny home option" },
+
+  "minimumHoursRequired": "Minimum {hours} hours required",
+  "@minimumHoursRequired": {
+    "description": "Minimum hours message",
+    "placeholders": { "hours": { "type": "String" } }
+  },
+
+  "bookingHistory": "Booking History",
+  "@bookingHistory": { "description": "Booking history title" },
+
+  "notificationsSettings": "Notification Settings",
+  "@notificationsSettings": { "description": "Notification settings title" },
+
+  "pushNotifications": "Push Notifications",
+  "@pushNotifications": { "description": "Push notifications toggle" },
+
+  "emailNotifications": "Email Notifications",
+  "@emailNotifications": { "description": "Email notifications toggle" },
+
+  "bookingReminders": "Booking Reminders",
+  "@bookingReminders": { "description": "Booking reminders toggle" },
+
+  "messageNotifications": "Message Notifications",
+  "@messageNotifications": { "description": "Message notifications toggle" },
+
+  "contactUs": "Contact Us",
+  "@contactUs": { "description": "Contact us label" },
+
+  "faq": "FAQ",
+  "@faq": { "description": "FAQ label" },
+
+  "reportProblem": "Report a Problem",
+  "@reportProblem": { "description": "Report problem label" },
+
+  "privacySettings": "Privacy Settings",
+  "@privacySettings": { "description": "Privacy settings title" },
+
+  "showProfileToNearby": "Show profile to nearby users",
+  "@showProfileToNearby": { "description": "Privacy toggle" },
+
+  "showPhoneNumber": "Show phone number",
+  "@showPhoneNumber": { "description": "Privacy toggle" },
+
+  "nanniesNearby": "Nannies Nearby",
+  "@nanniesNearby": { "description": "Nearby screen title" },
+
+  "viewOnMap": "View on Map",
+  "@viewOnMap": { "description": "View on map button" },
+
+  "addedToFavorites": "Added to favorites",
+  "@addedToFavorites": { "description": "Added to favorites toast" },
+
+  "removedFromFavorites": "Removed from favorites",
+  "@removedFromFavorites": { "description": "Removed from favorites toast" },
+
+  "noChatsYet": "No chats yet",
+  "@noChatsYet": { "description": "Empty chat list" },
+
+  "startChatting": "Start a conversation by booking a nanny",
+  "@startChatting": { "description": "Empty chat hint" },
+
+  "selectExistingPhoto": "Select an existing photo",
+  "@selectExistingPhoto": { "description": "Gallery subtitle in photo picker" },
+
+  "tapToAddPhoto": "Tap to add photo",
+  "@tapToAddPhoto": { "description": "Placeholder text for profile image board" },
+
+  "pleaseEnableFeatureAccess": "Please enable {feature} access in your device Settings to use this feature.",
+  "@pleaseEnableFeatureAccess": { "description": "Permission denied dialog message", "placeholders": { "feature": { "type": "String" } } },
+
+  "couldNotOpenSource": "Could not open {source}. Please check app permissions in Settings.",
+  "@couldNotOpenSource": { "description": "Error when camera/gallery cannot open", "placeholders": { "source": { "type": "String" } } },
+
+  "couldNotOpenSourceShort": "Could not open {source}. Please check app permissions.",
+  "@couldNotOpenSourceShort": { "description": "Short error when camera/gallery cannot open", "placeholders": { "source": { "type": "String" } } },
+
+  "viewButton": "View",
+  "@viewButton": { "description": "View button on nanny card" },
+
+  "moreButton": "More",
+  "@moreButton": { "description": "More button on section header" },
+
+  "firstAidBadge": "First Aid",
+  "@firstAidBadge": { "description": "First Aid badge label" },
+
+  "topRatedBadge": "Top Rated",
+  "@topRatedBadge": { "description": "Top Rated badge label" },
+
+  "fastBadge": "Fast",
+  "@fastBadge": { "description": "Fast Responder badge label" },
+
+  "checkedBadge": "Checked",
+  "@checkedBadge": { "description": "Background Checked badge label" },
+
+  "fiveYearsPlusBadge": "5+ Years",
+  "@fiveYearsPlusBadge": { "description": "5+ years experience badge label" },
+
+  "recurringBadge": "Recurring",
+  "@recurringBadge": { "description": "Recurring badge label" },
+
+  "blockedDay": "Blocked",
+  "@blockedDay": { "description": "Blocked day in availability calendar" },
+
+  "hasExistingBookings": "Has existing booking(s)",
+  "@hasExistingBookings": { "description": "Day with existing bookings" },
+
+  "availableTime": "Available: {timeRange}",
+  "@availableTime": { "description": "Available time range for a date", "placeholders": { "timeRange": { "type": "String" } } },
+
+  "minimumHoursPerSession": "Minimum {hours} hours per session",
+  "@minimumHoursPerSession": { "description": "Minimum hours per booking session", "placeholders": { "hours": { "type": "String" } } },
+
+  "nanniesNearbyCount": "nannies nearby {count}",
+  "@nanniesNearbyCount": { "description": "Nanny count badge on mini map", "placeholders": { "count": { "type": "int" } } },
+
+  "tapToExpandMap": "Tap to expand map",
+  "@tapToExpandMap": { "description": "Map expand hint" },
+
+  "openMap": "Open Map",
+  "@openMap": { "description": "Open map button" },
+
+  "dismiss": "Dismiss",
+  "@dismiss": { "description": "Dismiss button" },
+
+  "startsIn": "Starts in {time}",
+  "@startsIn": { "description": "Booking starts in countdown", "placeholders": { "time": { "type": "String" } } },
+
+  "categoryAll": "All",
+  "@categoryAll": { "description": "All category label" },
+
+  "categoryOngoingCare": "Ongoing Care",
+  "@categoryOngoingCare": { "description": "Ongoing Care category label" },
+
+  "categoryInfant": "Infant",
+  "@categoryInfant": { "description": "Infant category label" },
+
+  "categoryToddler": "Toddler",
+  "@categoryToddler": { "description": "Toddler category label" },
+
+  "categorySchoolAge": "School Age",
+  "@categorySchoolAge": { "description": "School Age category label" },
+
+  "categorySpecialNeeds": "Special Needs",
+  "@categorySpecialNeeds": { "description": "Special Needs category label" },
+
+  "categoryFirstAid": "First Aid",
+  "@categoryFirstAid": { "description": "First Aid category label" },
+
+  "categoryNightCare": "Night Care",
+  "@categoryNightCare": { "description": "Night Care category label" },
+
+  "categoryWeekend": "Weekend",
+  "@categoryWeekend": { "description": "Weekend category label" },
+
+  "promoWelcomeTitle": "Welcome to SuperNanny!",
+  "@promoWelcomeTitle": { "description": "Welcome promo banner title" },
+
+  "promoWelcomeSubtitle": "Find your perfect babysitter in minutes",
+  "@promoWelcomeSubtitle": { "description": "Welcome promo banner subtitle" },
+
+  "promoVerifiedTitle": "Verified & Trusted",
+  "@promoVerifiedTitle": { "description": "Verified promo banner title" },
+
+  "promoVerifiedSubtitle": "All nannies are background-checked",
+  "@promoVerifiedSubtitle": { "description": "Verified promo banner subtitle" },
+
+  "promoBookTitle": "Book Instantly",
+  "@promoBookTitle": { "description": "Book promo banner title" },
+
+  "promoBookSubtitle": "No waiting, no hassle — just book & go",
+  "@promoBookSubtitle": { "description": "Book promo banner subtitle" },
+
+  "legendAvailable": "Available",
+  "@legendAvailable": { "description": "Calendar legend - available" },
+
+  "legendBooked": "Booked",
+  "@legendBooked": { "description": "Calendar legend - booked" },
+
+  "legendBlocked": "Blocked",
+  "@legendBlocked": { "description": "Calendar legend - blocked" },
+
+  "couldNotLoadMessages": "Could not load messages",
+  "@couldNotLoadMessages": { "description": "Chat list error title" },
+
+  "noMessagesYet": "No messages yet",
+  "@noMessagesYet": { "description": "Chat list empty state title" },
+
+  "startConversationByBooking": "Start a conversation by booking a nanny",
+  "@startConversationByBooking": { "description": "Chat list empty state subtitle" },
+
+  "markAllRead": "Mark all read",
+  "@markAllRead": { "description": "Mark all notifications as read" },
+
+  "couldNotLoadNotifications": "Could not load notifications",
+  "@couldNotLoadNotifications": { "description": "Notifications error title" },
+
+  "noNotificationsYet": "No notifications yet",
+  "@noNotificationsYet": { "description": "Notifications empty state title" },
+
+  "notificationsEmptyDescription": "When you receive booking updates, messages, or other alerts, they'll appear here.",
+  "@notificationsEmptyDescription": { "description": "Notifications empty state subtitle" },
+
+  "nearbyNannies": "Nearby Nannies",
+  "@nearbyNannies": { "description": "Nearby screen title" },
+
+  "nearYou": "Near you",
+  "@nearYou": { "description": "Near you location chip" },
+
+  "noNanniesFoundNearby": "No nannies found nearby",
+  "@noNanniesFoundNearby": { "description": "Nearby empty state" },
+
+  "couldNotLoadFavorites": "Could not load favorites",
+  "@couldNotLoadFavorites": { "description": "Favorites error title" },
+
+  "noSavedNanniesYet": "No saved nannies yet",
+  "@noSavedNanniesYet": { "description": "Favorites empty state title" },
+
+  "savedNanniesEmptyDescription": "Tap the heart icon on a nanny's profile to save them here for quick access.",
+  "@savedNanniesEmptyDescription": { "description": "Favorites empty state subtitle" },
+
+  "browseNannies": "Browse Nannies",
+  "@browseNannies": { "description": "Browse nannies button" },
+
+  "reconnectingToSession": "Reconnecting to session...",
+  "@reconnectingToSession": { "description": "Session reconnecting message" },
+
+  "you": "You",
+  "@you": { "description": "Label for current user in session" },
+
+  "waitingForUserToConfirm": "Waiting for {name} to confirm...",
+  "@waitingForUserToConfirm": { "description": "Waiting for other user confirmation", "placeholders": { "name": { "type": "String" } } },
+
+  "bothPartiesNeedConfirm": "Both parties need to confirm to start the session",
+  "@bothPartiesNeedConfirm": { "description": "Both parties must confirm start" },
+
+  "confirmNannyArrived": "Confirm that the nanny has arrived and the session can begin",
+  "@confirmNannyArrived": { "description": "Parent confirm start prompt" },
+
+  "confirmYouArrived": "Confirm that you have arrived and the session can begin",
+  "@confirmYouArrived": { "description": "Nanny confirm start prompt" },
+
+  "waitingForConfirmation": "Waiting for confirmation...",
+  "@waitingForConfirmation": { "description": "Waiting for confirmation status" },
+
+  "sessionAutoEnds": "Session auto-ends in 10 min if unconfirmed",
+  "@sessionAutoEnds": { "description": "Session auto-end warning" },
+
+  "confirmEnd": "Confirm End",
+  "@confirmEnd": { "description": "Confirm end session button" },
+
+  "waitingForOtherParty": "Waiting for the other party to confirm...",
+  "@waitingForOtherParty": { "description": "Waiting for other party end confirm" },
+
+  "confirming": "Confirming...",
+  "@confirming": { "description": "Confirming session phase title" },
+
+  "liveSession": "Live Session",
+  "@liveSession": { "description": "Active session phase title" },
+
+  "ending": "Ending...",
+  "@ending": { "description": "Ending session phase title" },
+
+  "sessionComplete": "Session Complete",
+  "@sessionComplete": { "description": "Session complete title" },
+
+  "sessionCompleteExclamation": "Session Complete!",
+  "@sessionCompleteExclamation": { "description": "Session complete heading" },
+
+  "sessionSummarySubtitle": "Great job! Here's your session summary.",
+  "@sessionSummarySubtitle": { "description": "Session summary subtitle" },
+
+  "rateYourExperience": "Rate Your Experience",
+  "@rateYourExperience": { "description": "Review rating title" },
+
+  "addCommentOptional": "Add a comment (optional)",
+  "@addCommentOptional": { "description": "Review comment hint" },
+
+  "submitting": "Submitting...",
+  "@submitting": { "description": "Submitting state label" },
+
+  "submitReview": "Submit Review",
+  "@submitReview": { "description": "Submit review button" },
+
+  "thankYouForReview": "Thank you for your review!",
+  "@thankYouForReview": { "description": "Review submitted confirmation" },
+
+  "couldNotSubmitReview": "Could not submit review. Please try again.",
+  "@couldNotSubmitReview": { "description": "Review submit error" },
+
+  "backToBooking": "Back to Booking",
+  "@backToBooking": { "description": "Back to booking button" },
+
+  "goHome": "Go Home",
+  "@goHome": { "description": "Go home button" },
+
+  "endSessionQuestion": "End Session?",
+  "@endSessionQuestion": { "description": "End session dialog title" },
+
+  "endSessionConfirmMessage": "Both parties need to confirm. The other party will be notified.",
+  "@endSessionConfirmMessage": { "description": "End session dialog message" },
+
+  "waiting": "Waiting...",
+  "@waiting": { "description": "Waiting status label" },
+
+  "findTrustedBabysitters": "Find trusted babysitters near you",
+  "@findTrustedBabysitters": { "description": "App tagline" },
+
+  "enableLabelQuestion": "Enable {label}?",
+  "@enableLabelQuestion": { "description": "Biometric enable dialog title", "placeholders": { "label": { "type": "String" } } },
+
+  "signInFasterWithLabel": "Sign in faster next time using {label}. You can change this in settings.",
+  "@signInFasterWithLabel": { "description": "Biometric enable dialog message", "placeholders": { "label": { "type": "String" } } },
+
+  "enableLabel": "Enable {label}",
+  "@enableLabel": { "description": "Enable biometric button", "placeholders": { "label": { "type": "String" } } },
+
+  "welcomeBackComma": "Welcome back,",
+  "@welcomeBackComma": { "description": "Dashboard greeting prefix" },
+
+  "activeAndAvailable": "Active & Available",
+  "@activeAndAvailable": { "description": "Nanny dashboard status" },
+
+  "totalEarned": "Total Earned",
+  "@totalEarned": { "description": "Dashboard stat - total earned" },
+
+  "totalJobs": "Total Jobs",
+  "@totalJobs": { "description": "Dashboard stat - total jobs" },
+
+  "pendingPayout": "Pending Payout",
+  "@pendingPayout": { "description": "Dashboard pending payout label" },
+
+  "quickActions": "Quick Actions",
+  "@quickActions": { "description": "Dashboard quick actions section" },
+
+  "availability": "Availability",
+  "@availability": { "description": "Availability action label" },
+
+  "earnings": "Earnings",
+  "@earnings": { "description": "Earnings action label" },
+
+  "documents": "Documents",
+  "@documents": { "description": "Documents action label" },
+
+  "pendingRequests": "Pending Requests",
+  "@pendingRequests": { "description": "Dashboard pending requests section" },
+
+  "seeAll": "See all",
+  "@seeAll": { "description": "See all link" },
+
+  "verified": "Verified",
+  "@verified": { "description": "Verification banner - approved title" },
+
+  "verifiedSubtitle": "Your identity has been verified. You have a trusted badge on your profile.",
+  "@verifiedSubtitle": { "description": "Verification banner - approved subtitle" },
+
+  "underReview": "Under Review",
+  "@underReview": { "description": "Verification banner - pending title" },
+
+  "underReviewSubtitle": "Your verification request is being reviewed. You can still add missing documents.",
+  "@underReviewSubtitle": { "description": "Verification banner - pending subtitle" },
+
+  "updateRequest": "Update Request",
+  "@updateRequest": { "description": "Verification banner - update CTA" },
+
+  "verificationRejected": "Verification Rejected",
+  "@verificationRejected": { "description": "Verification banner - rejected title" },
+
+  "verificationRejectedSubtitle": "Your request was not approved. Please update your documents and resubmit.",
+  "@verificationRejectedSubtitle": { "description": "Verification banner - rejected subtitle" },
+
+  "resubmit": "Resubmit",
+  "@resubmit": { "description": "Verification banner - resubmit CTA" },
+
+  "verificationRequired": "Verification Required",
+  "@verificationRequired": { "description": "Verification banner - no request title" },
+
+  "verificationRequiredSubtitle": "Upload your documents and send a verification request to increase trust.",
+  "@verificationRequiredSubtitle": { "description": "Verification banner - no request subtitle" },
+
+  "start": "Start",
+  "@start": { "description": "Start CTA button" },
+
+  "couldNotLoadDashboard": "Could not load dashboard",
+  "@couldNotLoadDashboard": { "description": "Dashboard error title" },
+
+  "checkConnectionRetry": "Check your connection and try again",
+  "@checkConnectionRetry": { "description": "Dashboard error subtitle" },
+
+  "completed": "Completed",
+  "@completed": { "description": "Completed status label" },
+
+  "minutesAgo": "{count}m ago",
+  "@minutesAgo": { "description": "Minutes ago time label", "placeholders": { "count": { "type": "int" } } },
+
+  "hoursAgo": "{count}h ago",
+  "@hoursAgo": { "description": "Hours ago time label", "placeholders": { "count": { "type": "int" } } },
+
+  "daysAgo": "{count}d ago",
+  "@daysAgo": { "description": "Days ago time label", "placeholders": { "count": { "type": "int" } } },
+
+  "cancelSession": "Cancel Session",
+  "@cancelSession": { "description": "Cancel session button" },
+
+  "cancelSessionInstead": "Cancel Session Instead",
+  "@cancelSessionInstead": { "description": "Cancel session instead button during end flow" },
+
+  "cancelActiveSessionQuestion": "Cancel Active Session?",
+  "@cancelActiveSessionQuestion": { "description": "Cancel active session dialog title" },
+
+  "cancelSessionStartQuestion": "Cancel Session Start?",
+  "@cancelSessionStartQuestion": { "description": "Cancel session start dialog title" },
+
+  "cancelActiveSessionMessage": "This will cancel the active session. No charges will be applied. Both parties will need to confirm again to restart.",
+  "@cancelActiveSessionMessage": { "description": "Cancel active session dialog message" },
+
+  "cancelSessionStartMessage": "This will cancel the confirmation. You can restart the session later — both parties will need to confirm again.",
+  "@cancelSessionStartMessage": { "description": "Cancel session start dialog message" },
+
+  "keepGoing": "Keep Going",
+  "@keepGoing": { "description": "Keep going button in cancel dialog" },
+
+  "deleteChat": "Delete Chat",
+  "@deleteChat": { "description": "Delete chat dialog title" },
+
+  "hideChatMessage": "Hide your conversation with {name}?\n\nThis only removes it from your list. The other person can still see the chat.",
+  "@hideChatMessage": { "description": "Delete chat dialog message", "placeholders": { "name": { "type": "String" } } },
+
+  "chatRemoved": "Chat removed",
+  "@chatRemoved": { "description": "Chat removed snackbar" },
+
+  "couldNotDeleteChat": "Could not delete chat",
+  "@couldNotDeleteChat": { "description": "Delete chat error snackbar" },
+
+  "deleteUser": "Delete User",
+  "@deleteUser": { "description": "Delete user dialog/button title" },
+
+  "activeUsersTab": "Active Users",
+  "@activeUsersTab": { "description": "Active users tab label" },
+
+  "deletedUsersTab": "Deleted Users",
+  "@deletedUsersTab": { "description": "Deleted users tab label" },
+
+  "phoneNumberRequired": "Phone number is required",
+  "@phoneNumberRequired": { "description": "Phone required validation message" },
+
+  "deleteBooking": "Delete Booking",
+  "@deleteBooking": { "description": "Delete booking button" },
+
+  "cancelAndDelete": "Cancel & Delete",
+  "@cancelAndDelete": { "description": "Cancel and delete button" },
+
+  "deleteBookingQuestion": "Delete Booking?",
+  "@deleteBookingQuestion": { "description": "Delete booking dialog title" },
+
+  "cancelAndDeleteQuestion": "Cancel & Delete?",
+  "@cancelAndDeleteQuestion": { "description": "Cancel and delete dialog title" },
+
+  "all": "All",
+  "@all": { "description": "All tab/filter label" },
+
+  "pending": "Pending",
+  "@pending": { "description": "Pending status label" },
+
+  "accepted": "Accepted",
+  "@accepted": { "description": "Accepted status label" },
+
+  "cancelled": "Cancelled",
+  "@cancelled": { "description": "Cancelled status label" },
+
+  "deletedDate": "Deleted: {date}",
+  "@deletedDate": { "description": "Deleted date label for admin", "placeholders": { "date": { "type": "String" } } }
 }

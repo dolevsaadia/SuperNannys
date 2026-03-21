@@ -12,6 +12,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _dashboardProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   ref.watch(dataRefreshProvider); // re-fetch when data changes elsewhere
@@ -45,6 +46,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final async = ref.watch(_dashboardProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -89,7 +91,7 @@ class DashboardScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Welcome back,',
+                                l.welcomeBackComma,
                                 style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75)),
                               ),
                               Text(
@@ -133,7 +135,7 @@ class DashboardScreen extends ConsumerWidget {
                             decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
                           ),
                           const SizedBox(width: 6),
-                          Text('Active & Available', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.9))),
+                          Text(l.activeAndAvailable, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.9))),
                         ],
                       ),
                     ),
@@ -171,14 +173,14 @@ class DashboardScreen extends ConsumerWidget {
                         children: [
                           Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.textHint),
                           const SizedBox(height: 12),
-                          const Text('Could not load dashboard', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          Text(l.couldNotLoadDashboard, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 4),
-                          Text('Check your connection and try again', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                          Text(l.checkConnectionRetry, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                           const SizedBox(height: 12),
                           TextButton.icon(
                             onPressed: () => ref.invalidate(_dashboardProvider),
                             icon: const Icon(Icons.refresh_rounded, size: 18),
-                            label: const Text('Retry'),
+                            label: Text(l.retry),
                           ),
                         ],
                       ),
@@ -201,7 +203,7 @@ class DashboardScreen extends ConsumerWidget {
                                 children: [
                                   Expanded(
                                     child: _GradientStatCard(
-                                      title: 'Total Earned',
+                                      title: l.totalEarned,
                                       value: '\u20AA${earnings['totalEarned'] ?? 0}',
                                       icon: Icons.account_balance_wallet_rounded,
                                       gradient: AppColors.gradientSuccess,
@@ -210,7 +212,7 @@ class DashboardScreen extends ConsumerWidget {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: _GradientStatCard(
-                                      title: 'Total Jobs',
+                                      title: l.totalJobs,
                                       value: '${earnings['totalJobs'] ?? 0}',
                                       icon: Icons.work_rounded,
                                       gradient: AppColors.gradientAccent,
@@ -226,7 +228,7 @@ class DashboardScreen extends ConsumerWidget {
                         const SizedBox(height: 24),
 
                         // ── Quick Actions ──────────────────
-                        const Text('Quick Actions', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                        Text(l.quickActions, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
 
                         Row(
@@ -234,7 +236,7 @@ class DashboardScreen extends ConsumerWidget {
                             Expanded(
                               child: _PremiumActionCard(
                                 icon: Icons.schedule_rounded,
-                                label: 'Availability',
+                                label: l.availability,
                                 color: AppColors.primary,
                                 onTap: () => context.go('/dashboard/availability'),
                               ),
@@ -243,7 +245,7 @@ class DashboardScreen extends ConsumerWidget {
                             Expanded(
                               child: _PremiumActionCard(
                                 icon: Icons.account_balance_wallet_rounded,
-                                label: 'Earnings',
+                                label: l.earnings,
                                 color: AppColors.success,
                                 onTap: () => context.go('/dashboard/earnings'),
                               ),
@@ -252,7 +254,7 @@ class DashboardScreen extends ConsumerWidget {
                             Expanded(
                               child: _PremiumActionCard(
                                 icon: Icons.description_rounded,
-                                label: 'Documents',
+                                label: l.documents,
                                 color: AppColors.info,
                                 onTap: () => context.go('/dashboard/documents'),
                               ),
@@ -265,7 +267,7 @@ class DashboardScreen extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Pending Requests', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                              Text(l.pendingRequests, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                               GestureDetector(
                                 onTap: () => context.go('/bookings'),
                                 child: Container(
@@ -274,8 +276,8 @@ class DashboardScreen extends ConsumerWidget {
                                     color: AppColors.primary.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Text(
-                                    'See all',
+                                  child: Text(
+                                    l.seeAll,
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
                                   ),
                                 ),
@@ -368,7 +370,7 @@ class _PendingPayoutCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Pending Payout', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(AppLocalizations.of(context).pendingPayout, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   Text('\u20AA$amount', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.warning)),
                 ],
               ),
@@ -434,6 +436,7 @@ class _VerificationBanner extends StatelessWidget {
   }
 
   Widget _buildBanner(BuildContext context, {required String? status}) {
+    final l = AppLocalizations.of(context);
     final Color color;
     final IconData icon;
     final String title;
@@ -445,31 +448,31 @@ class _VerificationBanner extends StatelessWidget {
       case 'approved':
         color = AppColors.success;
         icon = Icons.verified_rounded;
-        title = 'Verified';
-        subtitle = 'Your identity has been verified. You have a trusted badge on your profile.';
+        title = l.verified;
+        subtitle = l.verifiedSubtitle;
         ctaText = null;
         showCta = false;
       case 'pending':
         color = AppColors.info;
         icon = Icons.hourglass_top_rounded;
-        title = 'Under Review';
-        subtitle = 'Your verification request is being reviewed. You can still add missing documents.';
-        ctaText = 'Update Request';
+        title = l.underReview;
+        subtitle = l.underReviewSubtitle;
+        ctaText = l.updateRequest;
         showCta = true;
       case 'rejected':
         color = AppColors.error;
         icon = Icons.cancel_rounded;
-        title = 'Verification Rejected';
-        subtitle = 'Your request was not approved. Please update your documents and resubmit.';
-        ctaText = 'Resubmit';
+        title = l.verificationRejected;
+        subtitle = l.verificationRejectedSubtitle;
+        ctaText = l.resubmit;
         showCta = true;
       default:
         // No request exists yet
         color = AppColors.warning;
         icon = Icons.verified_user_rounded;
-        title = 'Verification Required';
-        subtitle = 'Upload your documents and send a verification request to increase trust.';
-        ctaText = 'Start';
+        title = l.verificationRequired;
+        subtitle = l.verificationRequiredSubtitle;
+        ctaText = l.start;
         showCta = true;
     }
 

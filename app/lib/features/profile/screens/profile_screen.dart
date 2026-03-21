@@ -12,6 +12,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/profile_image_picker.dart';
 import '../../../core/providers/data_refresh_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -20,6 +21,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     if (user == null) return const FullScreenLoader();
+    final l10n = AppLocalizations.of(context);
 
     final hasImage = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
     final topPadding = MediaQuery.of(context).padding.top;
@@ -93,39 +95,39 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Account', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
+                  Text(l10n.account, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
                   const SizedBox(height: 8),
                   _MenuGroup(items: [
-                    _MenuItem(Icons.calendar_today_rounded, 'My Bookings', () => context.go('/bookings')),
-                    _MenuItem(Icons.repeat_rounded, 'Recurring Bookings', () => context.go('/recurring-bookings')),
-                    _MenuItem(Icons.favorite_rounded, 'Saved Nannies', () => context.go('/favorites')),
+                    _MenuItem(Icons.calendar_today_rounded, l10n.myBookings, () => context.go('/bookings')),
+                    _MenuItem(Icons.repeat_rounded, l10n.recurringBookings, () => context.go('/recurring-bookings')),
+                    _MenuItem(Icons.favorite_rounded, l10n.savedNannies, () => context.go('/favorites')),
                     if (user.isNanny) ...[
-                      _MenuItem(Icons.dashboard_rounded, 'Dashboard', () => context.go('/dashboard')),
-                      _MenuItem(Icons.schedule_rounded, 'Manage Availability', () => context.go('/dashboard/availability')),
-                      _MenuItem(Icons.account_balance_wallet_rounded, 'Earnings', () => context.go('/dashboard/earnings')),
+                      _MenuItem(Icons.dashboard_rounded, l10n.dashboard, () => context.go('/dashboard')),
+                      _MenuItem(Icons.schedule_rounded, l10n.manageAvailability, () => context.go('/dashboard/availability')),
+                      _MenuItem(Icons.account_balance_wallet_rounded, l10n.earnings, () => context.go('/dashboard/earnings')),
                       if (!user.isVerified)
-                        _MenuItem(Icons.verified_user_rounded, 'Get Verified', () => context.go('/dashboard/verification')),
-                      _MenuItem(Icons.description_rounded, 'Documents', () => context.go('/dashboard/documents')),
+                        _MenuItem(Icons.verified_user_rounded, l10n.getVerified, () => context.go('/dashboard/verification')),
+                      _MenuItem(Icons.description_rounded, l10n.documents, () => context.go('/dashboard/documents')),
                     ],
                   ]),
                   const SizedBox(height: 16),
-                  const Text('Settings', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
+                  Text(l10n.settings, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textHint)),
                   const SizedBox(height: 8),
                   _MenuGroup(items: [
-                    _MenuItem(Icons.notifications_outlined, 'Notifications', () => context.go('/profile/notifications')),
-                    _MenuItem(Icons.language_rounded, 'Language', () => context.go('/profile/language')),
-                    _MenuItem(Icons.fingerprint_rounded, Platform.isIOS ? 'Face ID / Touch ID' : 'Fingerprint Login', () => _toggleBiometric(context, ref)),
-                    _MenuItem(Icons.lock_outline_rounded, 'Privacy & Security', () => context.go('/profile/privacy')),
-                    _MenuItem(Icons.help_outline_rounded, 'Help & Support', () => context.go('/profile/help')),
-                    _MenuItem(Icons.info_outline_rounded, 'About SuperNanny', () => context.go('/profile/about')),
+                    _MenuItem(Icons.notifications_outlined, l10n.notificationsSettings, () => context.go('/profile/notifications')),
+                    _MenuItem(Icons.language_rounded, l10n.language, () => context.go('/profile/language')),
+                    _MenuItem(Icons.fingerprint_rounded, Platform.isIOS ? l10n.faceIdTouchId : l10n.fingerprintLogin, () => _toggleBiometric(context, ref)),
+                    _MenuItem(Icons.lock_outline_rounded, l10n.privacySettings, () => context.go('/profile/privacy')),
+                    _MenuItem(Icons.help_outline_rounded, l10n.helpAndSupport, () => context.go('/profile/help')),
+                    _MenuItem(Icons.info_outline_rounded, l10n.aboutSuperNanny, () => context.go('/profile/about')),
                   ]),
                   const SizedBox(height: 16),
                   _MenuGroup(items: [
-                    _MenuItem(Icons.logout_rounded, 'Sign Out', () => _logout(context, ref), isDestructive: true),
+                    _MenuItem(Icons.logout_rounded, l10n.signOut, () => _logout(context, ref), isDestructive: true),
                   ]),
                   const SizedBox(height: 12),
                   _MenuGroup(items: [
-                    _MenuItem(Icons.delete_forever_rounded, 'Delete Account', () => _deleteAccount(context, ref), isDestructive: true),
+                    _MenuItem(Icons.delete_forever_rounded, l10n.deleteAccount, () => _deleteAccount(context, ref), isDestructive: true),
                   ]),
                   const SizedBox(height: 32),
                 ],
@@ -138,12 +140,14 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _toggleBiometric(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final biometric = BiometricService();
+    final biometricLabel = l10n.biometric;
     final isSupported = await biometric.isDeviceSupported;
     if (!isSupported) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometric authentication is not available on this device'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(l10n.biometricNotAvailable), backgroundColor: AppColors.error),
         );
       }
       return;
@@ -155,13 +159,13 @@ class ProfileScreen extends ConsumerWidget {
       await biometric.disable();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometric login disabled'), backgroundColor: AppColors.textSecondary),
+          SnackBar(content: Text(l10n.biometricLoginDisabled), backgroundColor: AppColors.textSecondary),
         );
       }
     } else {
       // Enable biometric — authenticate first, then save token
       final result = await biometric.authenticate(
-        reason: 'Verify your identity to enable biometric login',
+        reason: l10n.verifyIdentityBiometric,
       );
 
       switch (result) {
@@ -192,7 +196,7 @@ class ProfileScreen extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${Platform.isIOS ? "Face ID / Touch ID" : "Fingerprint"} login enabled!'),
+              content: Text(l10n.biometricLoginEnabled(biometricLabel)),
               backgroundColor: AppColors.success,
             ),
           );
@@ -200,7 +204,7 @@ class ProfileScreen extends ConsumerWidget {
       } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please sign in again to enable biometric login'), backgroundColor: AppColors.error),
+            SnackBar(content: Text(l10n.signInAgainBiometric), backgroundColor: AppColors.error),
           );
         }
       }
@@ -208,23 +212,22 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _deleteAccount(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Delete Account', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
-        content: const Text(
-          'Are you sure you want to permanently delete your account?\n\n'
-          'This action cannot be undone. All your data will be removed, '
-          'and any upcoming bookings will be cancelled.',
-          style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+        title: Text(l10n.deleteAccount, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+        content: Text(
+          l10n.deleteAccountWarning,
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderPill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -236,7 +239,7 @@ class ProfileScreen extends ConsumerWidget {
               Navigator.pop(dc);
               _confirmDeleteAccount(context, ref);
             },
-            child: const Text('Delete Account'),
+            child: Text(l10n.deleteAccount),
           ),
         ],
       ),
@@ -244,23 +247,23 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _confirmDeleteAccount(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     // Second confirmation
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Final Confirmation', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
-        content: const Text(
-          'This is your last chance. Once deleted, your account and all associated data will be permanently removed.\n\n'
-          'Type "DELETE" below is not required — just tap the button to confirm.',
-          style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+        title: Text(l10n.finalConfirmation, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+        content: Text(
+          l10n.finalDeleteWarning,
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderPill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
-            child: Text('Keep My Account', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+            child: Text(l10n.keepMyAccount, style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -276,16 +279,16 @@ class ProfileScreen extends ConsumerWidget {
                 if (success) {
                   context.go('/onboarding');
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Your account has been deleted'), backgroundColor: AppColors.textSecondary),
+                    SnackBar(content: Text(l10n.accountDeleted), backgroundColor: AppColors.textSecondary),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to delete account. Please try again.'), backgroundColor: AppColors.error),
+                    SnackBar(content: Text(l10n.failedToDeleteAccount), backgroundColor: AppColors.error),
                   );
                 }
               }
             },
-            child: const Text('Yes, Delete Forever'),
+            child: Text(l10n.yesDeleteForever),
           ),
         ],
       ),
@@ -293,18 +296,19 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _logout(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
         backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
+        title: Text(l10n.signOut, style: const TextStyle(color: AppColors.textPrimary)),
+        content: Text(l10n.signOutConfirmation, style: const TextStyle(color: AppColors.textSecondary)),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.borderPill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -318,7 +322,7 @@ class ProfileScreen extends ConsumerWidget {
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) context.go('/onboarding');
             },
-            child: const Text('Sign Out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
@@ -427,7 +431,7 @@ class _ProfileHero extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onEdit,
                     icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
-                    label: const Text('Edit Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    label: Text(AppLocalizations.of(context).editProfile, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
                       backgroundColor: Colors.white.withValues(alpha: 0.12),

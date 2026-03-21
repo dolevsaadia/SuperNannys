@@ -14,6 +14,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/google_places_field.dart';
 import '../../../core/widgets/availability_calendar.dart';
+import '../../../l10n/app_localizations.dart';
 
 class BookingFormScreen extends ConsumerStatefulWidget {
   final String nannyId;
@@ -117,7 +118,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-        setState(() { _error = 'Location permission denied'; _loadingLocation = false; });
+        setState(() { _error = AppLocalizations.of(context).locationNotAvailable; _loadingLocation = false; });
         return;
       }
       final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
@@ -134,7 +135,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         });
       }
     } catch (e) {
-      setState(() => _error = 'Could not get location');
+      setState(() => _error = AppLocalizations.of(context).locationNotAvailable);
     }
     setState(() => _loadingLocation = false);
   }
@@ -213,8 +214,9 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         final selectedMin = t.hour * 60 + t.minute;
         if (selectedMin < fromMin || selectedMin >= toMin) {
           if (mounted) {
+            final l = AppLocalizations.of(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Start time must be between $_availableFromTime and $_availableToTime'), backgroundColor: Colors.orange),
+              SnackBar(content: Text('${l.startTime}: $_availableFromTime - $_availableToTime'), backgroundColor: Colors.orange),
             );
           }
           return;
@@ -239,8 +241,9 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
         final selectedMin = t.hour * 60 + t.minute;
         if (selectedMin <= fromMin || selectedMin > toMin) {
           if (mounted) {
+            final l = AppLocalizations.of(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('End time must be between $_availableFromTime and $_availableToTime'), backgroundColor: Colors.orange),
+              SnackBar(content: Text('${l.endTime}: $_availableFromTime - $_availableToTime'), backgroundColor: Colors.orange),
             );
           }
           return;
@@ -251,19 +254,20 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   }
 
   Future<void> _proceedRecurring() async {
+    final l = AppLocalizations.of(context);
     if (_selectedDays.isEmpty || _recurringStartTime == null || _recurringEndTime == null || _recurringStartDate == null) {
-      setState(() => _error = 'Please select days, time, and start date');
+      setState(() => _error = l.selectDate);
       return;
     }
     if (_cityCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'City is required');
+      setState(() => _error = l.city);
       return;
     }
 
     final startMin = _recurringStartTime!.hour * 60 + _recurringStartTime!.minute;
     final endMin = _recurringEndTime!.hour * 60 + _recurringEndTime!.minute;
     if (endMin <= startMin) {
-      setState(() => _error = 'End time must be after start time');
+      setState(() => _error = l.endTime);
       return;
     }
 
@@ -297,19 +301,20 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       }
     } catch (e) {
       setState(() {
-        _error = (e as dynamic).response?.data?['message'] as String? ?? 'Booking failed';
+        _error = (e as dynamic).response?.data?['message'] as String? ?? l.actionFailed;
         _isLoading = false;
       });
     }
   }
 
   Future<void> _proceed() async {
+    final l = AppLocalizations.of(context);
     if (_startDate == null || _startTime == null || _endTime == null) {
-      setState(() => _error = 'Please select date and time');
+      setState(() => _error = l.selectDate);
       return;
     }
     if (_cityCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'City is required');
+      setState(() => _error = l.city);
       return;
     }
 
@@ -323,7 +328,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
     );
 
     if (endDt.isBefore(startDt) || endDt.isAtSameMomentAs(startDt)) {
-      setState(() => _error = 'End time must be after start time');
+      setState(() => _error = l.endTime);
       return;
     }
 
@@ -363,7 +368,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      String message = 'Booking failed';
+      String message = l.actionFailed;
       try {
         message = (e as dynamic).response?.data?['message'] as String? ?? message;
       } catch (_) {}
@@ -377,11 +382,12 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('EEE, MMM d, yyyy');
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Book ${_nannyName ?? 'Nanny'}'),
+        title: Text('${l.bookNow} - ${_nannyName ?? l.nanny}'),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
@@ -393,11 +399,11 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: Row(
                 children: [
-                  _StepDot(index: 0, label: 'When', current: _currentStep),
+                  _StepDot(index: 0, label: l.when, current: _currentStep),
                   _StepLine(done: _currentStep > 0),
-                  _StepDot(index: 1, label: 'Details', current: _currentStep),
+                  _StepDot(index: 1, label: l.details, current: _currentStep),
                   _StepLine(done: _currentStep > 1),
-                  _StepDot(index: 2, label: 'Confirm', current: _currentStep),
+                  _StepDot(index: 2, label: l.confirmBooking, current: _currentStep),
                 ],
               ),
             ),
@@ -440,7 +446,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                       Icon(Icons.event_rounded, size: 18, color: !_isRecurring ? AppColors.primary : AppColors.textHint),
                                       const SizedBox(width: 6),
                                       Text(
-                                        'One-time',
+                                        l.oneTime,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
@@ -472,7 +478,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                       Icon(Icons.repeat_rounded, size: 18, color: _isRecurring ? AppColors.accent : AppColors.textHint),
                                       const SizedBox(width: 6),
                                       Text(
-                                        'Recurring',
+                                        l.recurring,
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 14,
@@ -523,27 +529,27 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '\u20AA$_effectiveRate/hour${_isRecurring ? ' (recurring)' : ''}',
+                                    '\u20AA$_effectiveRate/${l.hourlyRate}${_isRecurring ? ' (${l.recurring})' : ''}',
                                     style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 18),
                                   ),
                                   if (!_isRecurring && _totalAmount > 0)
                                     Text(
-                                      '~${_durationHours.toStringAsFixed(1)}h ≈ \u20AA$_totalAmount estimated',
+                                      '~${_durationHours.toStringAsFixed(1)}h \u2248 \u20AA$_totalAmount ${l.estimated}',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
                                   if (_isRecurring && _weeklyEstimate > 0)
                                     Text(
-                                      '~\u20AA$_weeklyEstimate/week estimated (${_selectedDays.length} days \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
+                                      '~\u20AA$_weeklyEstimate ${l.estimated} (${_selectedDays.length} \u00D7 ${_durationHours.toStringAsFixed(1)}h)',
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                                     ),
                                   if (_minimumHours > 0)
                                     Text(
-                                      'Minimum charge: ${_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)} hours',
+                                      l.minimumHoursRequired(_minimumHours.toStringAsFixed(_minimumHours == _minimumHours.roundToDouble() ? 0 : 1)),
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
                                     ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Final price based on actual session time',
+                                    l.paymentAfterSession,
                                     style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11, fontStyle: FontStyle.italic),
                                   ),
                                 ],
@@ -558,7 +564,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     if (_isRecurring) ...[
                       _FormSection(
                         icon: Icons.calendar_view_week_rounded,
-                        title: 'Weekly Days',
+                        title: l.selectDate,
                         child: _DayOfWeekPicker(
                           selectedDays: _selectedDays,
                           onToggle: (day) {
@@ -574,13 +580,13 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                       const SizedBox(height: 20),
                       _FormSection(
                         icon: Icons.schedule_rounded,
-                        title: 'Daily Hours',
+                        title: l.startTime,
                         child: Row(
                           children: [
                             Expanded(
                               child: _PremiumDateTimeTile(
                                 icon: Icons.play_circle_outline_rounded,
-                                label: _recurringStartTime != null ? _recurringStartTime!.format(context) : 'Start',
+                                label: _recurringStartTime != null ? _recurringStartTime!.format(context) : l.start,
                                 isSelected: _recurringStartTime != null,
                                 onTap: () async {
                                   final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 8, minute: 0));
@@ -595,7 +601,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                             Expanded(
                               child: _PremiumDateTimeTile(
                                 icon: Icons.stop_circle_outlined,
-                                label: _recurringEndTime != null ? _recurringEndTime!.format(context) : 'End',
+                                label: _recurringEndTime != null ? _recurringEndTime!.format(context) : l.end,
                                 isSelected: _recurringEndTime != null,
                                 onTap: () async {
                                   final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 17, minute: 0));
@@ -609,13 +615,13 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                       const SizedBox(height: 20),
                       _FormSection(
                         icon: Icons.date_range_rounded,
-                        title: 'Date Range',
+                        title: l.schedule,
                         child: Row(
                           children: [
                             Expanded(
                               child: _PremiumDateTimeTile(
                                 icon: Icons.flag_outlined,
-                                label: _recurringStartDate != null ? DateFormat('MMM d, yyyy').format(_recurringStartDate!) : 'Start date',
+                                label: _recurringStartDate != null ? DateFormat('MMM d, yyyy').format(_recurringStartDate!) : l.selectStartDate,
                                 isSelected: _recurringStartDate != null,
                                 onTap: () async {
                                   final d = await showDatePicker(
@@ -635,7 +641,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                             Expanded(
                               child: _PremiumDateTimeTile(
                                 icon: Icons.flag_rounded,
-                                label: _recurringEndDate != null ? DateFormat('MMM d, yyyy').format(_recurringEndDate!) : 'No end date',
+                                label: _recurringEndDate != null ? DateFormat('MMM d, yyyy').format(_recurringEndDate!) : l.selectEndDate,
                                 isSelected: _recurringEndDate != null,
                                 onTap: () async {
                                   final d = await showDatePicker(
@@ -659,7 +665,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     // Availability calendar
                     _FormSection(
                       icon: Icons.event_available_rounded,
-                      title: 'Nanny Availability',
+                      title: l.schedule,
                       child: AvailabilityCalendar(
                         nannyProfileId: widget.nannyId,
                         compact: true,
@@ -689,10 +695,10 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     // Selected date display
                     _FormSection(
                       icon: Icons.calendar_month_rounded,
-                      title: 'Selected Date',
+                      title: l.selectDate,
                       child: _PremiumDateTimeTile(
                         icon: Icons.calendar_month_rounded,
-                        label: _startDate != null ? fmt.format(_startDate!) : 'Tap a date above or select manually',
+                        label: _startDate != null ? fmt.format(_startDate!) : l.selectDate,
                         isSelected: _startDate != null,
                         onTap: () {
                           _pickDate();
@@ -705,13 +711,13 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     // ── Time section ──────────────────
                     _FormSection(
                       icon: Icons.schedule_rounded,
-                      title: 'Time',
+                      title: l.startTime,
                       child: Row(
                         children: [
                           Expanded(
                             child: _PremiumDateTimeTile(
                               icon: Icons.play_circle_outline_rounded,
-                              label: _startTime != null ? _startTime!.format(context) : 'Start',
+                              label: _startTime != null ? _startTime!.format(context) : l.start,
                               isSelected: _startTime != null,
                               onTap: () {
                                 _pickStartTime();
@@ -726,7 +732,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                           Expanded(
                             child: _PremiumDateTimeTile(
                               icon: Icons.stop_circle_outlined,
-                              label: _endTime != null ? _endTime!.format(context) : 'End',
+                              label: _endTime != null ? _endTime!.format(context) : l.end,
                               isSelected: _endTime != null,
                               onTap: () {
                                 _pickEndTime();
@@ -743,7 +749,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     // ── Children counter ──────────────────
                     _FormSection(
                       icon: Icons.child_care_rounded,
-                      title: 'Number of children',
+                      title: l.numberOfChildren,
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                         decoration: BoxDecoration(
@@ -791,7 +797,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: _FormSection(
                           icon: Icons.home_work_rounded,
-                          title: 'Meeting Location',
+                          title: l.locationType,
                           child: Row(
                             children: [
                               Expanded(
@@ -808,7 +814,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                       children: [
                                         Icon(Icons.home_rounded, color: _locationType == 'parent_home' ? AppColors.primary : AppColors.textHint, size: 22),
                                         const SizedBox(height: 4),
-                                        Text('At my home', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _locationType == 'parent_home' ? AppColors.primary : AppColors.textHint)),
+                                        Text(l.parentHome, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _locationType == 'parent_home' ? AppColors.primary : AppColors.textHint)),
                                       ],
                                     ),
                                   ),
@@ -829,7 +835,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                                       children: [
                                         Icon(Icons.child_friendly_rounded, color: _locationType == 'nanny_home' ? AppColors.accent : AppColors.textHint, size: 22),
                                         const SizedBox(height: 4),
-                                        Text("At nanny's home", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _locationType == 'nanny_home' ? AppColors.accent : AppColors.textHint)),
+                                        Text(l.nannyHome, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _locationType == 'nanny_home' ? AppColors.accent : AppColors.textHint)),
                                       ],
                                     ),
                                   ),
@@ -843,7 +849,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     // ── Address section ──────────────────
                     _FormSection(
                       icon: Icons.location_on_outlined,
-                      title: 'Address',
+                      title: l.address,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -851,7 +857,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                           Row(
                             children: [
                               _AddressSourceChip(
-                                label: 'My Address',
+                                label: l.registeredAddress,
                                 icon: Icons.home_outlined,
                                 isSelected: _addressSource == 'registered',
                                 onTap: () {
@@ -861,7 +867,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                               ),
                               const SizedBox(width: 8),
                               _AddressSourceChip(
-                                label: 'Current Location',
+                                label: l.currentLocation,
                                 icon: Icons.my_location_rounded,
                                 isSelected: _addressSource == 'current',
                                 isLoading: _loadingLocation,
@@ -872,7 +878,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                               ),
                               const SizedBox(width: 8),
                               _AddressSourceChip(
-                                label: 'Manual',
+                                label: l.enterManually,
                                 icon: Icons.edit_location_alt_outlined,
                                 isSelected: _addressSource == 'manual',
                                 onTap: () {
@@ -891,8 +897,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
 
                           // City with Google Places autocomplete
                           GooglePlacesField(
-                            label: 'City',
-                            hint: 'Start typing a city...',
+                            label: l.city,
+                            hint: l.city,
                             controller: _cityCtrl,
                             onPlaceSelected: (city) {
                               _cityCtrl.text = city;
@@ -908,8 +914,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                               Expanded(
                                 flex: 3,
                                 child: AppTextField(
-                                  label: 'Street',
-                                  hint: 'Street name',
+                                  label: l.street,
+                                  hint: l.street,
                                   controller: _streetCtrl,
                                   prefixIcon: const Icon(Icons.signpost_rounded, size: 20, color: AppColors.textHint),
                                 ),
@@ -918,8 +924,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                               Expanded(
                                 flex: 2,
                                 child: AppTextField(
-                                  label: 'House #',
-                                  hint: 'Number',
+                                  label: l.houseNumber,
+                                  hint: l.houseNumber,
                                   controller: _houseNumCtrl,
                                   prefixIcon: const Icon(Icons.tag_rounded, size: 20, color: AppColors.textHint),
                                 ),
@@ -932,8 +938,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                           SizedBox(
                             width: 160,
                             child: AppTextField(
-                              label: 'Postal Code',
-                              hint: '0000000',
+                              label: l.postalCode,
+                              hint: l.postalCode,
                               controller: _postalCodeCtrl,
                               prefixIcon: const Icon(Icons.markunread_mailbox_outlined, size: 20, color: AppColors.textHint),
                             ),
@@ -947,8 +953,8 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                     GestureDetector(
                       onTap: () => setState(() => _currentStep = 1),
                       child: AppTextField(
-                        label: 'Notes for the nanny (optional)',
-                        hint: "Child's routine, allergies, special instructions...",
+                        label: l.notes,
+                        hint: l.notes,
                         controller: _notesCtrl,
                         maxLines: 3,
                       ),
@@ -973,7 +979,7 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
 
                     const SizedBox(height: 24),
                     AppButton(
-                      label: _isRecurring ? 'Request Recurring Booking' : 'Request Booking',
+                      label: l.requestBooking,
                       variant: AppButtonVariant.gradient,
                       onTap: () {
                         setState(() => _currentStep = 2);
