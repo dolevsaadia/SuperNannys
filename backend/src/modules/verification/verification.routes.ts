@@ -7,6 +7,7 @@ const router = Router()
 
 // Nanny routes
 router.post('/', requireAuth, asyncHandler(verificationController.submit))
+router.put('/me', requireAuth, asyncHandler(verificationController.update))
 router.get('/me', requireAuth, asyncHandler(verificationController.getMyRequest))
 
 // Admin routes

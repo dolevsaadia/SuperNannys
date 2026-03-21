@@ -6,6 +6,7 @@ import '../models/user_model.dart';
 import '../network/api_client.dart';
 import '../constants/app_constants.dart';
 import '../services/app_logger.dart';
+import '../services/biometric_service.dart';
 import '../widgets/session_expired_dialog.dart';
 
 /// Global navigator key — shared with GoRouter so we can show dialogs
@@ -346,6 +347,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _storage.delete(key: AppConstants.userKey);
       await _storage.delete(key: AppConstants.refreshTokenKey);
+    } catch (_) {}
+    // Clear biometric binding so deleted/logged-out users can't re-enter
+    try {
+      await BiometricService().disable();
     } catch (_) {}
     state = const AuthState();
   }

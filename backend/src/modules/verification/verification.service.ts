@@ -14,6 +14,25 @@ export const verificationService = {
     return verificationRequestsDal.create({ userId, ...data })
   },
 
+  async update(userId: string, data: { idCardUrl?: string; idAppendixUrl?: string; policeClearanceUrl?: string }) {
+    const existing = await verificationRequestsDal.findByUserId(userId)
+    if (!existing) {
+      throw new NotFoundError('No verification request found. Please submit a new one.')
+    }
+    if (existing.status === 'approved') {
+      throw new ConflictError('Your verification is already approved and cannot be modified.')
+    }
+
+    // Merge: keep existing URLs for fields not provided in this update
+    const merged = {
+      idCardUrl: data.idCardUrl ?? existing.idCardUrl ?? undefined,
+      idAppendixUrl: data.idAppendixUrl ?? existing.idAppendixUrl ?? undefined,
+      policeClearanceUrl: data.policeClearanceUrl ?? existing.policeClearanceUrl ?? undefined,
+    }
+
+    return verificationRequestsDal.updateRequest(existing.id, merged)
+  },
+
   async getMyRequest(userId: string) {
     return verificationRequestsDal.findByUserId(userId)
   },

@@ -9,6 +9,12 @@ export const verificationController = {
     res.status(201).json({ data: result })
   },
 
+  async update(req: Request, res: Response) {
+    const data = submitVerificationSchema.parse(req.body)
+    const result = await verificationService.update(req.user!.userId, data)
+    res.json({ data: result })
+  },
+
   async getMyRequest(req: Request, res: Response) {
     const result = await verificationService.getMyRequest(req.user!.userId)
     res.json({ data: result })

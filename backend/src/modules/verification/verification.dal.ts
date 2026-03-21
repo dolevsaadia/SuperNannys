@@ -46,4 +46,18 @@ export const verificationRequestsDal = {
       },
     })
   },
+
+  updateRequest(id: string, data: { idCardUrl?: string; idAppendixUrl?: string; policeClearanceUrl?: string }) {
+    return prisma.verificationRequest.update({
+      where: { id },
+      data: {
+        ...data,
+        status: 'pending',           // reset to pending after nanny updates
+        submittedAt: new Date(),      // refresh submission timestamp
+        reviewedAt: null,             // clear previous review
+        reviewedBy: null,
+        adminNotes: null,
+      },
+    })
+  },
 }

@@ -299,6 +299,7 @@ export const authService = {
   async getMe(userId: string) {
     const user = await authDal.findUserWithProfile(userId)
     if (!user) throw new NotFoundError('User')
+    if (!user.isActive) throw new ForbiddenError('Account deactivated')
     // Derive onboarding status from profile data
     const nannyOnboardingCompleted = user.role !== 'NANNY' || (user.nannyProfile?.city ?? '') !== ''
     return { ...user, nannyOnboardingCompleted }

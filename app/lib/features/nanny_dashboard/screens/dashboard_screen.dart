@@ -453,8 +453,8 @@ class _VerificationBanner extends StatelessWidget {
         color = AppColors.info;
         icon = Icons.hourglass_top_rounded;
         title = 'Under Review';
-        subtitle = 'Your verification request is being reviewed by our team.';
-        ctaText = 'View Request';
+        subtitle = 'Your verification request is being reviewed. You can still add missing documents.';
+        ctaText = 'Update Request';
         showCta = true;
       case 'rejected':
         color = AppColors.error;
