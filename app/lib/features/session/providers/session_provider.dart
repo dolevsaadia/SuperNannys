@@ -234,6 +234,21 @@ class SessionNotifier extends StateNotifier<SessionState> {
       );
     });
 
+    _socket!.on('session:cancelled', (data) {
+      _stopLocalTimer();
+      state = state.copyWith(
+        phase: SessionPhase.promptStart,
+        parentConfirmedStart: false,
+        nannyConfirmedStart: false,
+        parentConfirmedEnd: false,
+        nannyConfirmedEnd: false,
+        elapsedSeconds: 0,
+        isOvertime: false,
+        currentAmountNis: 0,
+        isLoading: false,
+      );
+    });
+
     _socket!.on('session:timeout', (data) {
       _stopLocalTimer();
       state = state.copyWith(
@@ -337,6 +352,13 @@ class SessionNotifier extends StateNotifier<SessionState> {
     if (_socket == null || state.bookingId == null) return;
     state = state.copyWith(isLoading: true, error: null);
     _socket!.emit('session:confirm-end', {'bookingId': state.bookingId});
+  }
+
+  /// Cancel session (during confirmation or active phase)
+  void cancelSession() {
+    if (_socket == null || state.bookingId == null) return;
+    state = state.copyWith(isLoading: true, error: null);
+    _socket!.emit('session:cancel', {'bookingId': state.bookingId});
   }
 
   /// Start a local timer for smooth UI updates between server ticks

@@ -245,7 +245,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
           onPressed: () {
             if (_step > 0) {
               setState(() => _step--);

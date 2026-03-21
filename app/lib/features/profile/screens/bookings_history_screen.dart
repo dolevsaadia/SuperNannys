@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/models/booking_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -48,6 +49,9 @@ class _BookingsHistoryScreenState extends ConsumerState<BookingsHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final isNanny = user?.isNanny == true;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -69,7 +73,7 @@ class _BookingsHistoryScreenState extends ConsumerState<BookingsHistoryScreen>
       ),
       body: TabBarView(
         controller: _tabs,
-        children: _statuses.map((s) => _BookingsList(status: s)).toList(),
+        children: _statuses.map((s) => _BookingsList(status: s, isNanny: isNanny)).toList(),
       ),
     );
   }
@@ -77,7 +81,8 @@ class _BookingsHistoryScreenState extends ConsumerState<BookingsHistoryScreen>
 
 class _BookingsList extends ConsumerWidget {
   final String? status;
-  const _BookingsList({this.status});
+  final bool isNanny;
+  const _BookingsList({this.status, this.isNanny = false});
 
   Color _statusColor(String s) => switch (s) {
         'REQUESTED' => AppColors.warning,
@@ -153,8 +158,8 @@ class _BookingsList extends ConsumerWidget {
                         child: Row(
                           children: [
                             AvatarWidget(
-                              imageUrl: b.nanny?.avatarUrl ?? b.parent?.avatarUrl,
-                              name: b.nanny?.fullName ?? b.parent?.fullName,
+                              imageUrl: isNanny ? b.parent?.avatarUrl : b.nanny?.avatarUrl,
+                              name: isNanny ? b.parent?.fullName : b.nanny?.fullName,
                               size: 46,
                             ),
                             const SizedBox(width: 14),
@@ -163,7 +168,7 @@ class _BookingsList extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    b.nanny?.fullName ?? b.parent?.fullName ?? '',
+                                    (isNanny ? b.parent?.fullName : b.nanny?.fullName) ?? '',
                                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                                   ),
                                   const SizedBox(height: 2),

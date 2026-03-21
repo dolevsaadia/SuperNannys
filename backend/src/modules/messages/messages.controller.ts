@@ -22,4 +22,9 @@ export const messagesController = {
     const message = await messagesService.sendMessage(req.user!.userId, req.params.bookingId, text)
     created(res, message)
   },
+
+  async hideConversation(req: Request, res: Response): Promise<void> {
+    await messagesService.hideConversation(req.user!.userId, req.params.bookingId)
+    ok(res, { hidden: true })
+  },
 }

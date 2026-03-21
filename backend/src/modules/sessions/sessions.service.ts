@@ -377,6 +377,57 @@ export const sessionsService = {
     }
   },
 
+  // ── Cancel Session (during confirmation or active) ──────────
+  async cancelSession(userId: string, role: string, bookingId: string) {
+    const booking = await sessionsDal.findBookingByIdSimple(bookingId)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
+
+    const isParent = booking.parentUserId === userId
+    const isNanny = booking.nannyUserId === userId
+    if (!isParent && !isNanny && role !== 'ADMIN') {
+      throw new ForbiddenError()
+    }
+
+    // Cancel during start-confirmation phase: reset confirmations
+    if (booking.status === 'ACCEPTED' && (booking.parentConfirmedStart || booking.nannyConfirmedStart)) {
+      const updated = await sessionsDal.resetStartConfirmations(bookingId)
+      const cancelledBy = isParent ? 'parent' : 'nanny'
+      logger.info('Session start cancelled', { bookingId, cancelledBy, userId })
+
+      if (ioRef) {
+        ioRef.to(`booking:${bookingId}`).emit('session:cancelled', {
+          bookingId,
+          cancelledBy,
+          reason: 'User cancelled before session started',
+        })
+      }
+
+      return { phase: 'prompt_start', booking: updated }
+    }
+
+    // Cancel an active session: stop timer, reset back to ACCEPTED
+    if (booking.status === 'IN_PROGRESS') {
+      sessionTimer.stop(bookingId)
+      pendingEndTimeouts.delete(bookingId)
+
+      const updated = await sessionsDal.cancelActiveSession(bookingId)
+      const cancelledBy = isParent ? 'parent' : 'nanny'
+      logger.info('Active session cancelled', { bookingId, cancelledBy, userId })
+
+      if (ioRef) {
+        ioRef.to(`booking:${bookingId}`).emit('session:cancelled', {
+          bookingId,
+          cancelledBy,
+          reason: 'Session cancelled by ' + cancelledBy,
+        })
+      }
+
+      return { phase: 'prompt_start', booking: updated }
+    }
+
+    throw new BadRequestError('Session cannot be cancelled in current state')
+  },
+
   // ── Auto-timeout for unconfirmed start (15 min) ──────────
   scheduleStartTimeout(bookingId: string) {
     logger.info('Scheduling start timeout (15 min)', { bookingId })

@@ -143,4 +143,36 @@ export const sessionsDal = {
       data: { status: 'CANCELLED' },
     })
   },
+
+  /** Reset start confirmations (for cancel during confirmation phase) */
+  resetStartConfirmations(bookingId: string) {
+    return prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        parentConfirmedStart: false,
+        nannyConfirmedStart: false,
+      },
+      include: sessionInclude,
+    })
+  },
+
+  /** Cancel an active session — sets status back to ACCEPTED, resets all flags */
+  cancelActiveSession(bookingId: string) {
+    return prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'ACCEPTED',
+        parentConfirmedStart: false,
+        nannyConfirmedStart: false,
+        parentConfirmedEnd: false,
+        nannyConfirmedEnd: false,
+        actualStartTime: null,
+        actualEndTime: null,
+        actualDurationMin: null,
+        finalAmountNis: null,
+        overtimeAmountNis: 0,
+      },
+      include: sessionInclude,
+    })
+  },
 }

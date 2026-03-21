@@ -248,9 +248,9 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
               ),
             )
           else
-            const Column(
+            Column(
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 40,
                   height: 40,
                   child: CircularProgressIndicator(
@@ -258,8 +258,8 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                     valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 ),
-                SizedBox(height: 16),
-                Text(
+                const SizedBox(height: 16),
+                const Text(
                   'Waiting for confirmation...',
                   style: TextStyle(
                     fontSize: 15,
@@ -267,7 +267,27 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 24),
+                // Cancel button while waiting
+                TextButton.icon(
+                  onPressed: session.isLoading ? null : () => _showCancelDialog(),
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: const Text('Cancel'),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                ),
               ],
+            ),
+
+          // Cancel button in start phase when user hasn't confirmed yet
+          if (!myConfirmed && isWaiting)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: TextButton.icon(
+                onPressed: session.isLoading ? null : () => _showCancelDialog(),
+                icon: const Icon(Icons.close_rounded, size: 18),
+                label: const Text('Cancel'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              ),
             ),
 
           const SizedBox(height: 40),
@@ -322,8 +342,10 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         // Bottom action
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: isEndingFlow && !myConfirmedEnd
-              ? AppButton(
+          child: Column(
+            children: [
+              if (isEndingFlow && !myConfirmedEnd)
+                AppButton(
                   label: 'Confirm End',
                   variant: AppButtonVariant.gradient,
                   isLoading: session.isLoading,
@@ -332,21 +354,44 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
                     ref.read(sessionProvider.notifier).confirmEnd();
                   },
                 )
-              : isEndingFlow
-                  ? const Text(
+              else if (isEndingFlow)
+                Column(
+                  children: [
+                    const Text(
                       'Waiting for the other party to confirm...',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                       ),
                       textAlign: TextAlign.center,
-                    )
-                  : AppButton(
-                      label: 'End Session',
-                      variant: AppButtonVariant.danger,
-                      isLoading: session.isLoading,
-                      onTap: _showEndConfirmDialog,
                     ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: session.isLoading ? null : () => _showCancelDialog(),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      label: const Text('Cancel Session Instead'),
+                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                    ),
+                  ],
+                )
+              else
+                AppButton(
+                  label: 'End Session',
+                  variant: AppButtonVariant.danger,
+                  isLoading: session.isLoading,
+                  onTap: _showEndConfirmDialog,
+                ),
+              if (!isEndingFlow) ...[
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: session.isLoading ? null : () => _showCancelDialog(),
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: const Text('Cancel Session'),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.textHint),
+                ),
+              ],
+            ],
+          ),
         ),
         const SizedBox(height: 24),
       ],
@@ -544,6 +589,48 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen>
         );
       }
     }
+  }
+
+  // ── Cancel Confirmation Dialog ────────────────────────────
+  void _showCancelDialog() {
+    final session = ref.read(sessionProvider);
+    final isActive = session.phase == SessionPhase.active ||
+        session.phase == SessionPhase.waitingEndConfirmation;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          isActive ? 'Cancel Active Session?' : 'Cancel Session Start?',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          isActive
+              ? 'This will cancel the active session. No charges will be applied. Both parties will need to confirm again to restart.'
+              : 'This will cancel the confirmation. You can restart the session later — both parties will need to confirm again.',
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Keep Going'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              HapticFeedback.heavyImpact();
+              ref.read(sessionProvider.notifier).cancelSession();
+            },
+            child: const Text('Cancel Session', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── End Confirmation Dialog ────────────────────────────

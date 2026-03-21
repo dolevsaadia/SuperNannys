@@ -75,6 +75,7 @@ class NannyProfileSummary {
   final String id;
   final String? headline;
   final int hourlyRateNis;
+  final int? recurringHourlyRateNis;
   final double rating;
   final int reviewsCount;
   final bool isVerified;
@@ -88,6 +89,7 @@ class NannyProfileSummary {
     required this.id,
     this.headline,
     required this.hourlyRateNis,
+    this.recurringHourlyRateNis,
     required this.rating,
     required this.reviewsCount,
     required this.isVerified,
@@ -102,6 +104,7 @@ class NannyProfileSummary {
         id: json['id'] as String,
         headline: json['headline'] as String?,
         hourlyRateNis: json['hourlyRateNis'] as int? ?? 0,
+        recurringHourlyRateNis: json['recurringHourlyRateNis'] as int?,
         rating: (json['rating'] as num?)?.toDouble() ?? 0,
         reviewsCount: json['reviewsCount'] as int? ?? 0,
         isVerified: json['isVerified'] as bool? ?? false,

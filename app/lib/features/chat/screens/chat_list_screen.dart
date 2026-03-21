@@ -44,6 +44,55 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     super.dispose();
   }
 
+  void _showDeleteDialog(BuildContext context, WidgetRef ref, String bookingId, String otherName) {
+    showDialog(
+      context: context,
+      builder: (dc) => AlertDialog(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Chat', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        content: Text(
+          'Hide your conversation with $otherName?\n\n'
+          'This only removes it from your list. The other person can still see the chat.',
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dc),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dc);
+              try {
+                await apiClient.dio.delete('/messages/$bookingId/hide');
+                ref.invalidate(_conversationsProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Chat removed'), backgroundColor: AppColors.textSecondary),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not delete chat'), backgroundColor: AppColors.error),
+                  );
+                }
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_conversationsProvider);
@@ -120,6 +169,12 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                     'otherUserName': otherName,
                     'otherUserAvatar': otherAvatar,
                   }),
+                  onLongPress: () => _showDeleteDialog(
+                    context,
+                    ref,
+                    conv['id'] as String,
+                    otherName,
+                  ),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(14),
