@@ -83,4 +83,35 @@ class AppColors {
   // ── Card Hover / Press ────────────────────────────────
   static const Color cardHover = Color(0xFFF9FAFB);
   static const Color cardPressed = Color(0xFFF3F4F6);
+
+  // ── Card Footer ─────────────────────────────────────
+  static const Color cardFooterBg = Color(0xFFFCFCFD);
+
+  // ── Google Maps Navigation ──────────────────────────
+  static const Color googleBlue = Color(0xFF4285F4);
+  static const Color googleGreen = Color(0xFF34A853);
+  static const List<Color> gradientGoogleMaps = [Color(0xFF4285F4), Color(0xFF34A853)];
+
+  // ── Extra Skill Colors ──────────────────────────────
+  static const Color pink = Color(0xFFEC4899);
+  static const Color violet = Color(0xFF8B5CF6);
+
+  // ── Skill pill color palette (rotate via index) ─────
+  static const List<Color> skillPillColors = [
+    primary,    // violet
+    accent,     // cyan
+    success,    // emerald
+    warning,    // amber
+    pink,       // pink
+    violet,     // light violet
+  ];
+
+  // ── Review avatar gradient palette ──────────────────
+  static const List<List<Color>> reviewAvatarGradients = [
+    gradientPrimary,
+    gradientAccent,
+    gradientSuccess,
+    gradientWarm,
+    [Color(0xFFEC4899), Color(0xFF8B5CF6)],
+  ];
 }

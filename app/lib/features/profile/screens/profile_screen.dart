@@ -6,6 +6,8 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
@@ -216,7 +218,7 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         title: const Text('Delete Account', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
         content: const Text(
@@ -225,7 +227,7 @@ class ProfileScreen extends ConsumerWidget {
           'and any upcoming bookings will be cancelled.',
           style: TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderPill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
@@ -235,7 +237,7 @@ class ProfileScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
             ),
             onPressed: () {
               Navigator.pop(dc);
@@ -253,7 +255,7 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         title: const Text('Final Confirmation', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
         content: const Text(
@@ -261,7 +263,7 @@ class ProfileScreen extends ConsumerWidget {
           'Type "DELETE" below is not required — just tap the button to confirm.',
           style: TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderPill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
@@ -271,7 +273,7 @@ class ProfileScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
             ),
             onPressed: () async {
               Navigator.pop(dc);
@@ -301,11 +303,11 @@ class ProfileScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dc) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.white,
         surfaceTintColor: Colors.transparent,
         title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
         content: const Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderPill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc),
@@ -315,7 +317,7 @@ class ProfileScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
             ),
             onPressed: () async {
               Navigator.pop(dc);
@@ -355,7 +357,7 @@ class _MenuGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: AppShadows.sm),
+        decoration: BoxDecoration(color: AppColors.white, borderRadius: AppRadius.borderCard, boxShadow: AppShadows.sm),
         child: Column(
           children: items.asMap().entries.map((e) {
             final isLast = e.key == items.length - 1;
@@ -365,7 +367,7 @@ class _MenuGroup extends StatelessWidget {
                   width: 36, height: 36,
                   decoration: BoxDecoration(
                     color: e.value.isDestructive ? AppColors.errorLight : AppColors.bg,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: AppRadius.borderLg,
                   ),
                   child: Icon(e.value.icon, size: 18, color: e.value.isDestructive ? AppColors.error : AppColors.textPrimary),
                 ),

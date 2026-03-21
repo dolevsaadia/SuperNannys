@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/nanny_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_text_styles.dart';
 
 import 'badge_chip.dart';
 
@@ -51,23 +53,23 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
         animation: _scale,
         builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
         child: Container(
-          margin: const EdgeInsets.only(bottom: 14),
+          margin: const EdgeInsets.only(bottom: AppSpacing.xxl),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            color: AppColors.white,
+            borderRadius: AppRadius.borderCardLg,
             boxShadow: AppShadows.sm,
           ),
           child: Column(
             children: [
               // ── Top section: avatar + info ──────────────
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: AppSpacing.cardPadding,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Avatar with gradient border
                     Container(
-                      padding: const EdgeInsets.all(2),
+                      padding: const EdgeInsets.all(AppSpacing.xxs),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: nanny.isVerified
@@ -79,7 +81,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                         child: Container(
                           width: 68,
                           height: 68,
-                          color: Colors.white,
+                          color: AppColors.white,
                           padding: const EdgeInsets.all(1.5),
                           child: ClipOval(
                             child: (nanny.user?.avatarUrl ?? '').isNotEmpty
@@ -96,7 +98,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: AppSpacing.xxl),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,19 +108,14 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                               Expanded(
                                 child: Text(
                                   nanny.user?.fullName ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                    letterSpacing: -0.2,
-                                  ),
+                                  style: AppTextStyles.heading3.copyWith(letterSpacing: -0.2),
                                 ),
                               ),
                               if (nanny.isVerified)
                                 Container(
-                                  padding: const EdgeInsets.all(2),
+                                  padding: const EdgeInsets.all(AppSpacing.xxs),
                                   decoration: BoxDecoration(
-                                    color: AppColors.badgeVerified.withValues(alpha:0.1),
+                                    color: AppColors.badgeVerified.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.verified_rounded, color: AppColors.badgeVerified, size: 18),
@@ -130,54 +127,54 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                               padding: const EdgeInsets.only(top: 3),
                               child: Text(
                                 nanny.headline,
-                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                style: AppTextStyles.bodySmall,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.md),
                           Row(
                             children: [
                               // Rating
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
                                 decoration: BoxDecoration(
-                                  color: AppColors.star.withValues(alpha:0.1),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: AppColors.star.withValues(alpha: 0.1),
+                                  borderRadius: AppRadius.borderSm,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.star_rounded, size: 14, color: AppColors.star),
-                                    const SizedBox(width: 2),
+                                    const SizedBox(width: AppSpacing.xxs),
                                     Text(
                                       nanny.rating.toStringAsFixed(1),
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                      style: AppTextStyles.captionBold.copyWith(color: AppColors.textPrimary),
                                     ),
                                     Text(
                                       ' (${nanny.reviewsCount})',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+                                      style: AppTextStyles.caption.copyWith(fontSize: 11),
                                     ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: AppSpacing.lg),
                               // Location
                               const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textHint),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: AppSpacing.xxs),
                               Flexible(
                                 child: Text(
                                   nanny.city,
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+                                  style: AppTextStyles.caption,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (nanny.distanceKm != null) ...[
-                                const SizedBox(width: 4),
+                                const SizedBox(width: AppSpacing.xs),
                                 Text(
                                   '· ${nanny.distanceKm!.toStringAsFixed(1)} km',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+                                  style: AppTextStyles.caption,
                                 ),
                               ],
                             ],
@@ -187,105 +184,39 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                     ),
                     // ── Navigate button ──────────────────
                     Padding(
-                      padding: const EdgeInsets.only(left: 6),
-                      child: GestureDetector(
-                        onTap: () async {
-                          String url;
-                          if (nanny.latitude != null && nanny.longitude != null) {
-                            url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
-                          } else if (nanny.address.isNotEmpty) {
-                            url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
-                          } else {
-                            url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
-                          }
-                          final uri = Uri.parse(url);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(color: const Color(0xFF4285F4).withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 2)),
-                            ],
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.navigation_rounded, size: 15, color: Colors.white),
-                              SizedBox(height: 1),
-                              Text('Navigate', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: Colors.white, height: 1)),
-                            ],
-                          ),
-                        ),
-                      ),
+                      padding: const EdgeInsets.only(left: AppSpacing.sm),
+                      child: _NavigateButton(nanny: nanny),
                     ),
                   ],
                 ),
               ),
 
               // ── Badges row ───────────────────────────
-              Builder(
-                builder: (_) {
-                  // Build effective badge list from badges + derived from skills/verification
-                  final effectiveBadges = <String>[...nanny.badges];
-                  if (nanny.isVerified && !effectiveBadges.contains('VERIFIED')) {
-                    effectiveBadges.insert(0, 'VERIFIED');
-                  }
-                  if (nanny.skills.any((s) => s.toLowerCase().contains('first aid')) && !effectiveBadges.contains('FIRST_AID')) {
-                    effectiveBadges.add('FIRST_AID');
-                  }
-                  if (nanny.rating >= 4.5 && nanny.reviewsCount >= 3 && !effectiveBadges.contains('TOP_RATED')) {
-                    effectiveBadges.add('TOP_RATED');
-                  }
-                  if (nanny.yearsExperience >= 5 && !effectiveBadges.contains('EXPERIENCE_5_PLUS')) {
-                    effectiveBadges.add('EXPERIENCE_5_PLUS');
-                  }
-                  if (nanny.recurringHourlyRateNis != null && !effectiveBadges.contains('RECURRING')) {
-                    effectiveBadges.add('RECURRING');
-                  }
-                  if (effectiveBadges.isEmpty) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      height: 28,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: effectiveBadges.take(4).length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 6),
-                        itemBuilder: (_, i) => BadgeChip(badge: effectiveBadges[i]),
-                      ),
-                    ),
-                  );
-                },
-              ),
+              _BadgesRow(nanny: nanny),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.xl),
 
-              // ── Bottom: stats + availability + price ───
+              // ── Bottom: stats + price ───
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: AppSpacing.cardBottomPadding,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFCFCFD),
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
+                  color: AppColors.cardFooterBg,
+                  borderRadius: AppRadius.cardBottom,
                 ),
                 child: Row(
                   children: [
                     _Stat(icon: Icons.work_outline_rounded, label: '${nanny.yearsExperience}y exp'),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: AppSpacing.xxl),
                     _Stat(icon: Icons.check_circle_outline, label: '${nanny.completedJobs} jobs'),
                     const Spacer(),
                     // Price tags
                     if (nanny.recurringHourlyRateNis != null)
                       Container(
-                        margin: const EdgeInsets.only(right: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        margin: const EdgeInsets.only(right: AppSpacing.sm),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
                         decoration: BoxDecoration(
                           color: AppColors.accent.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadius.borderMd,
                           border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
                         ),
                         child: Row(
@@ -295,24 +226,20 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                             const SizedBox(width: 3),
                             Text(
                               '₪${nanny.recurringHourlyRateNis}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent),
+                              style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.accent),
                             ),
                           ],
                         ),
                       ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(colors: AppColors.gradientPrimary),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: AppRadius.borderLg,
                       ),
                       child: Text(
                         '₪${nanny.hourlyRateNis}/hr',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                        style: AppTextStyles.buttonSmall.copyWith(color: AppColors.white),
                       ),
                     ),
                   ],
@@ -320,6 +247,119 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Google Maps navigation button — reused in NannyCard and NannyProfileScreen
+class NavigateButton extends StatelessWidget {
+  final double? latitude;
+  final double? longitude;
+  final String address;
+  final String city;
+  final double? iconSize;
+  final EdgeInsets? padding;
+  final BorderRadius? borderRadius;
+
+  const NavigateButton({
+    super.key,
+    this.latitude,
+    this.longitude,
+    this.address = '',
+    this.city = '',
+    this.iconSize,
+    this.padding,
+    this.borderRadius,
+  });
+
+  Future<void> _launch() async {
+    String url;
+    if (latitude != null && longitude != null) {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude';
+    } else if (address.isNotEmpty) {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(address)}';
+    } else {
+      url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(city)}';
+    }
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _launch,
+      child: Container(
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 7),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: AppColors.gradientGoogleMaps),
+          borderRadius: borderRadius ?? AppRadius.borderLg,
+          boxShadow: [
+            BoxShadow(color: AppColors.googleBlue.withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.navigation_rounded, size: iconSize ?? 15, color: AppColors.white),
+            const SizedBox(height: 1),
+            Text('Navigate', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: AppColors.white, height: 1)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavigateButton extends StatelessWidget {
+  final NannyModel nanny;
+  const _NavigateButton({required this.nanny});
+
+  @override
+  Widget build(BuildContext context) => NavigateButton(
+        latitude: nanny.latitude,
+        longitude: nanny.longitude,
+        address: nanny.address,
+        city: nanny.city,
+      );
+}
+
+class _BadgesRow extends StatelessWidget {
+  final NannyModel nanny;
+  const _BadgesRow({required this.nanny});
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveBadges = <String>[...nanny.badges];
+    if (nanny.isVerified && !effectiveBadges.contains('VERIFIED')) {
+      effectiveBadges.insert(0, 'VERIFIED');
+    }
+    if (nanny.skills.any((s) => s.toLowerCase().contains('first aid')) && !effectiveBadges.contains('FIRST_AID')) {
+      effectiveBadges.add('FIRST_AID');
+    }
+    if (nanny.rating >= 4.5 && nanny.reviewsCount >= 3 && !effectiveBadges.contains('TOP_RATED')) {
+      effectiveBadges.add('TOP_RATED');
+    }
+    if (nanny.yearsExperience >= 5 && !effectiveBadges.contains('EXPERIENCE_5_PLUS')) {
+      effectiveBadges.add('EXPERIENCE_5_PLUS');
+    }
+    if (nanny.recurringHourlyRateNis != null && !effectiveBadges.contains('RECURRING')) {
+      effectiveBadges.add('RECURRING');
+    }
+    if (effectiveBadges.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
+      child: SizedBox(
+        height: 28,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: effectiveBadges.take(4).length,
+          separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+          itemBuilder: (_, i) => BadgeChip(badge: effectiveBadges[i]),
         ),
       ),
     );
@@ -346,7 +386,7 @@ class _AvatarPlaceholder extends StatelessWidget {
       child: Center(
         child: Text(
           initial,
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.white),
+          style: AppTextStyles.heading1.copyWith(color: AppColors.white),
         ),
       ),
     );
@@ -363,8 +403,8 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         children: [
           Icon(icon, size: 14, color: AppColors.textHint),
-          const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+          const SizedBox(width: AppSpacing.xs),
+          Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
         ],
       );
 }

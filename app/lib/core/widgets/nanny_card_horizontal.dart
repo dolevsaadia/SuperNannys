@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/nanny_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_text_styles.dart';
 
 /// Compact Wolt-style card for horizontal scroll sections (160×210 px)
 class NannyCardHorizontal extends StatefulWidget {
@@ -56,10 +58,10 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
         ),
         child: Container(
           width: 160,
-          margin: const EdgeInsets.only(right: 12),
+          margin: const EdgeInsets.only(right: AppSpacing.xl),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: AppColors.white,
+            borderRadius: AppRadius.borderCard,
             boxShadow: AppShadows.sm,
           ),
           child: Column(
@@ -71,14 +73,14 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
                 ),
                 child: Stack(
                   children: [
                     // Avatar image
                     Center(
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
                         child: nanny.user?.avatarUrl != null && nanny.user!.avatarUrl!.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: nanny.user!.avatarUrl!,
@@ -94,16 +96,16 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                     // Rating badge top-left
                     if (nanny.rating > 0)
                       Positioned(
-                        top: 8,
-                        left: 8,
+                        top: AppSpacing.md,
+                        left: AppSpacing.md,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: AppSpacing.chipPaddingSm,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            color: AppColors.white,
+                            borderRadius: AppRadius.borderMd,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha:0.1),
+                                color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 4,
                               ),
                             ],
@@ -112,14 +114,10 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(Icons.star_rounded, size: 12, color: AppColors.star),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: AppSpacing.xxs),
                               Text(
                                 nanny.rating.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
+                                style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.textPrimary),
                               ),
                             ],
                           ),
@@ -127,43 +125,39 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                       ),
                     // Price badge top-right
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: AppSpacing.md,
+                      right: AppSpacing.md,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 3),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadius.borderMd,
                         ),
                         child: Text(
                           '₪${nanny.hourlyRateNis}/hr',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                          style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.white),
                         ),
                       ),
                     ),
                     // Recurring badge bottom-left
                     if (nanny.recurringHourlyRateNis != null)
                       Positioned(
-                        bottom: 8,
-                        left: 8,
+                        bottom: AppSpacing.md,
+                        left: AppSpacing.md,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: AppSpacing.chipPaddingSm,
                           decoration: BoxDecoration(
                             color: AppColors.accent,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppRadius.borderMd,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.repeat_rounded, size: 10, color: Colors.white),
+                              const Icon(Icons.repeat_rounded, size: 10, color: AppColors.white),
                               const SizedBox(width: 3),
                               Text(
                                 '₪${nanny.recurringHourlyRateNis}',
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                                style: AppTextStyles.captionBold.copyWith(fontSize: 10, color: AppColors.white),
                               ),
                             ],
                           ),
@@ -172,8 +166,8 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                     // Verified badge
                     if (nanny.isVerified)
                       const Positioned(
-                        bottom: 8,
-                        right: 8,
+                        bottom: AppSpacing.md,
+                        right: AppSpacing.md,
                         child: Icon(Icons.verified_rounded, size: 20, color: AppColors.badgeVerified),
                       ),
                   ],
@@ -181,17 +175,13 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
               ),
               // Info section
               Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       nanny.user?.fullName ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -199,30 +189,30 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                     Row(
                       children: [
                         const Icon(Icons.location_on_outlined, size: 12, color: AppColors.textHint),
-                        const SizedBox(width: 2),
+                        const SizedBox(width: AppSpacing.xxs),
                         Expanded(
                           child: Text(
                             nanny.city,
-                            style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+                            style: AppTextStyles.caption.copyWith(fontSize: 11),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xs),
                     Row(
                       children: [
                         Text(
                           '${nanny.yearsExperience}y exp',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: AppSpacing.sm),
                         Container(width: 3, height: 3, decoration: const BoxDecoration(color: AppColors.textHint, shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: AppSpacing.sm),
                         Text(
                           '${nanny.completedJobs} jobs',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),

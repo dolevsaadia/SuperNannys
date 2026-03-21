@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_text_styles.dart';
 
 /// Wolt-style section header with bold title and "More" pill button
 class SectionHeader extends StatelessWidget {
@@ -17,40 +19,31 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+      padding: AppSpacing.sectionHeaderPadding,
       child: Row(
         children: [
           if (emoji != null) ...[
             Text(emoji!, style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.md),
           ],
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.3,
-              ),
+              style: AppTextStyles.heading2.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.3),
             ),
           ),
           if (onMore != null)
             GestureDetector(
               onTap: onMore,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.borderPill,
                 ),
-                child: const Text(
+                child: Text(
                   'More',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+                  style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700, color: AppColors.primary),
                 ),
               ),
             ),
