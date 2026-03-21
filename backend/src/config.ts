@@ -51,5 +51,12 @@ export const config = {
     max: parseInt(process.env.RATE_LIMIT_MAX || '300', 10),
   },
 
+  google_places: {
+    apiKey: process.env.GOOGLE_PLACES_API_KEY || '',
+    get isConfigured(): boolean {
+      return this.apiKey !== ''
+    },
+  },
+
   platformFeePercent: 15,
 }

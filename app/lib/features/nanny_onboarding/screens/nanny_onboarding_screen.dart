@@ -8,9 +8,11 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/google_places_field.dart';
 
 class NannyOnboardingScreen extends ConsumerStatefulWidget {
   const NannyOnboardingScreen({super.key});
@@ -196,6 +198,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
       }
 
       await ref.read(authProvider.notifier).refreshMe();
+      triggerDataRefresh(ref);
       if (mounted) {
         // Show pending approval message before navigating
         await showDialog(
@@ -377,11 +380,11 @@ class _BasicInfoStep extends StatelessWidget {
           const SizedBox(height: 16),
           AppTextField(label: 'Bio', hint: 'Describe your experience, approach, and personality...', controller: bioCtrl, maxLines: 4),
           const SizedBox(height: 16),
-          AppTextField(
+          GooglePlacesField(
             label: 'City *',
             hint: 'e.g. Tel Aviv',
             controller: cityCtrl,
-            prefixIcon: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
+            onPlaceSelected: (city) => cityCtrl.text = city,
           ),
         ],
       );
