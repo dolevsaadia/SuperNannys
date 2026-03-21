@@ -60,18 +60,17 @@ class NannyListTile extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
-                      Text(
-                        '(${nanny.reviewsCount})',
-                        style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(Icons.star_rounded, size: 15, color: AppColors.star),
+                      const SizedBox(width: 2),
                       Text(
                         nanny.rating.toStringAsFixed(1),
                         style: AppTextStyles.captionBold.copyWith(color: AppColors.textPrimary, fontSize: 13),
                       ),
-                      const SizedBox(width: AppSpacing.xxs),
-                      const Icon(Icons.star_rounded, size: 15, color: AppColors.star),
-                      const Icon(Icons.star_rounded, size: 15, color: AppColors.star),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        '(${nanny.reviewsCount})',
+                        style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                      ),
                     ],
                   ),
                 ],

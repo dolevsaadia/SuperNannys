@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class MessageModel {
   final String id;
   final String bookingId;
@@ -38,6 +40,6 @@ class MessageSender {
   factory MessageSender.fromJson(Map<String, dynamic> json) => MessageSender(
         id: json['id'] as String,
         fullName: json['fullName'] as String,
-        avatarUrl: json['avatarUrl'] as String?,
+        avatarUrl: ImageUtils.resolveAvatarUrl(json['avatarUrl'] as String?),
       );
 }

@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class BookingModel {
   final String id;
   final String parentUserId;
@@ -173,7 +175,7 @@ class BookingUser {
     return BookingUser(
       id: json['id'] as String,
       fullName: json['fullName'] as String,
-      avatarUrl: json['avatarUrl'] as String?,
+      avatarUrl: ImageUtils.resolveAvatarUrl(json['avatarUrl'] as String?),
       phone: json['phone'] as String?,
       latitude: (profile?['latitude'] as num?)?.toDouble(),
       longitude: (profile?['longitude'] as num?)?.toDouble(),

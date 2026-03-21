@@ -7,6 +7,7 @@ import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/profile_image_picker.dart';
 import '../../../core/providers/data_refresh_provider.dart';
@@ -23,72 +24,136 @@ class ProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       body: CustomScrollView(
         slivers: [
-          // ── Gradient Hero ──────────────────
+          // ── Premium Profile Hero Card ──────────────────
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: Column(
                 children: [
-                  Stack(
-                    children: [
-                      ProfileImagePicker(
-                        currentImageUrl: user.avatarUrl,
-                        name: user.fullName,
-                        size: 90,
-                        onUploaded: (_) async {
-                          await ref.read(authProvider.notifier).refreshMe();
-                          triggerDataRefresh(ref);
-                        },
-                      ),
-                      if (user.isVerified)
-                        Positioned(
-                          bottom: 0, left: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
-                            child: const Icon(Icons.check_rounded, size: 14, color: Colors.white),
+                  const SizedBox(height: 12),
+                  // ── Card-style profile image block ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: AppRadius.borderCardLg,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
-                        ),
-                    ],
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // ── Image board area ──
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(AppRadius.cardLg),
+                                ),
+                                child: ProfileImageBoard(
+                                  currentImageUrl: user.avatarUrl,
+                                  name: user.fullName,
+                                  height: 200,
+                                  onUploaded: (_) async {
+                                    await ref.read(authProvider.notifier).refreshMe();
+                                    triggerDataRefresh(ref);
+                                  },
+                                ),
+                              ),
+                              // Verified badge
+                              if (user.isVerified)
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: AppShadows.sm,
+                                    ),
+                                    child: const Icon(Icons.verified_rounded, size: 20, color: AppColors.badgeVerified),
+                                  ),
+                                ),
+                              // Role badge
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: AppRadius.borderMd,
+                                  ),
+                                  child: Text(
+                                    user.role,
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          // ── Info section ──
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                            child: Column(
+                              children: [
+                                Text(
+                                  user.fullName,
+                                  style: AppTextStyles.heading2.copyWith(fontSize: 22),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  user.email,
+                                  style: AppTextStyles.bodySmall,
+                                ),
+                                if (user.isNanny && user.nannyProfile != null) ...[
+                                  const SizedBox(height: 14),
+                                  // Stats row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _CardStat(Icons.star_rounded, '${user.nannyProfile!.rating}', 'Rating', AppColors.star),
+                                      _CardStat(Icons.rate_review_rounded, '${user.nannyProfile!.reviewsCount}', 'Reviews', AppColors.primary),
+                                      _CardStat(Icons.work_rounded, '${user.nannyProfile!.completedJobs}', 'Jobs', AppColors.success),
+                                      _CardStat(Icons.payments_rounded, '\u20AA${user.nannyProfile!.hourlyRateNis}', '/hour', AppColors.accent),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  Text(user.fullName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const SizedBox(height: 4),
-                  Text(user.email, style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.8))),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-                    child: Text(user.role, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                  ),
-                  if (user.isNanny && user.nannyProfile != null) ...[
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _StatPill('${user.nannyProfile!.rating}', 'Rating'),
-                        _StatPill('${user.nannyProfile!.reviewsCount}', 'Reviews'),
-                        _StatPill('${user.nannyProfile!.completedJobs}', 'Jobs'),
-                        _StatPill('\u20AA${user.nannyProfile!.hourlyRateNis}', '/hour'),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/profile/edit'),
-                      icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
-                      label: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  // ── Edit Profile button ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.go('/profile/edit'),
+                        icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
+                        label: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -334,21 +399,29 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _StatPill extends StatelessWidget {
+class _CardStat extends StatelessWidget {
+  final IconData icon;
   final String value;
   final String label;
-  const _StatPill(this.value, this.label);
+  final Color color;
+  const _CardStat(this.icon, this.value, this.label, this.color);
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-            Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.7))),
-          ],
-        ),
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: AppRadius.borderLg,
+            ),
+            child: Icon(icon, size: 20, color: color),
+          ),
+          const SizedBox(height: 6),
+          Text(value, style: AppTextStyles.heading3.copyWith(fontSize: 15)),
+          Text(label, style: AppTextStyles.caption.copyWith(fontSize: 10)),
+        ],
       );
 }
 
