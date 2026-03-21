@@ -168,6 +168,13 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                         ),
                       ],
                     ),
+                    if (nanny.recurringHourlyRateNis != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '₪${nanny.recurringHourlyRateNis}/hr recurring',
+                        style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.accent),
+                      ),
+                    ],
                   ],
                 ),
               ),

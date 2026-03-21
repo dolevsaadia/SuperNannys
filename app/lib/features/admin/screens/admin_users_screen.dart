@@ -64,6 +64,53 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     }
   }
 
+  Future<void> _deleteUser(String userId, String userName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dc) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Delete User', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+        content: Text(
+          'Are you sure you want to delete "$userName"?\n\n'
+          'This will anonymize all personal data, cancel future bookings, and deactivate the account. This action cannot be undone.',
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dc, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(dc, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await apiClient.dio.delete('/admin/users/$userId');
+      ref.invalidate(_usersProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User deleted successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final params = (search: _searchCtrl.text, role: _roleFilter);
@@ -203,6 +250,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                             onSelected: (action) {
                               if (action == 'toggle_active') _toggleActive(u['id'] as String, isActive);
                               if (action == 'toggle_verified') _toggleVerified(u['id'] as String, isVerified);
+                              if (action == 'delete') _deleteUser(u['id'] as String, u['fullName'] as String? ?? '');
                             },
                             itemBuilder: (_) => [
                               PopupMenuItem(
@@ -222,6 +270,17 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                                     Icon(isVerified ? Icons.remove_circle : Icons.verified, size: 18, color: isVerified ? AppColors.warning : AppColors.success),
                                     const SizedBox(width: 8),
                                     Text(isVerified ? 'Remove Verification' : 'Verify'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuDivider(),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_forever_rounded, size: 18, color: AppColors.error),
+                                    SizedBox(width: 8),
+                                    Text('Delete User', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
                                   ],
                                 ),
                               ),
