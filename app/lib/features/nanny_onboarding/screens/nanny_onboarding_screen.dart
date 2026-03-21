@@ -256,7 +256,7 @@ class _NannyOnboardingScreenState extends ConsumerState<NannyOnboardingScreen> {
             }
           },
         ),
-        title: Text('Step ${_step + 1} of $_totalSteps', style: const TextStyle(color: AppColors.textHint, fontSize: 14)),
+        title: Text('Step ${_step + 1} of $_totalSteps', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
         centerTitle: true,
       ),
       body: SafeArea(

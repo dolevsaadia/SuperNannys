@@ -123,7 +123,7 @@ class SuperNannyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light, // Force light — dark mode not fully implemented (screens hardcode white backgrounds)
       locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,

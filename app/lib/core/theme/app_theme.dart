@@ -17,6 +17,8 @@ class AppTheme {
           secondary: AppColors.accent,
           surface: AppColors.surface,
           onSurface: AppColors.textPrimary,
+          onSurfaceVariant: AppColors.textSecondary, // Prevent M3 auto-generated light variant
+          surfaceTint: Colors.transparent,            // No surface tint overlay
           background: AppColors.bg,
           error: AppColors.error,
         ),
@@ -26,6 +28,7 @@ class AppTheme {
         appBarTheme: AppBarTheme(
           backgroundColor: AppColors.white,
           foregroundColor: AppColors.textPrimary,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0.5,
           shadowColor: const Color(0x1A000000),
