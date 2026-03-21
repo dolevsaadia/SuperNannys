@@ -615,17 +615,18 @@ class _BookingDetailBody extends ConsumerWidget {
     try {
       await apiClient.dio.patch('/bookings/${booking.id}/status', data: {'status': status});
 
+      // Fire-and-forget: don't let notification errors block the success flow
       if (status == 'CANCELLED' || status == 'DECLINED') {
-        await BookingReminderService.instance.cancelReminders(booking.id);
+        BookingReminderService.instance.cancelReminders(booking.id).catchError((_) {});
       }
 
-      // Trigger global data refresh so bookings list + dashboard update
+      // Always refresh so list + detail show the real state
       triggerDataRefresh(ref);
 
       if (context.mounted) {
         final l = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${l.bookingDetails} - $status')));
-        context.pop();
+        final label = _localizedStatus(context, status);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(label)));
       }
     } catch (e) {
       if (context.mounted) {
@@ -663,7 +664,8 @@ class _BookingDetailBody extends ConsumerWidget {
     if (confirmed != true) return;
     try {
       await apiClient.dio.delete('/bookings/$bookingId');
-      await BookingReminderService.instance.cancelReminders(bookingId);
+      // Fire-and-forget: don't let notification errors block the success flow
+      BookingReminderService.instance.cancelReminders(bookingId).catchError((_) {});
       triggerDataRefresh(ref);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.bookingDeleted)));

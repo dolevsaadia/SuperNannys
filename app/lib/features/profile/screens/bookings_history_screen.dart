@@ -311,7 +311,8 @@ class _BookingsList extends ConsumerWidget {
     if (confirmed != true) return;
     try {
       await apiClient.dio.delete('/bookings/$bookingId');
-      await BookingReminderService.instance.cancelReminders(bookingId);
+      // Fire-and-forget: don't let notification errors block the success flow
+      BookingReminderService.instance.cancelReminders(bookingId).catchError((_) {});
       triggerDataRefresh(ref);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.bookingDeleted)));
