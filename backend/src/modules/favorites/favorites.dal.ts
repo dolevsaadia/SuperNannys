@@ -15,7 +15,7 @@ export const favoritesDal = {
 
   async list(userId: string) {
     return prisma.favorite.findMany({
-      where: { userId },
+      where: { userId, nannyUser: { isActive: true } },
       orderBy: { createdAt: 'desc' },
       include: {
         nannyUser: {

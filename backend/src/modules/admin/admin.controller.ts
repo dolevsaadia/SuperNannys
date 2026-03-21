@@ -5,6 +5,11 @@ import { updateUserSchema } from './admin.validation'
 import { nanniesDal } from '../nannies/nannies.dal'
 
 export const adminController = {
+  async deleteUser(req: Request, res: Response): Promise<void> {
+    const result = await adminService.deleteUser(req.params.id, req.user!.userId)
+    ok(res, result)
+  },
+
   async getStats(_req: Request, res: Response): Promise<void> {
     const stats = await adminService.getStats()
     ok(res, stats)

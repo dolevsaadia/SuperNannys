@@ -1,8 +1,22 @@
 import { parsePagination, paginationMeta } from '../../shared/utils/pagination'
 import { adminDal } from './admin.dal'
+import { usersDal } from '../users/users.dal'
+import { NotFoundError, ForbiddenError } from '../../shared/errors/app-error'
+import { logger } from '../../shared/utils/logger'
 import type { UpdateUserInput } from './admin.validation'
 
 export const adminService = {
+  /** Admin-initiated soft delete of any user. */
+  async deleteUser(userId: string, adminUserId: string) {
+    if (userId === adminUserId) throw new ForbiddenError('Cannot delete your own admin account')
+    const [user] = await Promise.all([adminDal.countUsers({ id: userId })])
+    if (!user) throw new NotFoundError('User')
+
+    const result = await usersDal.softDeleteUser(userId)
+    logger.info('Admin deleted user', { adminUserId, targetUserId: userId, ...result })
+    return { message: 'User deleted successfully', ...result }
+  },
+
   async getStats() {
     const [totalUsers, totalNannies, totalParents, totalBookings, pendingBookings, completedBookings, revenueAgg] =
       await adminDal.getStats()

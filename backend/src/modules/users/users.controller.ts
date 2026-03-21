@@ -5,6 +5,11 @@ import { usersService } from './users.service'
 import { updateProfileSchema, registerDeviceSchema } from './users.validation'
 
 export const usersController = {
+  async deleteAccount(req: Request, res: Response): Promise<void> {
+    const result = await usersService.deleteAccount(req.user!.userId)
+    ok(res, result)
+  },
+
   async updateProfile(req: Request, res: Response): Promise<void> {
     const data = updateProfileSchema.parse(req.body)
     const user = await usersService.updateProfile(req.user!.userId, data)
