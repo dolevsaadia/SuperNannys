@@ -27,4 +27,9 @@ export const bookingsController = {
     const updated = await bookingsService.updateStatus(req.user!.userId, req.user!.role, req.params.id, status as BookingStatus)
     ok(res, updated)
   },
+
+  async deleteBooking(req: Request, res: Response): Promise<void> {
+    await bookingsService.deleteBooking(req.user!.userId, req.user!.role, req.params.id)
+    ok(res, { message: 'Booking deleted' })
+  },
 }
