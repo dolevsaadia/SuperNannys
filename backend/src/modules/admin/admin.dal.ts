@@ -31,6 +31,20 @@ export const adminDal = {
     return prisma.user.count({ where })
   },
 
+  searchDeletedUsers(where: Record<string, unknown>, skip: number, take: number) {
+    return prisma.user.findMany({
+      where,
+      orderBy: { deletedAt: 'desc' },
+      skip,
+      take,
+      select: {
+        id: true, role: true, deletedAt: true, createdAt: true,
+        preDeleteName: true, preDeleteEmail: true, deletedByAdminId: true,
+        _count: { select: { parentBookings: true, nannyBookings: true } },
+      },
+    })
+  },
+
   updateUser(userId: string, data: Record<string, unknown>) {
     return prisma.user.update({
       where: { id: userId },

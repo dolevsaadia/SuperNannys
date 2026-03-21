@@ -80,12 +80,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> with WidgetsBindingObse
   }
 
   @override
+  void deactivate() {
+    // Trigger data refresh here (not in dispose) because ref is still valid
+    triggerDataRefresh(ref);
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _msgController.dispose();
     _scrollController.dispose();
-    // Trigger data refresh so chat list reloads with updated unread counts
-    triggerDataRefresh(ref);
     super.dispose();
   }
 

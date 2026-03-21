@@ -73,9 +73,12 @@ model User {
   googleSub    String?      @unique
   isActive     Boolean      @default(true)
   isVerified   Boolean      @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  deletedAt        DateTime?
+  deletedByAdminId String?        // null = self-deleted, set = admin-deleted
+  preDeleteName    String?        // original fullName before soft-delete anonymization
+  preDeleteEmail   String?        // original email before soft-delete anonymization
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   // ── Structured address ─────────────────────────────────
   city            String  @default("")
