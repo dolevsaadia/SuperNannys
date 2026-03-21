@@ -33,6 +33,16 @@ export const usersController = {
     ok(res, result)
   },
 
+  async uploadAvatar(req: Request, res: Response): Promise<void> {
+    if (!req.file) {
+      res.status(400).json({ error: 'No file uploaded' })
+      return
+    }
+    const avatarUrl = `/uploads/${req.file.filename}`
+    const user = await usersService.updateProfile(req.user!.userId, { avatarUrl })
+    ok(res, user)
+  },
+
   async getEarnings(req: Request, res: Response): Promise<void> {
     const result = await usersService.getEarnings(req.user!.userId)
     ok(res, result)

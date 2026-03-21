@@ -7,9 +7,9 @@ import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../core/widgets/profile_image_picker.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -34,17 +34,18 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   Stack(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
-                        ),
-                        child: AvatarWidget(imageUrl: user.avatarUrl, name: user.fullName, size: 90, showBorder: false),
+                      ProfileImagePicker(
+                        currentImageUrl: user.avatarUrl,
+                        name: user.fullName,
+                        size: 90,
+                        onUploaded: (_) async {
+                          await ref.read(authProvider.notifier).refreshMe();
+                          triggerDataRefresh(ref);
+                        },
                       ),
                       if (user.isVerified)
                         Positioned(
-                          bottom: 0, right: 0,
+                          bottom: 0, left: 0,
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),

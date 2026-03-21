@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/nanny_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_shadows.dart';
@@ -74,23 +75,13 @@ class MiniMapPreview extends StatelessWidget {
                               ),
                             ),
                           ),
-                        // Nanny markers
+                        // Nanny markers — profile image circles
                         ...nannies.where((n) => n.latitude != null && n.longitude != null).map(
                           (nanny) => Marker(
                             point: LatLng(nanny.latitude!, nanny.longitude!),
-                            width: 36,
-                            height: 36,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: nanny.isVerified ? AppColors.primary : AppColors.textSecondary,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppColors.white, width: 2),
-                                boxShadow: AppShadows.sm,
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.child_care_rounded, color: AppColors.white, size: 18),
-                              ),
-                            ),
+                            width: 44,
+                            height: 44,
+                            child: _ProfileMarker(nanny: nanny, size: 40),
                           ),
                         ),
                       ],
@@ -142,6 +133,72 @@ class MiniMapPreview extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Profile image map marker — circular photo with border and shadow.
+/// Falls back to initials if no avatar.
+class _ProfileMarker extends StatelessWidget {
+  final NannyModel nanny;
+  final double size;
+
+  const _ProfileMarker({required this.nanny, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = (nanny.user?.avatarUrl ?? '').isNotEmpty;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: nanny.isVerified ? AppColors.primary : AppColors.white,
+          width: 2.5,
+        ),
+        boxShadow: AppShadows.md,
+      ),
+      child: ClipOval(
+        child: hasImage
+            ? CachedNetworkImage(
+                imageUrl: nanny.user!.avatarUrl!,
+                width: size - 5,
+                height: size - 5,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => _MarkerPlaceholder(name: nanny.user?.fullName, size: size - 5),
+                errorWidget: (_, __, ___) => _MarkerPlaceholder(name: nanny.user?.fullName, size: size - 5),
+              )
+            : _MarkerPlaceholder(name: nanny.user?.fullName, size: size - 5),
+      ),
+    );
+  }
+}
+
+class _MarkerPlaceholder extends StatelessWidget {
+  final String? name;
+  final double size;
+  const _MarkerPlaceholder({this.name, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = (name?.isNotEmpty == true) ? name![0].toUpperCase() : '?';
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: AppColors.gradientPrimary),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: TextStyle(
+            fontSize: size * 0.4,
+            fontWeight: FontWeight.w700,
+            color: AppColors.white,
           ),
         ),
       ),

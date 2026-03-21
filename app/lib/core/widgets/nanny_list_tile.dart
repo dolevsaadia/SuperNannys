@@ -7,8 +7,8 @@ import '../theme/app_shadows.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
-/// Compact nanny list tile for the Nearby screen.
-/// Shows: avatar · name · rating · price — clean & modern.
+/// Compact nanny list tile for the Nearby screen — matches reference:
+/// Large circular avatar · name · rating with stars · hourly price pill
 class NannyListTile extends StatelessWidget {
   final NannyModel nanny;
   final VoidCallback onTap;
@@ -32,8 +32,8 @@ class NannyListTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ── Avatar ──
-            _Avatar(nanny: nanny),
+            // ── Profile Avatar ──
+            _ProfileAvatar(nanny: nanny, size: 54),
             const SizedBox(width: AppSpacing.xxl),
 
             // ── Name + rating ──
@@ -46,7 +46,7 @@ class NannyListTile extends StatelessWidget {
                       Flexible(
                         child: Text(
                           nanny.user?.fullName ?? '',
-                          style: AppTextStyles.label.copyWith(fontSize: 15),
+                          style: AppTextStyles.heading3.copyWith(fontSize: 16),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -60,41 +60,35 @@ class NannyListTile extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
-                      const Icon(Icons.star_rounded, size: 14, color: AppColors.star),
-                      const SizedBox(width: AppSpacing.xxs),
+                      Text(
+                        '(${nanny.reviewsCount})',
+                        style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         nanny.rating.toStringAsFixed(1),
-                        style: AppTextStyles.captionBold.copyWith(color: AppColors.textPrimary),
+                        style: AppTextStyles.captionBold.copyWith(color: AppColors.textPrimary, fontSize: 13),
                       ),
-                      Text(
-                        ' (${nanny.reviewsCount})',
-                        style: AppTextStyles.caption,
-                      ),
-                      if (nanny.distanceKm != null) ...[
-                        const SizedBox(width: AppSpacing.md),
-                        const Icon(Icons.location_on_outlined, size: 13, color: AppColors.textHint),
-                        const SizedBox(width: AppSpacing.xxs),
-                        Text(
-                          '${nanny.distanceKm!.toStringAsFixed(1)} km',
-                          style: AppTextStyles.caption,
-                        ),
-                      ],
+                      const SizedBox(width: AppSpacing.xxs),
+                      const Icon(Icons.star_rounded, size: 15, color: AppColors.star),
+                      const Icon(Icons.star_rounded, size: 15, color: AppColors.star),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // ── Price ──
+            // ── Price pill ──
             Container(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 color: AppColors.primarySoft,
                 borderRadius: AppRadius.borderLg,
+                border: Border.all(color: AppColors.primaryLight),
               ),
               child: Text(
-                '₪${nanny.hourlyRateNis} /hr',
-                style: AppTextStyles.priceSmall,
+                '₪ ${nanny.hourlyRateNis} /hr',
+                style: AppTextStyles.priceSmall.copyWith(fontSize: 13),
               ),
             ),
           ],
@@ -104,16 +98,19 @@ class NannyListTile extends StatelessWidget {
   }
 }
 
-class _Avatar extends StatelessWidget {
+/// Circular profile avatar with image or initials fallback.
+/// Reused by NannyListTile and map marker widgets.
+class _ProfileAvatar extends StatelessWidget {
   final NannyModel nanny;
-  const _Avatar({required this.nanny});
+  final double size;
+  const _ProfileAvatar({required this.nanny, required this.size});
 
   @override
   Widget build(BuildContext context) {
     final hasImage = (nanny.user?.avatarUrl ?? '').isNotEmpty;
     return Container(
-      width: 50,
-      height: 50,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: nanny.isVerified
@@ -121,7 +118,7 @@ class _Avatar extends StatelessWidget {
             : null,
         color: nanny.isVerified ? null : AppColors.divider,
       ),
-      padding: const EdgeInsets.all(1.5),
+      padding: const EdgeInsets.all(2),
       child: ClipOval(
         child: Container(
           color: AppColors.white,
@@ -130,13 +127,13 @@ class _Avatar extends StatelessWidget {
             child: hasImage
                 ? CachedNetworkImage(
                     imageUrl: nanny.user!.avatarUrl!,
-                    width: 46,
-                    height: 46,
+                    width: size - 6,
+                    height: size - 6,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => _Placeholder(name: nanny.user?.fullName),
-                    errorWidget: (_, __, ___) => _Placeholder(name: nanny.user?.fullName),
+                    placeholder: (_, __) => _Placeholder(name: nanny.user?.fullName, size: size - 6),
+                    errorWidget: (_, __, ___) => _Placeholder(name: nanny.user?.fullName, size: size - 6),
                   )
-                : _Placeholder(name: nanny.user?.fullName),
+                : _Placeholder(name: nanny.user?.fullName, size: size - 6),
           ),
         ),
       ),
@@ -146,21 +143,22 @@ class _Avatar extends StatelessWidget {
 
 class _Placeholder extends StatelessWidget {
   final String? name;
-  const _Placeholder({this.name});
+  final double size;
+  const _Placeholder({this.name, required this.size});
 
   @override
   Widget build(BuildContext context) {
     final initial = (name?.isNotEmpty == true) ? name![0].toUpperCase() : '?';
     return Container(
-      width: 46,
-      height: 46,
+      width: size,
+      height: size,
       decoration: const BoxDecoration(
         gradient: LinearGradient(colors: AppColors.gradientPrimary),
       ),
       child: Center(
         child: Text(
           initial,
-          style: AppTextStyles.heading3.copyWith(color: AppColors.white),
+          style: AppTextStyles.heading3.copyWith(color: AppColors.white, fontSize: size * 0.4),
         ),
       ),
     );
