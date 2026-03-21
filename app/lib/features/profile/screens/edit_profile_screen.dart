@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -44,6 +45,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'phone': _phone.text.trim(),
       });
       await ref.read(authProvider.notifier).refreshMe();
+      triggerDataRefresh(ref);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated'), backgroundColor: AppColors.success),

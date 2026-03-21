@@ -5,7 +5,9 @@ import '../../../core/models/nanny_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import 'dart:async';
 import '../../../core/constants/israeli_cities.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/nanny_card.dart';
@@ -232,73 +234,20 @@ class _StickyHeaderState extends State<_StickyHeader> {
   String _selectedLocation = 'My Location';
 
   void _showLocationPicker() {
-    final searchController = TextEditingController();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          final suggestions = IsraeliCities.search(searchController.text).take(15).toList();
-          return Container(
-            height: MediaQuery.of(ctx).size.height * 0.6,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 16),
-                const Text('Select Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    height: 46,
-                    decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
-                    child: TextField(
-                      controller: searchController,
-                      autofocus: true,
-                      onChanged: (_) => setSheetState(() {}),
-                      decoration: const InputDecoration(
-                        hintText: 'Search city...',
-                        prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textHint),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ),
-                // Use current location option
-                ListTile(
-                  leading: const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 20),
-                  title: const Text('Use My Location', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary, fontSize: 14)),
-                  onTap: () {
-                    setState(() => _selectedLocation = 'My Location');
-                    widget.onLocationSelected?.call('');
-                    Navigator.pop(ctx);
-                  },
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: suggestions.length,
-                    itemBuilder: (_, i) => ListTile(
-                      leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
-                      title: Text(suggestions[i], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-                      onTap: () {
-                        setState(() => _selectedLocation = suggestions[i]);
-                        widget.onLocationSelected?.call(suggestions[i]);
-                        Navigator.pop(ctx);
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
+      builder: (ctx) => _LocationPickerSheet(
+        onUseMyLocation: () {
+          setState(() => _selectedLocation = 'My Location');
+          widget.onLocationSelected?.call('');
+          Navigator.pop(ctx);
+        },
+        onCitySelected: (city) {
+          setState(() => _selectedLocation = city);
+          widget.onLocationSelected?.call(city);
+          Navigator.pop(ctx);
         },
       ),
     );
@@ -383,13 +332,14 @@ class _SearchBarState extends State<_SearchBar> {
   final _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
   List<String> _suggestions = [];
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        _updateSuggestions(widget.controller.text);
+        _fetchSuggestions(widget.controller.text);
         _showOverlay();
       } else {
         _hideOverlay();
@@ -398,7 +348,30 @@ class _SearchBarState extends State<_SearchBar> {
   }
 
   void _updateSuggestions(String query) {
-    _suggestions = IsraeliCities.search(query).take(6).toList();
+    _debounce?.cancel();
+    if (query.trim().length < 2) {
+      _suggestions = [];
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _fetchSuggestions(query.trim());
+    });
+  }
+
+  Future<void> _fetchSuggestions(String input) async {
+    if (input.length < 2) return;
+    try {
+      final resp = await apiClient.dio.get('/places/autocomplete', queryParameters: {'input': input, 'types': '(cities)'});
+      final data = resp.data['data'] as List<dynamic>? ?? [];
+      if (data.isNotEmpty) {
+        _suggestions = data.map((e) => (e as Map<String, dynamic>)['mainText'] as String? ?? '').where((s) => s.isNotEmpty).take(6).toList();
+      } else {
+        _suggestions = IsraeliCities.search(input).take(6).toList();
+      }
+    } catch (_) {
+      _suggestions = IsraeliCities.search(input).take(6).toList();
+    }
     _overlayEntry?.markNeedsBuild();
   }
 
@@ -463,6 +436,7 @@ class _SearchBarState extends State<_SearchBar> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _hideOverlay();
     _focusNode.dispose();
     super.dispose();
@@ -785,6 +759,118 @@ class _SortDropdown extends StatelessWidget {
           ],
         ),
       )).toList(),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// LOCATION PICKER BOTTOM SHEET (Google Places + fallback)
+// ══════════════════════════════════════════════════════════
+class _LocationPickerSheet extends StatefulWidget {
+  final VoidCallback onUseMyLocation;
+  final ValueChanged<String> onCitySelected;
+
+  const _LocationPickerSheet({required this.onUseMyLocation, required this.onCitySelected});
+
+  @override
+  State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+}
+
+class _LocationPickerSheetState extends State<_LocationPickerSheet> {
+  final _searchController = TextEditingController();
+  List<String> _suggestions = [];
+  Timer? _debounce;
+  bool _isLoading = false;
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    if (query.trim().length < 2) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    setState(() => _isLoading = true);
+    _debounce = Timer(const Duration(milliseconds: 300), () => _fetchSuggestions(query.trim()));
+  }
+
+  Future<void> _fetchSuggestions(String input) async {
+    try {
+      final resp = await apiClient.dio.get('/places/autocomplete', queryParameters: {'input': input, 'types': '(cities)'});
+      final data = resp.data['data'] as List<dynamic>? ?? [];
+      if (data.isNotEmpty) {
+        _suggestions = data.map((e) => (e as Map<String, dynamic>)['mainText'] as String? ?? '').where((s) => s.isNotEmpty).toList();
+      } else {
+        _suggestions = IsraeliCities.search(input).take(15).toList();
+      }
+    } catch (_) {
+      _suggestions = IsraeliCities.search(input).take(15).toList();
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.6,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          const Text('Select Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                onChanged: _onSearchChanged,
+                decoration: const InputDecoration(
+                  hintText: 'Search city...',
+                  prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textHint),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 20),
+            title: const Text('Use My Location', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary, fontSize: 14)),
+            onTap: widget.onUseMyLocation,
+          ),
+          const Divider(height: 1),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: _suggestions.length,
+                itemBuilder: (_, i) => ListTile(
+                  leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
+                  title: Text(_suggestions[i], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                  onTap: () => widget.onCitySelected(_suggestions[i]),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../network/api_client.dart';
 import '../constants/israeli_cities.dart';
 import '../theme/app_colors.dart';
 
-/// A text field with autocomplete dropdown for Israeli cities.
+/// A text field with autocomplete dropdown for cities.
+/// Uses Google Places Autocomplete API via backend proxy, with fallback to
+/// the static Israeli cities list.
 class CitySearchField extends StatefulWidget {
   final String? initialValue;
   final String hint;
@@ -26,7 +30,9 @@ class _CitySearchFieldState extends State<CitySearchField> {
   final _focusNode = FocusNode();
   final _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
-  List<String> _suggestions = [];
+  List<_CityResult> _suggestions = [];
+  Timer? _debounce;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -37,19 +43,60 @@ class _CitySearchFieldState extends State<CitySearchField> {
 
   void _onFocusChanged() {
     if (_focusNode.hasFocus) {
-      _updateSuggestions(_controller.text);
+      _fetchSuggestions(_controller.text);
       _showOverlay();
     } else {
       _hideOverlay();
     }
   }
 
-  void _updateSuggestions(String query) {
-    setState(() {
-      _suggestions = IsraeliCities.search(query).take(8).toList();
+  void _onTextChanged(String value) {
+    _debounce?.cancel();
+    if (value.trim().length < 2) {
+      setState(() => _suggestions = []);
+      _overlayEntry?.markNeedsBuild();
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _fetchSuggestions(value.trim());
     });
-    if (_overlayEntry != null) {
-      _overlayEntry!.markNeedsBuild();
+    if (_overlayEntry == null && _focusNode.hasFocus) _showOverlay();
+  }
+
+  Future<void> _fetchSuggestions(String input) async {
+    if (input.length < 2) return;
+
+    setState(() => _isLoading = true);
+    _overlayEntry?.markNeedsBuild();
+
+    try {
+      final resp = await apiClient.dio.get('/places/autocomplete', queryParameters: {
+        'input': input,
+        'types': '(cities)',
+      });
+      final data = resp.data['data'] as List<dynamic>? ?? [];
+
+      if (data.isNotEmpty) {
+        _suggestions = data.map((e) {
+          final map = e as Map<String, dynamic>;
+          return _CityResult(
+            name: map['mainText'] as String? ?? map['description'] as String? ?? '',
+            secondary: map['secondaryText'] as String? ?? '',
+          );
+        }).toList();
+      } else {
+        // Fallback to local list
+        _suggestions = IsraeliCities.search(input).take(8).map((c) => _CityResult(name: c, secondary: 'Israel')).toList();
+      }
+    } catch (_) {
+      // Fallback to local list
+      _suggestions = IsraeliCities.search(input).take(8).map((c) => _CityResult(name: c, secondary: 'Israel')).toList();
+    }
+
+    _isLoading = false;
+    if (mounted) {
+      setState(() {});
+      _overlayEntry?.markNeedsBuild();
     }
   }
 
@@ -83,7 +130,15 @@ class _CitySearchFieldState extends State<CitySearchField> {
   }
 
   Widget _buildSuggestionsList() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(14),
+        child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+    }
+
     if (_suggestions.isEmpty) {
+      if (_controller.text.trim().length < 2) return const SizedBox.shrink();
       return const Padding(
         padding: EdgeInsets.all(12),
         child: Text('No cities found', style: TextStyle(color: AppColors.textHint, fontSize: 13)),
@@ -99,8 +154,8 @@ class _CitySearchFieldState extends State<CitySearchField> {
           final city = _suggestions[i];
           return InkWell(
             onTap: () {
-              _controller.text = city;
-              widget.onCitySelected(city);
+              _controller.text = city.name;
+              widget.onCitySelected(city.name);
               _hideOverlay();
               _focusNode.unfocus();
             },
@@ -110,7 +165,16 @@ class _CitySearchFieldState extends State<CitySearchField> {
                 children: [
                   const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
                   const SizedBox(width: 10),
-                  Text(city, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(city.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                        if (city.secondary.isNotEmpty)
+                          Text(city.secondary, style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -122,6 +186,7 @@ class _CitySearchFieldState extends State<CitySearchField> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _hideOverlay();
     _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
@@ -136,10 +201,7 @@ class _CitySearchFieldState extends State<CitySearchField> {
       child: TextField(
         controller: _controller,
         focusNode: _focusNode,
-        onChanged: (value) {
-          _updateSuggestions(value);
-          if (_overlayEntry == null && _focusNode.hasFocus) _showOverlay();
-        },
+        onChanged: _onTextChanged,
         onSubmitted: (value) {
           widget.onCitySelected(value);
           _hideOverlay();
@@ -157,4 +219,10 @@ class _CitySearchFieldState extends State<CitySearchField> {
       ),
     );
   }
+}
+
+class _CityResult {
+  final String name;
+  final String secondary;
+  const _CityResult({required this.name, this.secondary = ''});
 }

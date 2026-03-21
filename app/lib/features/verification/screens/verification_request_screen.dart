@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/utils/async_value_ui.dart';
 
 final _verificationStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
@@ -104,6 +105,7 @@ class _VerificationRequestScreenState extends ConsumerState<VerificationRequestS
       }
 
       ref.invalidate(_verificationStatusProvider);
+      triggerDataRefresh(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
