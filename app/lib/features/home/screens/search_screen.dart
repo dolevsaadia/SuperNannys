@@ -5,6 +5,8 @@ import '../../../core/models/nanny_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import 'dart:async';
 import '../../../core/constants/israeli_cities.dart';
 import '../../../core/network/api_client.dart';
@@ -256,8 +258,8 @@ class _StickyHeaderState extends State<_StickyHeader> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      color: AppColors.white,
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xxxl, AppSpacing.xs, AppSpacing.xxxl, AppSpacing.xxs),
       child: Row(
         children: [
           _CircleButton(icon: Icons.notifications_outlined, onTap: widget.onNotification),
@@ -265,18 +267,18 @@ class _StickyHeaderState extends State<_StickyHeader> {
           GestureDetector(
             onTap: _showLocationPicker,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 5),
+              decoration: BoxDecoration(color: AppColors.bg, borderRadius: AppRadius.borderPill),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.location_on_rounded, size: 15, color: AppColors.primary),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppSpacing.xs),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 150),
-                    child: Text(_selectedLocation, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
+                    child: Text(_selectedLocation, style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary), overflow: TextOverflow.ellipsis),
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: AppSpacing.xxs),
                   const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.textPrimary),
                 ],
               ),
@@ -304,7 +306,7 @@ class _CircleButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.bg,
             shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.04), blurRadius: 6, offset: const Offset(0, 1))],
+            boxShadow: AppShadows.sm,
           ),
           child: Icon(icon, size: 18, color: AppColors.textPrimary),
         ),
@@ -389,8 +391,8 @@ class _SearchBarState extends State<_SearchBar> {
           offset: const Offset(0, 52),
           child: Material(
             elevation: 6,
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.white,
+            borderRadius: AppRadius.borderXl,
+            color: AppColors.white,
             child: _suggestions.isEmpty
                 ? const SizedBox.shrink()
                 : ConstrainedBox(
@@ -447,19 +449,19 @@ class _SearchBarState extends State<_SearchBar> {
     return CompositedTransformTarget(
       link: _layerLink,
       child: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+        color: AppColors.white,
+        padding: AppSpacing.searchBarPadding,
         child: Row(
           children: [
             Expanded(
               child: Container(
                 height: 42,
-                decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: AppColors.bg, borderRadius: AppRadius.borderXl),
                 child: Row(
                   children: [
-                    const SizedBox(width: 14),
+                    const SizedBox(width: AppSpacing.xxl),
                     const Icon(Icons.search_rounded, color: AppColors.textHint, size: 22),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSpacing.lg),
                     Expanded(
                       child: TextField(
                         controller: widget.controller,
@@ -498,21 +500,21 @@ class _SearchBarState extends State<_SearchBar> {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.lg),
             GestureDetector(
               onTap: widget.onFilterTap,
               child: Container(
                 width: 42, height: 42,
                 decoration: BoxDecoration(
-                  color: widget.hasFilters ? AppColors.primary : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: widget.hasFilters ? AppColors.primary : AppColors.white,
+                  borderRadius: AppRadius.borderXl,
                   border: widget.hasFilters ? null : Border.all(color: AppColors.divider),
                   boxShadow: widget.hasFilters ? AppShadows.primaryGlow(0.15) : null,
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(Icons.tune_rounded, color: widget.hasFilters ? Colors.white : AppColors.textPrimary, size: 18),
+                    Icon(Icons.tune_rounded, color: widget.hasFilters ? AppColors.white : AppColors.textPrimary, size: 18),
                     if (widget.hasFilters)
                       Positioned(top: 8, right: 8, child: Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))),
                   ],
@@ -720,13 +722,13 @@ class _SortDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       onSelected: onChanged,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
       offset: const Offset(0, 36),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          color: AppColors.white,
+          borderRadius: AppRadius.borderMd,
           border: Border.all(color: AppColors.divider),
         ),
         child: Row(
@@ -819,21 +821,21 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        color: AppColors.white,
+        borderRadius: AppRadius.sheetTop,
       ),
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 16),
-          const Text('Select Location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.xl),
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppRadius.borderXs)),
+          const SizedBox(height: AppSpacing.xxxl),
+          Text('Select Location', style: AppTextStyles.heading2),
+          const SizedBox(height: AppSpacing.xl),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
             child: Container(
               height: 46,
-              decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: AppColors.bg, borderRadius: AppRadius.borderXl),
               child: TextField(
                 controller: _searchController,
                 autofocus: true,
@@ -849,13 +851,13 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
           ),
           ListTile(
             leading: const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 20),
-            title: const Text('Use My Location', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary, fontSize: 14)),
+            title: Text('Use My Location', style: AppTextStyles.label.copyWith(color: AppColors.primary)),
             onTap: widget.onUseMyLocation,
           ),
           const Divider(height: 1),
           if (_isLoading)
             const Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(AppSpacing.s24),
               child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
             )
           else
@@ -864,7 +866,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                 itemCount: _suggestions.length,
                 itemBuilder: (_, i) => ListTile(
                   leading: const Icon(Icons.location_on_outlined, size: 20, color: AppColors.textHint),
-                  title: Text(_suggestions[i], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                  title: Text(_suggestions[i], style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500)),
                   onTap: () => widget.onCitySelected(_suggestions[i]),
                 ),
               ),

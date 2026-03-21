@@ -8,12 +8,13 @@ import '../../../core/network/api_client.dart';
 import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/badge_chip.dart';
+import '../../../core/widgets/nanny_card.dart' show NavigateButton;
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/rating_bar_widget.dart';
 import '../../../core/widgets/app_button.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/availability_calendar.dart';
 
 final _nannyDetailProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, id) async {
@@ -95,21 +96,6 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       triggerDataRefresh(ref);
     } catch (_) {
       if (mounted) setState(() => _isFavorited = prev);
-    }
-  }
-
-  void _openMapsNavigation(NannyModel nanny) async {
-    String url;
-    if (nanny.latitude != null && nanny.longitude != null) {
-      url = 'https://www.google.com/maps/dir/?api=1&destination=${nanny.latitude},${nanny.longitude}';
-    } else if (nanny.address.isNotEmpty) {
-      url = 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(nanny.address)}';
-    } else {
-      url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(nanny.city)}';
-    }
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -223,26 +209,14 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () => _openMapsNavigation(profile),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(colors: [Color(0xFF4285F4), Color(0xFF34A853)]),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(0, 2)),
-                                ],
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.navigation_rounded, size: 16, color: Colors.white),
-                                  SizedBox(width: 6),
-                                  Text('Navigate', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                                ],
-                              ),
-                            ),
+                          NavigateButton(
+                            latitude: profile.latitude,
+                            longitude: profile.longitude,
+                            address: profile.address,
+                            city: profile.city,
+                            iconSize: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl, vertical: AppSpacing.md),
+                            borderRadius: AppRadius.borderPill,
                           ),
                         ],
                       ),
@@ -354,18 +328,10 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       _SectionTitle('Skills'),
                       const SizedBox(height: 10),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: AppSpacing.md,
+                        runSpacing: AppSpacing.md,
                         children: profile.skills.asMap().entries.map((e) {
-                          final colors = [
-                            AppColors.primary,
-                            AppColors.accent,
-                            AppColors.success,
-                            AppColors.warning,
-                            const Color(0xFFEC4899),
-                            const Color(0xFF8B5CF6),
-                          ];
-                          final c = colors[e.key % colors.length];
+                          final c = AppColors.skillPillColors[e.key % AppColors.skillPillColors.length];
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
@@ -720,14 +686,7 @@ class _ReviewCard extends StatelessWidget {
     final comment = review['comment'] as String?;
     final initial = (reviewer?['fullName'] as String? ?? '?')[0].toUpperCase();
 
-    final gradientColors = [
-      [const Color(0xFF7C3AED), const Color(0xFF9D5CF8)],
-      [const Color(0xFF06B6D4), const Color(0xFF0EA5E9)],
-      [const Color(0xFF10B981), const Color(0xFF059669)],
-      [const Color(0xFFF59E0B), const Color(0xFFEF4444)],
-      [const Color(0xFFEC4899), const Color(0xFF8B5CF6)],
-    ];
-    final grad = gradientColors[initial.codeUnitAt(0) % gradientColors.length];
+    final grad = AppColors.reviewAvatarGradients[initial.codeUnitAt(0) % AppColors.reviewAvatarGradients.length];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

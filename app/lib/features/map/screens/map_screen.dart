@@ -8,6 +8,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/geo_utils.dart';
 import '../../home/providers/nannies_provider.dart';
 
@@ -73,10 +76,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        padding: const EdgeInsets.all(20),
+        padding: AppSpacing.sheetPadding,
         decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          color: AppColors.white,
+          borderRadius: AppRadius.sheetTop,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -84,9 +87,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             // Handle bar
             Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppRadius.borderXs),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.xxxl),
             Row(
               children: [
                 CircleAvatar(
@@ -155,8 +158,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+                        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
                       ),
                     ),
                   ),
@@ -170,9 +173,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadius.borderXl),
                     ),
                     child: const Text('View Profile', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
@@ -250,8 +253,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                             decoration: BoxDecoration(
                               color: nanny.isVerified ? AppColors.primary : AppColors.textSecondary,
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2.5),
-                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))],
+                              border: Border.all(color: AppColors.white, width: 2.5),
+                              boxShadow: AppShadows.sm,
                             ),
                             child: const Center(
                               child: Icon(Icons.child_care_rounded, color: Colors.white, size: 22),
@@ -293,15 +296,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               top: 12,
               right: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 6)],
+                  borderRadius: AppRadius.borderPill,
+                  boxShadow: AppShadows.md,
                 ),
                 child: Text(
                   '${nannies.length} nannies nearby',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: AppTextStyles.captionBold.copyWith(color: AppColors.white),
                 ),
               ),
             ),

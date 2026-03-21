@@ -7,6 +7,8 @@ import '../../../core/services/bubble_overlay_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/biometric_prompt_dialog.dart';
 import '../../session/widgets/session_banner.dart';
 
@@ -158,7 +160,7 @@ class _PremiumBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         boxShadow: AppShadows.top,
       ),
       child: SafeArea(
@@ -182,7 +184,7 @@ class _PremiumBottomNav extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         decoration: BoxDecoration(
                           color: isActive ? AppColors.primaryLight : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.borderCard,
                         ),
                         child: Icon(
                           isActive ? item.activeIcon : item.icon,
