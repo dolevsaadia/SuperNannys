@@ -2,6 +2,10 @@ import type { Request, Response } from 'express'
 import { config } from '../../config'
 import { logger } from '../../shared/utils/logger'
 
+/**
+ * Uses Google Places API (New) — POST-based endpoint.
+ * Docs: https://developers.google.com/maps/documentation/places/web-service/place-autocomplete
+ */
 export const placesController = {
   async autocomplete(req: Request, res: Response) {
     const input = (req.query.input as string || '').trim()
@@ -16,45 +20,56 @@ export const placesController = {
       return
     }
 
-    const types = (req.query.types as string) || '(cities)'
-    const components = (req.query.components as string) || 'country:il'
     const language = (req.query.language as string) || 'en'
-
-    const url = new URL('https://maps.googleapis.com/maps/api/place/autocomplete/json')
-    url.searchParams.set('input', input)
-    url.searchParams.set('types', types)
-    url.searchParams.set('components', components)
-    url.searchParams.set('language', language)
-    url.searchParams.set('key', config.google_places.apiKey)
+    // Build request body for Places API (New)
+    const body: Record<string, unknown> = {
+      input,
+      languageCode: language,
+      includedRegionCodes: ['IL'],
+      includedPrimaryTypes: ['(cities)'],
+    }
 
     try {
-      const response = await fetch(url.toString())
+      const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': config.google_places.apiKey,
+        },
+        body: JSON.stringify(body),
+      })
+
       const json = await response.json() as {
-        status: string
-        predictions?: Array<{
-          description: string
-          place_id: string
-          structured_formatting?: {
-            main_text: string
-            secondary_text?: string
+        suggestions?: Array<{
+          placePrediction?: {
+            placeId: string
+            text?: { text: string }
+            structuredFormat?: {
+              mainText?: { text: string }
+              secondaryText?: { text: string }
+            }
           }
-          types?: string[]
         }>
-        error_message?: string
+        error?: { message: string; status: string }
       }
 
-      if (json.status !== 'OK' && json.status !== 'ZERO_RESULTS') {
-        logger.warn('Google Places API error', { status: json.status, error: json.error_message })
+      if (json.error) {
+        logger.warn('Google Places API (New) error', { error: json.error.message, status: json.error.status })
         res.json({ data: [] })
         return
       }
 
-      const suggestions = (json.predictions || []).map((p) => ({
-        description: p.description,
-        placeId: p.place_id,
-        mainText: p.structured_formatting?.main_text || p.description,
-        secondaryText: p.structured_formatting?.secondary_text || '',
-      }))
+      const suggestions = (json.suggestions || [])
+        .filter((s) => s.placePrediction)
+        .map((s) => {
+          const p = s.placePrediction!
+          return {
+            description: p.text?.text || '',
+            placeId: p.placeId,
+            mainText: p.structuredFormat?.mainText?.text || p.text?.text || '',
+            secondaryText: p.structuredFormat?.secondaryText?.text || '',
+          }
+        })
 
       res.json({ data: suggestions })
     } catch (err) {
