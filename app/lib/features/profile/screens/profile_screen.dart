@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/biometric_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -20,144 +21,41 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     if (user == null) return const FullScreenLoader();
 
+    final hasImage = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: CustomScrollView(
         slivers: [
-          // ── Premium Profile Hero Card ──────────────────
+          // ── Profile Hero — image as full background ──────────────
           SliverToBoxAdapter(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: AppColors.gradientPrimary, begin: Alignment.topLeft, end: Alignment.bottomRight),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  // ── Card-style profile image block ──
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: AppRadius.borderCardLg,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          // ── Image board area ──
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(AppRadius.cardLg),
-                                ),
-                                child: ProfileImageBoard(
-                                  currentImageUrl: user.avatarUrl,
-                                  name: user.fullName,
-                                  height: 200,
-                                  onUploaded: (_) async {
-                                    await ref.read(authProvider.notifier).refreshMe();
-                                    triggerDataRefresh(ref);
-                                  },
-                                ),
-                              ),
-                              // Verified badge
-                              if (user.isVerified)
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: AppShadows.sm,
-                                    ),
-                                    child: const Icon(Icons.verified_rounded, size: 20, color: AppColors.badgeVerified),
-                                  ),
-                                ),
-                              // Role badge
-                              Positioned(
-                                top: 12,
-                                left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: AppRadius.borderMd,
-                                  ),
-                                  child: Text(
-                                    user.role,
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          // ── Info section ──
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                            child: Column(
-                              children: [
-                                Text(
-                                  user.fullName,
-                                  style: AppTextStyles.heading2.copyWith(fontSize: 22),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  user.email,
-                                  style: AppTextStyles.bodySmall,
-                                ),
-                                if (user.isNanny && user.nannyProfile != null) ...[
-                                  const SizedBox(height: 14),
-                                  // Stats row
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      _CardStat(Icons.star_rounded, '${user.nannyProfile!.rating}', 'Rating', AppColors.star),
-                                      _CardStat(Icons.rate_review_rounded, '${user.nannyProfile!.reviewsCount}', 'Reviews', AppColors.primary),
-                                      _CardStat(Icons.work_rounded, '${user.nannyProfile!.completedJobs}', 'Jobs', AppColors.success),
-                                      _CardStat(Icons.payments_rounded, '\u20AA${user.nannyProfile!.hourlyRateNis}', '/hour', AppColors.accent),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  // ── Edit Profile button ──
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.go('/profile/edit'),
-                        icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
-                        label: const Text('Edit Profile', style: TextStyle(color: Colors.white)),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+            child: _ProfileHero(
+              user: user,
+              hasImage: hasImage,
+              topPadding: topPadding,
+              ref: ref,
+              onEdit: () => context.go('/profile/edit'),
             ),
           ),
+
+          // ── Nanny stats bar (below hero) ──
+          if (user.isNanny && user.nannyProfile != null)
+            SliverToBoxAdapter(
+              child: Container(
+                color: AppColors.white,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _StatPill(Icons.star_rounded, '${user.nannyProfile!.rating}', 'Rating', AppColors.star),
+                    _StatPill(Icons.rate_review_rounded, '${user.nannyProfile!.reviewsCount}', 'Reviews', AppColors.primary),
+                    _StatPill(Icons.work_rounded, '${user.nannyProfile!.completedJobs}', 'Jobs', AppColors.success),
+                    _StatPill(Icons.payments_rounded, '\u20AA${user.nannyProfile!.hourlyRateNis}', '/hour', AppColors.accent),
+                  ],
+                ),
+              ),
+            ),
 
           // ── Menu sections ──────────────────
           SliverToBoxAdapter(
@@ -399,12 +297,157 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _CardStat extends StatelessWidget {
+/// Full-width profile hero with image background or purple gradient fallback.
+class _ProfileHero extends StatelessWidget {
+  final dynamic user;
+  final bool hasImage;
+  final double topPadding;
+  final WidgetRef ref;
+  final VoidCallback onEdit;
+
+  const _ProfileHero({
+    required this.user,
+    required this.hasImage,
+    required this.topPadding,
+    required this.ref,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 280 + topPadding,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ── Background: image or gradient ──
+          if (hasImage)
+            CachedNetworkImage(
+              imageUrl: user.avatarUrl!,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => _gradientFallback(),
+              errorWidget: (_, __, ___) => _gradientFallback(),
+            )
+          else
+            _gradientFallback(),
+
+          // ── Dark gradient overlay for text readability ──
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.55),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Content on top ──
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 20,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Role badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: AppRadius.borderMd,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    user.role,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Name
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.fullName,
+                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (user.isVerified) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.verified_rounded, size: 22, color: AppColors.badgeVerified),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // Email
+                Text(
+                  user.email,
+                  style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.85)),
+                ),
+                const SizedBox(height: 14),
+                // Edit Profile button — glass style
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.white),
+                    label: const Text('Edit Profile', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Camera edit icon (top-right) ──
+          Positioned(
+            top: topPadding + 12,
+            right: 16,
+            child: ProfileImagePicker(
+              currentImageUrl: user.avatarUrl,
+              name: user.fullName,
+              size: 40,
+              showImagePreview: false,
+              onUploaded: (_) async {
+                await ref.read(authProvider.notifier).refreshMe();
+                triggerDataRefresh(ref);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gradientFallback() => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: AppColors.gradientPrimary,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      );
+}
+
+class _StatPill extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
   final Color color;
-  const _CardStat(this.icon, this.value, this.label, this.color);
+  const _StatPill(this.icon, this.value, this.label, this.color);
 
   @override
   Widget build(BuildContext context) => Column(

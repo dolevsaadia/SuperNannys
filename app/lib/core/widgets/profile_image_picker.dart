@@ -26,6 +26,9 @@ class ProfileImagePicker extends StatefulWidget {
   final String? name;
   final double size;
   final ValueChanged<String>? onUploaded;
+  /// When false, only shows the camera icon button (no image preview).
+  /// Useful when the image is already displayed as a background elsewhere.
+  final bool showImagePreview;
 
   const ProfileImagePicker({
     super.key,
@@ -33,6 +36,7 @@ class ProfileImagePicker extends StatefulWidget {
     this.name,
     this.size = 100,
     this.onUploaded,
+    this.showImagePreview = true,
   });
 
   @override
@@ -271,6 +275,32 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
+
+    // Camera-only mode: just a circular icon button, no image preview
+    if (!widget.showImagePreview) {
+      return GestureDetector(
+        onTap: _isUploading ? null : _pickAndUpload,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+          ),
+          child: _isUploading
+              ? Padding(
+                  padding: EdgeInsets.all(size * 0.25),
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                  ),
+                )
+              : Icon(Icons.camera_alt_rounded, size: size * 0.45, color: AppColors.white),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: _isUploading ? null : _pickAndUpload,
       child: SizedBox(
