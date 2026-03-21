@@ -24,6 +24,10 @@ export const authDal = {
     return prisma.user.findUnique({ where: { email } })
   },
 
+  findUserByPhone(phone: string) {
+    return prisma.user.findUnique({ where: { phone } })
+  },
+
   findByGoogleSubOrEmail(sub: string, email: string) {
     return prisma.user.findFirst({
       where: { OR: [{ googleSub: sub }, { email }] },

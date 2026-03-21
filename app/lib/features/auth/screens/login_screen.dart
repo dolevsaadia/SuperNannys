@@ -208,8 +208,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       if (result.success) {
         if (result.isNewUser) {
-          // New user from Google — redirect to role selection
-          context.go('/role-select', extra: {'googleIdToken': idToken});
+          // New user from Google — redirect to role selection with profile data
+          context.go('/role-select', extra: {
+            'googleIdToken': idToken,
+            'googleEmail': result.email,
+            'googleName': result.fullName,
+            'googleAvatar': result.avatarUrl,
+          });
         } else {
           await _promptBiometricAndNavigate();
         }

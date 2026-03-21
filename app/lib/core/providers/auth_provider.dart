@@ -35,6 +35,8 @@ class GoogleLoginResult {
   final bool isNewUser;
   final bool pendingVerification;
   final String? email;
+  final String? fullName;
+  final String? avatarUrl;
   final String? error;
 
   const GoogleLoginResult({
@@ -42,6 +44,8 @@ class GoogleLoginResult {
     this.isNewUser = false,
     this.pendingVerification = false,
     this.email,
+    this.fullName,
+    this.avatarUrl,
     this.error,
   });
 }
@@ -167,13 +171,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> register(String email, String password, String fullName, String role, {String? phone, String? idNumber}) async {
+  Future<bool> register(String email, String password, String fullName, String role, {String? phone, String? dateOfBirth}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final resp = await apiClient.dio.post('/auth/register', data: {
         'email': email.toLowerCase(), 'password': password, 'fullName': fullName, 'role': role,
         if (phone != null) 'phone': phone,
-        if (idNumber != null) 'idNumber': idNumber,
+        if (dateOfBirth != null) 'dateOfBirth': dateOfBirth,
       });
       final data = resp.data['data'] as Map<String, dynamic>;
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,
@@ -186,11 +190,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<GoogleLoginResult> loginWithGoogle(String idToken, {String? role}) async {
+  Future<GoogleLoginResult> loginWithGoogle(String idToken, {String? role, String? phone, String? dateOfBirth}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final body = <String, dynamic>{'idToken': idToken};
       if (role != null) body['role'] = role;
+      if (phone != null && phone.isNotEmpty) body['phone'] = phone;
+      if (dateOfBirth != null && dateOfBirth.isNotEmpty) body['dateOfBirth'] = dateOfBirth;
       final resp = await apiClient.dio.post('/auth/google', data: body);
       final data = resp.data['data'] as Map<String, dynamic>;
       final isNewUser = data['isNewUser'] == true;
@@ -208,8 +214,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (isNewUser && data['token'] == null) {
         // New user needs role selection — don't save session yet
+        final userData = data['user'] as Map<String, dynamic>?;
         state = state.copyWith(isLoading: false);
-        return const GoogleLoginResult(success: true, isNewUser: true);
+        return GoogleLoginResult(
+          success: true,
+          isNewUser: true,
+          email: userData?['email'] as String?,
+          fullName: userData?['fullName'] as String?,
+          avatarUrl: userData?['avatarUrl'] as String?,
+        );
       }
 
       await _saveSession(data['token'] as String, data['user'] as Map<String, dynamic>,

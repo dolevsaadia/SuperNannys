@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -24,16 +25,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _idNumber = TextEditingController();
   final _phone = TextEditingController();
   String _role = 'PARENT';
+  DateTime? _dateOfBirth;
+
+  // Google flow data
+  String? _googleIdToken;
+  bool get _isGoogleFlow => _googleIdToken != null;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final extra = GoRouterState.of(context).extra;
-      if (extra is Map) setState(() => _role = extra['role'] as String? ?? 'PARENT');
+      if (extra is Map) {
+        setState(() {
+          _role = extra['role'] as String? ?? 'PARENT';
+          // Prefill Google data if available
+          final googleToken = extra['googleIdToken'] as String?;
+          if (googleToken != null) {
+            _googleIdToken = googleToken;
+            final googleEmail = extra['googleEmail'] as String?;
+            final googleName = extra['googleName'] as String?;
+            if (googleEmail != null) _email.text = googleEmail;
+            if (googleName != null) _name.text = googleName;
+          }
+        });
+      }
     });
   }
 
@@ -42,23 +60,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _name.dispose();
     _email.dispose();
     _password.dispose();
-    _idNumber.dispose();
     _phone.dispose();
     super.dispose();
-  }
-
-  /// Validate Israeli ID number (Luhn mod-10 check)
-  bool _isValidIsraeliId(String id) {
-    if (id.length < 5 || id.length > 9) return false;
-    final padded = id.padLeft(9, '0');
-    int sum = 0;
-    for (int i = 0; i < 9; i++) {
-      int digit = int.parse(padded[i]);
-      int val = digit * ((i % 2 == 0) ? 1 : 2);
-      if (val > 9) val -= 9;
-      sum += val;
-    }
-    return sum % 10 == 0;
   }
 
   /// Validate email format with regex
@@ -66,36 +69,86 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
   }
 
-  Future<void> _promptBiometricAndNavigate(String route) async {
-    final token = await ref.read(authProvider.notifier).getStoredToken();
-    if (token != null && mounted) {
-      await showBiometricPrompt(context, token);
+  String _roleBasedRoute() {
+    final user = ref.read(authProvider).user;
+    if (user?.isAdmin == true) return '/admin';
+    if (user?.isNanny == true) return '/dashboard';
+    return '/home';
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOfBirth ?? DateTime(now.year - 20, now.month, now.day),
+      firstDate: DateTime(1940),
+      lastDate: DateTime(now.year - 13, now.month, now.day), // Must be at least 13
+      helpText: 'Select your date of birth',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _dateOfBirth = picked);
     }
-    if (mounted) context.go(route);
   }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    final success = await ref.read(authProvider.notifier).register(
-      _email.text.trim().toLowerCase(),
-      _password.text,
-      _name.text.trim(),
-      _role,
-      phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-      idNumber: _idNumber.text.trim().isEmpty ? null : _idNumber.text.trim(),
-    );
-    if (!mounted) return;
-    if (success) {
-      // Navigate immediately to prevent GoRouter redirect from racing
-      // (auth state change triggers redirect on next microtask which would
-      // send nannies to /dashboard before we can navigate to onboarding)
-      final route = _role == 'NANNY' ? '/nanny-onboarding' : '/home';
-      context.go(route);
-    } else {
-      final err = ref.read(authProvider).error;
+    if (_dateOfBirth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Registration failed'), backgroundColor: AppColors.error),
+        const SnackBar(content: Text('Please select your date of birth'), backgroundColor: AppColors.error),
       );
+      return;
+    }
+
+    final dobStr = _dateOfBirth!.toIso8601String().split('T').first; // "2000-01-15"
+
+    if (_isGoogleFlow) {
+      // Google registration — use loginWithGoogle with additional data
+      final result = await ref.read(authProvider.notifier).loginWithGoogle(
+        _googleIdToken!,
+        role: _role,
+        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        dateOfBirth: dobStr,
+      );
+      if (!mounted) return;
+      if (result.success) {
+        final route = _role == 'NANNY' ? '/nanny-onboarding' : _roleBasedRoute();
+        context.go(route);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error ?? 'Registration failed'), backgroundColor: AppColors.error),
+        );
+      }
+    } else {
+      // Email registration
+      final success = await ref.read(authProvider.notifier).register(
+        _email.text.trim().toLowerCase(),
+        _password.text,
+        _name.text.trim(),
+        _role,
+        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        dateOfBirth: dobStr,
+      );
+      if (!mounted) return;
+      if (success) {
+        final route = _role == 'NANNY' ? '/nanny-onboarding' : '/home';
+        context.go(route);
+      } else {
+        final err = ref.read(authProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(err ?? 'Registration failed'), backgroundColor: AppColors.error),
+        );
+      }
     }
   }
 
@@ -130,14 +183,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return;
       }
 
-      // Register directly with the selected role
-      final result = await ref.read(authProvider.notifier).loginWithGoogle(idToken, role: _role);
-      if (!mounted) return;
-      if (result.success) {
-        if (mounted) context.go(_role == 'NANNY' ? '/nanny-onboarding' : '/home');
-      } else {
+      // Prefill Google data into the form instead of registering immediately
+      if (mounted) {
+        setState(() {
+          _googleIdToken = idToken;
+          _name.text = googleUser.displayName ?? '';
+          _email.text = googleUser.email;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Google sign-up failed'), backgroundColor: AppColors.error),
+          const SnackBar(
+            content: Text('Google account linked! Please complete the remaining fields.'),
+            backgroundColor: AppColors.success,
+          ),
         );
       }
     } on PlatformException catch (e) {
@@ -209,23 +266,51 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // ── Google Sign-Up ──────────────────
-                GoogleSignInButton(
-                  onTap: _googleSignUp,
-                  label: 'Sign up with Google',
-                ),
-                const SizedBox(height: 20),
-
-                // ── OR divider ──────────────────────
-                Row(children: [
-                  Expanded(child: Container(height: 1, color: AppColors.divider)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('OR', style: TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
+                // ── Google Sign-Up (only if NOT already in Google flow) ──
+                if (!_isGoogleFlow) ...[
+                  GoogleSignInButton(
+                    onTap: _googleSignUp,
+                    label: 'Sign up with Google',
                   ),
-                  Expanded(child: Container(height: 1, color: AppColors.divider)),
-                ]),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+
+                  // ── OR divider ──────────────────────
+                  Row(children: [
+                    Expanded(child: Container(height: 1, color: AppColors.divider)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('OR', style: TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                    Expanded(child: Container(height: 1, color: AppColors.divider)),
+                  ]),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Google linked badge ──────────────
+                if (_isGoogleFlow) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Google account linked. Complete the fields below to finish registration.',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.success),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 // ── Form Card ───────────────────────
                 Container(
@@ -241,6 +326,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         label: 'Full Name',
                         hint: 'Your full name',
                         controller: _name,
+                        readOnly: _isGoogleFlow && _name.text.isNotEmpty,
                         prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.textHint),
                         validator: (v) => (v?.trim().length ?? 0) < 2 ? 'Enter your full name' : null,
                       ),
@@ -249,6 +335,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         label: 'Email',
                         hint: 'your@email.com',
                         controller: _email,
+                        readOnly: _isGoogleFlow,
                         keyboardType: TextInputType.emailAddress,
                         prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
                         validator: (v) {
@@ -272,35 +359,51 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      AppTextField(
-                        label: 'ID Number',
-                        hint: 'Israeli ID number',
-                        controller: _idNumber,
-                        keyboardType: TextInputType.number,
-                        prefixIcon: const Icon(Icons.badge_outlined, size: 20, color: AppColors.textHint),
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'ID number is required';
-                          if (!_isValidIsraeliId(v.trim())) return 'Enter a valid Israeli ID number';
-                          return null;
-                        },
+
+                      // ── Date of Birth picker ──────────
+                      GestureDetector(
+                        onTap: _pickDateOfBirth,
+                        child: AbsorbPointer(
+                          child: AppTextField(
+                            label: 'Date of Birth',
+                            hint: 'Select your date of birth',
+                            controller: TextEditingController(
+                              text: _dateOfBirth != null ? DateFormat('dd/MM/yyyy').format(_dateOfBirth!) : '',
+                            ),
+                            prefixIcon: const Icon(Icons.cake_outlined, size: 20, color: AppColors.textHint),
+                            suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.textHint),
+                            validator: (_) {
+                              if (_dateOfBirth == null) return 'Date of birth is required';
+                              return null;
+                            },
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      AppTextField(
-                        label: 'Password',
-                        controller: _password,
-                        obscureText: true,
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textHint),
-                        validator: (v) {
-                          if (v == null || v.length < 8) return 'Password must be at least 8 characters';
-                          if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'[0-9]').hasMatch(v)) {
-                            return 'Password must contain letters and numbers';
-                          }
-                          return null;
-                        },
-                      ),
+
+                      // ── Password (only for email registration) ──
+                      if (!_isGoogleFlow) ...[
+                        const SizedBox(height: 16),
+                        AppTextField(
+                          label: 'Password',
+                          controller: _password,
+                          obscureText: true,
+                          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textHint),
+                          validator: (v) {
+                            if (_isGoogleFlow) return null; // no password needed for Google
+                            if (v == null || v.length < 8) return 'Password must be at least 8 characters';
+                            if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'[0-9]').hasMatch(v)) {
+                              return 'Password must contain letters and numbers';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 20),
-                      AppButton(label: 'Create Account', onTap: _register, isLoading: isLoading),
+                      AppButton(
+                        label: _isGoogleFlow ? 'Complete Registration' : 'Create Account',
+                        onTap: _register,
+                        isLoading: isLoading,
+                      ),
                     ],
                   ),
                 ),
