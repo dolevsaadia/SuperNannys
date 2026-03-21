@@ -63,7 +63,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     final routes = isNanny
         ? ['/dashboard', '/bookings', '/chat', '/profile']
-        : ['/home', '/bookings', '/map', '/chat', '/profile'];
+        : ['/home', '/bookings', '/nearby', '/chat', '/profile'];
 
     int currentIndex = routes.indexWhere((r) => location.startsWith(r));
     if (currentIndex < 0) currentIndex = 0;
@@ -78,7 +78,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         : const [
             _NavItem(Icons.search_outlined, Icons.search_rounded, 'Find'),
             _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Bookings'),
-            _NavItem(Icons.map_outlined, Icons.map_rounded, 'Map'),
+            _NavItem(Icons.explore_outlined, Icons.explore_rounded, 'Nearby'),
             _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Chat'),
             _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
           ];
