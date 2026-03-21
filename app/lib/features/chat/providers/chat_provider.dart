@@ -4,6 +4,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/models/message_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/services/app_logger.dart';
 
 /// State for a single chat conversation.
@@ -47,11 +48,13 @@ class ChatState {
 class ChatNotifier extends StateNotifier<ChatState> {
   final String bookingId;
   final String currentUserId;
+  final Ref _ref;
   io.Socket? _socket;
   String? _otherUserId;
 
-  ChatNotifier({required this.bookingId, required this.currentUserId})
-      : super(const ChatState()) {
+  ChatNotifier({required this.bookingId, required this.currentUserId, required Ref ref})
+      : _ref = ref,
+        super(const ChatState()) {
     _init();
   }
 
@@ -133,6 +136,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
       if (currentMessages.any((m) => m.id == msg.id)) return;
       currentMessages.add(msg);
       state = state.copyWith(messages: currentMessages);
+      // If message is from the other user, mark as read immediately
+      if (msg.fromUserId != currentUserId) {
+        _markAsRead();
+      }
     });
 
     _socket!.on('typing:start', (_) {
@@ -182,6 +189,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
     _socket?.emit('typing:stop', {'bookingId': bookingId});
   }
 
+  /// Mark all messages in this chat as read via REST.
+  /// This is called on enter and whenever a new message arrives from the other user.
+  Future<void> _markAsRead() async {
+    try {
+      await apiClient.dio.get('/messages/$bookingId');
+      // Trigger data refresh so chat list unread badge updates
+      triggerDataRefreshFromRef(_ref);
+    } catch (_) {}
+  }
+
   /// Reconnect socket if disconnected (e.g. after app resume).
   Future<void> reconnectIfNeeded() async {
     if (_socket == null || _socket!.disconnected) {
@@ -209,5 +226,6 @@ final chatProvider = StateNotifierProvider.autoDispose
   return ChatNotifier(
     bookingId: bookingId,
     currentUserId: currentUser?.id ?? '',
+    ref: ref,
   );
 });

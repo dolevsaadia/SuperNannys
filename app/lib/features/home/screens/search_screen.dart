@@ -142,6 +142,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
+  void _onMoreTapped(String section) {
+    final notifier = ref.read(nanniesProvider.notifier);
+    switch (section) {
+      case 'rating':
+        notifier.applyFilter(const NannyFilter(sortBy: 'rating'));
+        break;
+      case 'available':
+        notifier.applyFilter(const NannyFilter(sortBy: 'rating'));
+        // available filter is handled by backend via query param
+        break;
+      case 'newest':
+        notifier.applyFilter(const NannyFilter(sortBy: 'newest'));
+        break;
+      case 'all':
+      default:
+        notifier.applyFilter(const NannyFilter());
+        break;
+    }
+    setState(() => _isSearchMode = true);
+  }
+
   void _onSearchSubmitted(String query) {
     if (query.isEmpty) {
       setState(() => _isSearchMode = false);
@@ -208,6 +229,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       scrollController: _scrollController,
                       selectedCategory: _selectedCategory,
                       onCategorySelected: _onCategorySelected,
+                      onMoreTapped: _onMoreTapped,
                     ),
             ),
           ],
@@ -535,8 +557,9 @@ class _DiscoveryFeed extends ConsumerWidget {
   final ScrollController scrollController;
   final String selectedCategory;
   final ValueChanged<String> onCategorySelected;
+  final ValueChanged<String> onMoreTapped;
 
-  const _DiscoveryFeed({required this.scrollController, required this.selectedCategory, required this.onCategorySelected});
+  const _DiscoveryFeed({required this.scrollController, required this.selectedCategory, required this.onCategorySelected, required this.onMoreTapped});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -560,16 +583,16 @@ class _DiscoveryFeed extends ConsumerWidget {
           const PromoCarousel(),
           const SizedBox(height: 8),
 
-          SectionHeader(title: 'Top Rated', emoji: '\u2B50', onMore: () {}),
+          SectionHeader(title: 'Top Rated', emoji: '\u2B50', onMore: () => onMoreTapped('rating')),
           _HorizontalNannyList(asyncValue: topRated),
 
-          SectionHeader(title: 'Available Now', emoji: '\uD83D\uDFE2', onMore: () {}),
+          SectionHeader(title: 'Available Now', emoji: '\uD83D\uDFE2', onMore: () => onMoreTapped('available')),
           _HorizontalNannyList(asyncValue: availableNow),
 
-          SectionHeader(title: 'All Nannies', emoji: '\uD83D\uDCCD', onMore: () {}),
+          SectionHeader(title: 'All Nannies', emoji: '\uD83D\uDCCD', onMore: () => onMoreTapped('all')),
           _VerticalNannyList(asyncValue: topRated),
 
-          SectionHeader(title: 'New on SuperNanny', emoji: '\uD83C\uDD95', onMore: () {}),
+          SectionHeader(title: 'New on SuperNanny', emoji: '\uD83C\uDD95', onMore: () => onMoreTapped('newest')),
           _HorizontalNannyList(asyncValue: newNannies),
 
           const SizedBox(height: 80),

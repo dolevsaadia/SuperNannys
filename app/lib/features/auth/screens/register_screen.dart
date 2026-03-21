@@ -117,7 +117,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final result = await ref.read(authProvider.notifier).loginWithGoogle(
         _googleIdToken!,
         role: _role,
-        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        phone: _phone.text.trim(),
         dateOfBirth: dobStr,
       );
       if (!mounted) return;
@@ -136,7 +136,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _password.text,
         _name.text.trim(),
         _role,
-        phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        phone: _phone.text.trim(),
         dateOfBirth: dobStr,
       );
       if (!mounted) return;
@@ -352,9 +352,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         keyboardType: TextInputType.phone,
                         prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.textHint),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return null; // optional
-                          final cleaned = v.replaceAll(RegExp(r'[\s\-]'), '');
-                          if (cleaned.length < 9 || cleaned.length > 13) return 'Enter a valid phone number';
+                          if (v == null || v.trim().isEmpty) return 'Phone number is required';
+                          final cleaned = v.replaceAll(RegExp(r'[\s\-()]'), '');
+                          if (!RegExp(r'^(\+?\d{9,13})$').hasMatch(cleaned)) return 'Enter a valid phone number';
                           return null;
                         },
                       ),

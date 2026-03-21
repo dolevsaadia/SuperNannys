@@ -30,6 +30,8 @@ class AppTheme {
           shadowColor: const Color(0x1A000000),
           centerTitle: false,
           systemOverlayStyle: SystemUiOverlayStyle.dark,
+          iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
+          actionsIconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
           titleTextStyle: TextStyle(
             fontFamily: _fontFamily,
             fontSize: 18,
@@ -190,6 +192,8 @@ class AppTheme {
           backgroundColor: AppColors.darkSurface,
           foregroundColor: AppColors.darkTextPrimary,
           systemOverlayStyle: SystemUiOverlayStyle.light,
+          iconTheme: const IconThemeData(color: AppColors.darkTextPrimary, size: 24),
+          actionsIconTheme: const IconThemeData(color: AppColors.darkTextPrimary, size: 24),
           titleTextStyle: TextStyle(
             fontFamily: _fontFamily,
             fontSize: 18,

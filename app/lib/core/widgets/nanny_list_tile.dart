@@ -78,17 +78,29 @@ class NannyListTile extends StatelessWidget {
             ),
 
             // ── Price pill ──
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                borderRadius: AppRadius.borderLg,
-                border: Border.all(color: AppColors.primaryLight),
-              ),
-              child: Text(
-                '₪ ${nanny.hourlyRateNis} /hr',
-                style: AppTextStyles.priceSmall.copyWith(fontSize: 13),
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: AppRadius.borderLg,
+                    border: Border.all(color: AppColors.primaryLight),
+                  ),
+                  child: Text(
+                    '₪ ${nanny.hourlyRateNis} /hr',
+                    style: AppTextStyles.priceSmall.copyWith(fontSize: 13),
+                  ),
+                ),
+                if (nanny.recurringHourlyRateNis != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '₪${nanny.recurringHourlyRateNis}/hr recurring',
+                    style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.accent),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

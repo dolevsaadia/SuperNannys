@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,11 +19,33 @@ final _conversationsProvider = FutureProvider.autoDispose<List<dynamic>>((ref) a
   return resp.data['data'] as List<dynamic>;
 });
 
-class ChatListScreen extends ConsumerWidget {
+class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
+}
+
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Poll for new messages / unread changes every 10 seconds while on this screen
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      ref.invalidate(_conversationsProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(_conversationsProvider);
     final currentUser = ref.watch(currentUserProvider);
 

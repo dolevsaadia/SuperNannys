@@ -93,7 +93,7 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.md),
                           // Rating row
                           Row(
                             children: [
@@ -108,6 +108,25 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
                               ),
                               const SizedBox(width: AppSpacing.xs),
                               const Icon(Icons.star_rounded, size: 18, color: AppColors.star),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          // Price row
+                          Row(
+                            children: [
+                              Text(
+                                '₪${nanny.hourlyRateNis}/hr',
+                                style: AppTextStyles.captionBold.copyWith(fontSize: 13, color: AppColors.primary),
+                              ),
+                              if (nanny.recurringHourlyRateNis != null) ...[
+                                const SizedBox(width: AppSpacing.md),
+                                Container(width: 3, height: 3, decoration: const BoxDecoration(color: AppColors.textHint, shape: BoxShape.circle)),
+                                const SizedBox(width: AppSpacing.md),
+                                Text(
+                                  '₪${nanny.recurringHourlyRateNis}/hr recurring',
+                                  style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.accent),
+                                ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: AppSpacing.xxl),
