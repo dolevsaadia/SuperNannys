@@ -208,7 +208,7 @@ async function main() {
       const from = day === 6 ? '10:00' : '08:00'
       const to = day === 5 ? '23:00' : day === 6 ? '20:00' : '22:00'
       await prisma.availability.upsert({
-        where: { nannyProfileId_dayOfWeek: { nannyProfileId: profile.id, dayOfWeek: day } },
+        where: { nannyProfileId_dayOfWeek_fromTime: { nannyProfileId: profile.id, dayOfWeek: day, fromTime: from } },
         update: {},
         create: { nannyProfileId: profile.id, dayOfWeek: day, fromTime: from, toTime: to },
       })

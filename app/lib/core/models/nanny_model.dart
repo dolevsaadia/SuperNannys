@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class NannyModel {
   final String id;
   final String userId;
@@ -83,21 +85,11 @@ class NannyUser {
 
   const NannyUser({required this.id, required this.fullName, this.avatarUrl});
 
-  factory NannyUser.fromJson(Map<String, dynamic> json) {
-    // Import is at file level — resolve relative /uploads/ paths to full URLs
-    final rawUrl = json['avatarUrl'] as String?;
-    String? resolvedUrl = rawUrl;
-    if (rawUrl != null && rawUrl.isNotEmpty && !rawUrl.startsWith('http')) {
-      // Relative path like /uploads/avatar-xxx.jpg — prepend server base
-      const apiBase = 'https://api.supernanny.net';
-      resolvedUrl = '$apiBase$rawUrl';
-    }
-    return NannyUser(
-      id: json['id'] as String,
-      fullName: json['fullName'] as String,
-      avatarUrl: resolvedUrl,
-    );
-  }
+  factory NannyUser.fromJson(Map<String, dynamic> json) => NannyUser(
+        id: json['id'] as String,
+        fullName: json['fullName'] as String,
+        avatarUrl: ImageUtils.resolveAvatarUrl(json['avatarUrl'] as String?),
+      );
 }
 
 class AvailabilitySlot {
