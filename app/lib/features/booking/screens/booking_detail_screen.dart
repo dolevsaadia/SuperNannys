@@ -551,6 +551,26 @@ class _BookingDetailBody extends ConsumerWidget {
                 onTap: () => _showReviewDialog(context, ref, booking.id),
               ),
             ),
+
+          // ── Delete Booking ──────────────────
+          if (booking.isCompleted || booking.isCancelled || booking.isDeclined)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: TextButton.icon(
+                onPressed: () => _showDeleteDialog(context, ref, booking.id, false),
+                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 18),
+                label: const Text('Delete Booking', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          if ((isParent || isNanny) && (booking.isRequested || booking.isAccepted))
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: TextButton.icon(
+                onPressed: () => _showDeleteDialog(context, ref, booking.id, true),
+                icon: const Icon(Icons.delete_forever_rounded, color: AppColors.error, size: 18),
+                label: const Text('Cancel & Delete', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+              ),
+            ),
           const SizedBox(height: 20),
         ],
       ),
@@ -591,6 +611,48 @@ class _BookingDetailBody extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: const Text('Action failed. Please try again.'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteDialog(BuildContext context, WidgetRef ref, String bookingId, bool isActive) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(isActive ? 'Cancel & Delete?' : 'Delete Booking?', style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(
+          isActive
+              ? 'This will cancel the booking and permanently delete it. This action cannot be undone.'
+              : 'This will permanently delete this booking. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isActive ? 'Cancel & Delete' : 'Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await apiClient.dio.delete('/bookings/$bookingId');
+      await BookingReminderService.instance.cancelReminders(bookingId);
+      triggerDataRefresh(ref);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking deleted')));
+        context.pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: const Text('Failed to delete booking'), backgroundColor: AppColors.error),
         );
       }
     }

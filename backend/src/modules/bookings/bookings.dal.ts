@@ -127,6 +127,20 @@ export const bookingsDal = {
     return prisma.booking.update({ where: { id }, data: { status } })
   },
 
+  /** Hard delete a booking (only for terminal statuses) */
+  deleteBooking(id: string) {
+    return prisma.$transaction(async (tx) => {
+      // Delete related messages first (cascade should handle, but be explicit)
+      await tx.message.deleteMany({ where: { bookingId: id } })
+      // Delete related earning if any
+      await tx.earning.deleteMany({ where: { bookingId: id } })
+      // Delete related review if any
+      await tx.review.deleteMany({ where: { bookingId: id } })
+      // Delete the booking
+      await tx.booking.delete({ where: { id } })
+    })
+  },
+
   upsertEarning(data: { nannyUserId: string; bookingId: string; amountNis: number; platformFee: number; netAmountNis: number }) {
     return prisma.earning.upsert({
       where: { bookingId: data.bookingId },

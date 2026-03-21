@@ -173,4 +173,27 @@ export const bookingsService = {
 
     return updated
   },
+
+  async deleteBooking(userId: string, role: string, bookingId: string) {
+    const booking = await bookingsDal.findByIdSimple(bookingId)
+    if (!booking) throw new NotFoundError('Booking', bookingId)
+
+    // Only the parent or nanny of this booking (or admin) can delete it
+    if (booking.parentUserId !== userId && booking.nannyUserId !== userId && role !== 'ADMIN') {
+      throw new ForbiddenError()
+    }
+
+    // Active bookings (REQUESTED, ACCEPTED, IN_PROGRESS) must be cancelled first
+    if (['REQUESTED', 'ACCEPTED'].includes(booking.status)) {
+      // Auto-cancel then delete
+      await bookingsDal.updateStatus(bookingId, 'CANCELLED')
+      logger.info('Booking auto-cancelled before deletion', { bookingId, userId })
+    } else if (booking.status === 'IN_PROGRESS') {
+      throw new BadRequestError('Cannot delete an in-progress session. End the session first.')
+    }
+
+    // Now delete the booking
+    await bookingsDal.deleteBooking(bookingId)
+    logger.info('Booking deleted', { bookingId, userId })
+  },
 }

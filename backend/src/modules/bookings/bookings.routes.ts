@@ -19,5 +19,6 @@ router.post('/',              bookingCreateLimit, requireRole('PARENT', 'ADMIN')
 router.get('/',               asyncHandler(bookingsController.list))
 router.get('/:id',            asyncHandler(bookingsController.getById))
 router.patch('/:id/status',   asyncHandler(bookingsController.updateStatus))
+router.delete('/:id',         asyncHandler(bookingsController.deleteBooking))
 
 export default router
