@@ -11,7 +11,7 @@ export const usersService = {
   async deleteAccount(userId: string) {
     const user = await authDal.findUserWithProfile(userId)
     if (!user) throw new NotFoundError('User')
-    if (!user.isActive) throw new ForbiddenError('Account is already deactivated')
+    if (user.deletedAt) throw new ForbiddenError('Account is already deleted')
 
     const result = await usersDal.softDeleteUser(userId)
     logger.info('Account self-deleted', { userId, ...result })

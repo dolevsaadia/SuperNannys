@@ -77,7 +77,7 @@ export const authDal = {
       where: { id: userId },
       select: {
         id: true, email: true, fullName: true, phone: true, phoneVerified: true, role: true,
-        avatarUrl: true, isVerified: true, isActive: true, createdAt: true,
+        avatarUrl: true, isVerified: true, isActive: true, deletedAt: true, createdAt: true,
         city: true, streetName: true, houseNumber: true, postalCode: true, apartmentFloor: true,
         latitude: true, longitude: true, isOnline: true, lastSeenAt: true,
         nannyProfile: {

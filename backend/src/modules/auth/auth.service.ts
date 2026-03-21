@@ -196,6 +196,12 @@ export const authService = {
       }
     }
 
+    // Block deactivated / deleted users
+    if (!user.isActive) {
+      logger.warn('Google sign-in blocked', { email: payload.email, reason: 'account_deactivated' })
+      throw new ForbiddenError('Account deactivated')
+    }
+
     // Existing user — link Google sub if missing
     if (!user.googleSub) {
       user = await authDal.updateGoogleSub(user.id, payload.sub!)
