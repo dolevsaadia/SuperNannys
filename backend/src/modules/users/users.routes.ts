@@ -6,6 +6,7 @@ import { usersController } from './users.controller'
 const router = Router()
 router.use(requireAuth)
 
+router.delete('/me',                         asyncHandler(usersController.deleteAccount))
 router.put('/me',                         asyncHandler(usersController.updateProfile))
 router.get('/me/notifications',           asyncHandler(usersController.getNotifications))
 router.patch('/me/notifications/read-all', asyncHandler(usersController.markAllNotificationsRead))

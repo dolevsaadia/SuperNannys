@@ -323,6 +323,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     appLog.info('auth', 'session_saved', 'Session saved', extra: {'userId': user.id, 'role': user.role});
   }
 
+  /// Delete the current user's account (soft delete on server, then logout locally).
+  Future<bool> deleteAccount() async {
+    try {
+      await apiClient.dio.delete('/users/me');
+      appLog.info('auth', 'account_deleted', 'Account deleted by user');
+      await logout();
+      return true;
+    } catch (e) {
+      appLog.warn('auth', 'account_delete_failed', 'Account deletion failed',
+        extra: {'error': e.toString()},
+      );
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     appLog.info('auth', 'logout', 'User logged out');
     appLog.setUserId(null);

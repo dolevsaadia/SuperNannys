@@ -1,7 +1,72 @@
 import { prisma } from '../../db'
+import { logger } from '../../shared/utils/logger'
 import type { UpdateProfileInput, RegisterDeviceInput } from './users.validation'
 
 export const usersDal = {
+  /**
+   * Soft-delete a user account in a single atomic transaction:
+   * 1. Set isActive=false, deletedAt=now, anonymise PII
+   * 2. Cancel future REQUESTED / ACCEPTED bookings
+   * 3. Cancel PENDING / ACTIVE recurring bookings
+   */
+  async softDeleteUser(userId: string) {
+    return prisma.$transaction(async (tx) => {
+      const now = new Date()
+
+      // 1. Deactivate + anonymise
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          isActive: false,
+          deletedAt: now,
+          fullName: 'Deleted User',
+          avatarUrl: null,
+          phone: null,
+          email: `deleted_${userId}@deleted.local`,
+          idNumber: null,
+          dateOfBirth: null,
+          googleSub: null,
+          passwordHash: null,
+        },
+      })
+
+      // 2. Cancel future bookings (as parent or nanny)
+      const cancelledBookings = await tx.booking.updateMany({
+        where: {
+          OR: [{ parentUserId: userId }, { nannyUserId: userId }],
+          status: { in: ['REQUESTED', 'ACCEPTED'] },
+          startTime: { gt: now },
+        },
+        data: { status: 'CANCELLED' },
+      })
+
+      // 3. Cancel active recurring bookings
+      const cancelledRecurring = await tx.recurringBooking.updateMany({
+        where: {
+          OR: [{ parentUserId: userId }, { nannyUserId: userId }],
+          status: { in: ['PENDING', 'ACTIVE'] },
+        },
+        data: { status: 'CANCELLED' },
+      })
+
+      // 4. Remove devices (no push to deleted user)
+      await tx.device.deleteMany({ where: { userId } })
+
+      // 5. Remove favorites in both directions
+      await tx.favorite.deleteMany({
+        where: { OR: [{ userId }, { nannyUserId: userId }] },
+      })
+
+      logger.info('User soft-deleted', {
+        userId,
+        cancelledBookings: cancelledBookings.count,
+        cancelledRecurring: cancelledRecurring.count,
+      })
+
+      return { cancelledBookings: cancelledBookings.count, cancelledRecurring: cancelledRecurring.count }
+    })
+  },
+
   updateUser(userId: string, data: UpdateProfileInput) {
     return prisma.user.update({
       where: { id: userId },

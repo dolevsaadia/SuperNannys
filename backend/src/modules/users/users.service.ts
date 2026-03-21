@@ -1,10 +1,23 @@
 import { Prisma } from '@prisma/client'
 import { usersDal } from './users.dal'
-import { ConflictError } from '../../shared/errors/app-error'
+import { ConflictError, NotFoundError, ForbiddenError } from '../../shared/errors/app-error'
+import { authDal } from '../auth/auth.dal'
+import { logger } from '../../shared/utils/logger'
 import type { UpdateProfileInput, RegisterDeviceInput } from './users.validation'
 import type { PaginationParams } from '../../shared/utils/pagination'
 
 export const usersService = {
+  /** Self-service account deletion (soft delete). */
+  async deleteAccount(userId: string) {
+    const user = await authDal.findUserWithProfile(userId)
+    if (!user) throw new NotFoundError('User')
+    if (!user.isActive) throw new ForbiddenError('Account is already deactivated')
+
+    const result = await usersDal.softDeleteUser(userId)
+    logger.info('Account self-deleted', { userId, ...result })
+    return { message: 'Account deleted successfully' }
+  },
+
   async updateProfile(userId: string, data: UpdateProfileInput) {
     try {
       return await usersDal.updateUser(userId, data)

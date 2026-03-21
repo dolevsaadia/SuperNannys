@@ -3,9 +3,9 @@ import { prisma } from '../../db'
 export const adminDal = {
   getStats() {
     return Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { role: 'NANNY' } }),
-      prisma.user.count({ where: { role: 'PARENT' } }),
+      prisma.user.count({ where: { isActive: true } }),
+      prisma.user.count({ where: { role: 'NANNY', isActive: true } }),
+      prisma.user.count({ where: { role: 'PARENT', isActive: true } }),
       prisma.booking.count(),
       prisma.booking.count({ where: { status: 'REQUESTED' } }),
       prisma.booking.count({ where: { status: 'COMPLETED' } }),
@@ -21,7 +21,7 @@ export const adminDal = {
       take,
       select: {
         id: true, email: true, fullName: true, role: true,
-        isActive: true, isVerified: true, createdAt: true, phone: true,
+        isActive: true, isVerified: true, deletedAt: true, createdAt: true, phone: true,
         _count: { select: { parentBookings: true, nannyBookings: true } },
       },
     })
