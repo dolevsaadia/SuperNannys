@@ -37,4 +37,16 @@ export const messagesService = {
     logger.info('Message sent', { bookingId, userId, messageId: msg.id })
     return msg
   },
+
+  async hideConversation(userId: string, bookingId: string) {
+    const booking = await messagesDal.findBookingById(bookingId)
+    if (!booking) throw new NotFoundError('Booking')
+    if (booking.parentUserId !== userId && booking.nannyUserId !== userId) {
+      throw new ForbiddenError()
+    }
+
+    const otherUserId = booking.parentUserId === userId ? booking.nannyUserId : booking.parentUserId
+    await messagesDal.hideConversation(userId, otherUserId)
+    logger.info('Conversation hidden', { userId, otherUserId, bookingId })
+  },
 }

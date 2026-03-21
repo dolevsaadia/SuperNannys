@@ -8,6 +8,10 @@ export const messagesDal = {
    */
   async getConversations(userId: string, role: string) {
     const isParent = role === 'PARENT'
+
+    // Get hidden user IDs for this user
+    const hiddenUserIds = await this.getHiddenUserIds(userId)
+
     const bookings = await prisma.booking.findMany({
       where: isParent ? { parentUserId: userId } : { nannyUserId: userId },
       orderBy: { updatedAt: 'desc' },
@@ -29,6 +33,10 @@ export const messagesDal = {
 
     for (const b of bookings) {
       const otherUserId = isParent ? b.nannyUserId : b.parentUserId
+
+      // Skip hidden conversations
+      if (hiddenUserIds.includes(otherUserId)) continue
+
       const unread = (b._count?.messages ?? 0)
       unreadByUser.set(otherUserId, (unreadByUser.get(otherUserId) ?? 0) + unread)
 
@@ -82,5 +90,30 @@ export const messagesDal = {
 
   findBookingById(bookingId: string) {
     return prisma.booking.findUnique({ where: { id: bookingId } })
+  },
+
+  /** Get list of otherUserIds that this user has hidden */
+  async getHiddenUserIds(userId: string): Promise<string[]> {
+    const hides = await prisma.chatHide.findMany({
+      where: { userId },
+      select: { otherUserId: true },
+    })
+    return hides.map(h => h.otherUserId)
+  },
+
+  /** Hide a conversation (by other user) for the current user */
+  hideConversation(userId: string, otherUserId: string) {
+    return prisma.chatHide.upsert({
+      where: { userId_otherUserId: { userId, otherUserId } },
+      create: { userId, otherUserId },
+      update: {},
+    })
+  },
+
+  /** Unhide a conversation (if needed in the future) */
+  unhideConversation(userId: string, otherUserId: string) {
+    return prisma.chatHide.deleteMany({
+      where: { userId, otherUserId },
+    })
   },
 }

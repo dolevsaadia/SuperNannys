@@ -230,6 +230,17 @@ export function initSocketIO(io: SocketIOServer): void {
       }
     })
 
+    socket.on('session:cancel', async ({ bookingId }: { bookingId: string }) => {
+      if (typeof bookingId !== 'string' || !bookingId) return
+      try {
+        const result = await sessionsService.cancelSession(userId, socket.role || '', bookingId)
+        socket.emit('session:state', result)
+      } catch (err: any) {
+        socket.emit('session:error', { bookingId, message: err.message || 'Failed to cancel session' })
+        logger.error('Session cancel error via socket', { userId, bookingId, err: err.message })
+      }
+    })
+
     socket.on('session:get-state', async ({ bookingId }: { bookingId: string }) => {
       if (typeof bookingId !== 'string' || !bookingId) return
       try {

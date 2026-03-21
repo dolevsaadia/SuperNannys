@@ -16,6 +16,7 @@ class AppTheme {
           primary: AppColors.primary,
           secondary: AppColors.accent,
           surface: AppColors.surface,
+          onSurface: AppColors.textPrimary,
           background: AppColors.bg,
           error: AppColors.error,
         ),
@@ -39,6 +40,14 @@ class AppTheme {
             color: AppColors.textPrimary,
           ),
         ),
+
+        // ── Icon Buttons (ensures dark color on Android) ──
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            foregroundColor: AppColors.textPrimary,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
 
         // ── Cards — shadow-only, no border (Wolt-style) ──
         cardTheme: CardThemeData(

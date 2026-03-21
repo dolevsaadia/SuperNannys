@@ -45,13 +45,42 @@ class ProfileScreen extends ConsumerWidget {
               child: Container(
                 color: AppColors.white,
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Column(
                   children: [
-                    _StatPill(Icons.star_rounded, '${user.nannyProfile!.rating}', 'Rating', AppColors.star),
-                    _StatPill(Icons.rate_review_rounded, '${user.nannyProfile!.reviewsCount}', 'Reviews', AppColors.primary),
-                    _StatPill(Icons.work_rounded, '${user.nannyProfile!.completedJobs}', 'Jobs', AppColors.success),
-                    _StatPill(Icons.payments_rounded, '\u20AA${user.nannyProfile!.hourlyRateNis}', '/hour', AppColors.accent),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _StatPill(Icons.star_rounded, '${user.nannyProfile!.rating}', 'Rating', AppColors.star),
+                        _StatPill(Icons.rate_review_rounded, '${user.nannyProfile!.reviewsCount}', 'Reviews', AppColors.primary),
+                        _StatPill(Icons.work_rounded, '${user.nannyProfile!.completedJobs}', 'Jobs', AppColors.success),
+                        _StatPill(Icons.payments_rounded, '\u20AA${user.nannyProfile!.hourlyRateNis}', '/hour', AppColors.accent),
+                      ],
+                    ),
+                    if (user.nannyProfile!.recurringHourlyRateNis != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.repeat_rounded, size: 16, color: AppColors.accent),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Recurring: \u20AA${user.nannyProfile!.recurringHourlyRateNis}/hr',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

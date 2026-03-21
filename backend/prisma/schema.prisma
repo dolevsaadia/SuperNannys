@@ -102,6 +102,7 @@ model User {
   parentRecurringBookings RecurringBooking[]  @relation("ParentRecurring")
   nannyRecurringBookings  RecurringBooking[]  @relation("NannyRecurring")
   sentMessages            Message[]           @relation("SentMessages")
+  hiddenChats             ChatHide[]
   givenReviews            Review[]            @relation("GivenReviews")
   receivedReviews         Review[]            @relation("ReceivedReviews")
   devices                 Device[]
@@ -246,6 +247,17 @@ model Message {
   @@index([bookingId, createdAt])
   @@index([fromUserId])
   @@map("messages")
+}
+
+model ChatHide {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otherUserId String   // the user whose conversation is hidden
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, otherUserId])
+  @@map("chat_hides")
 }
 
 model Review {

@@ -18,5 +18,6 @@ const messageSendLimit = rateLimit({
 router.get('/conversations',  asyncHandler(messagesController.getConversations))
 router.get('/:bookingId',     asyncHandler(messagesController.getMessages))
 router.post('/:bookingId',    messageSendLimit, asyncHandler(messagesController.sendMessage))
+router.delete('/:bookingId/hide', asyncHandler(messagesController.hideConversation))
 
 export default router

@@ -21,6 +21,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   int? _minYears;
   double? _minRating;
   bool _showRecurringRate = false;
+  late String _sortBy;
 
   static const double _minRate = 20;
   static const double _maxRate = 200;
@@ -37,6 +38,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     _minYears = widget.currentFilter.minYears;
     _minRating = widget.currentFilter.minRating;
     _showRecurringRate = widget.currentFilter.hasRecurringRate == true;
+    _sortBy = widget.currentFilter.sortBy;
   }
 
   void _apply() {
@@ -45,7 +47,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       lat: widget.currentFilter.lat,
       lng: widget.currentFilter.lng,
       radiusKm: widget.currentFilter.radiusKm,
-      sortBy: widget.currentFilter.sortBy,
+      sortBy: _sortBy,
       minRate: _rateRange.start > _minRate ? _rateRange.start.toInt() : null,
       maxRate: _rateRange.end < _maxRate ? _rateRange.end.toInt() : null,
       language: _language,
@@ -66,6 +68,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       _minYears = null;
       _minRating = null;
       _showRecurringRate = false;
+      _sortBy = 'rating';
     });
     widget.onApply(const NannyFilter());
     Navigator.pop(context);
@@ -108,6 +111,23 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 controller: controller,
                 padding: const EdgeInsets.all(20),
                 children: [
+                  // Sort by
+                  _Section(title: 'Sort By', child: Wrap(
+                    spacing: 8,
+                    children: const {
+                      'rating': 'Top Rated',
+                      'rate_asc': 'Price: Low → High',
+                      'rate_desc': 'Price: High → Low',
+                      'experience': 'Most Experienced',
+                      'reviews': 'Most Reviews',
+                      'newest': 'Newest',
+                    }.entries.map((e) => _FilterChip(
+                      label: e.value,
+                      selected: _sortBy == e.key,
+                      onTap: () => setState(() => _sortBy = e.key),
+                    )).toList(),
+                  )),
+
                   // Booking type toggle
                   _Section(title: 'Care Type', child: Row(
                     children: [
