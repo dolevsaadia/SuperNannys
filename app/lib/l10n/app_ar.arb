@@ -574,5 +574,13 @@
   "pending": "قيد الانتظار",
   "accepted": "مقبول",
   "cancelled": "ملغى",
-  "deletedDate": "محذوف: {date}"
+  "deletedDate": "محذوف: {date}",
+  "declined": "مرفوض",
+  "keep": "إبقاء",
+  "bookingDeleted": "تم حذف الحجز",
+  "failedToDeleteBooking": "فشل حذف الحجز",
+  "deleteConfirmTerminal": "سيتم حذف هذا الحجز نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+  "deleteConfirmActive": "سيتم إلغاء الحجز وحذفه نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+  "bookingsAppearHere": "ستظهر حجوزاتك هنا",
+  "childrenCountLabel": "{count} طفل/أطفال"
 }

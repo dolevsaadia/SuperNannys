@@ -1849,4 +1849,32 @@ class AppLocalizationsAr extends AppLocalizations {
   String deletedDate(String date) {
     return 'محذوف: $date';
   }
+
+  @override
+  String get declined => 'مرفوض';
+
+  @override
+  String get keep => 'إبقاء';
+
+  @override
+  String get bookingDeleted => 'تم حذف الحجز';
+
+  @override
+  String get failedToDeleteBooking => 'فشل حذف الحجز';
+
+  @override
+  String get deleteConfirmTerminal =>
+      'سيتم حذف هذا الحجز نهائياً. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get deleteConfirmActive =>
+      'سيتم إلغاء الحجز وحذفه نهائياً. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get bookingsAppearHere => 'ستظهر حجوزاتك هنا';
+
+  @override
+  String childrenCountLabel(int count) {
+    return '$count طفل/أطفال';
+  }
 }

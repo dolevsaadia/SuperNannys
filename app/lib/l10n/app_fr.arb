@@ -574,5 +574,13 @@
   "pending": "En attente",
   "accepted": "Accepté",
   "cancelled": "Annulé",
-  "deletedDate": "Supprimé : {date}"
+  "deletedDate": "Supprimé : {date}",
+  "declined": "Refusé",
+  "keep": "Garder",
+  "bookingDeleted": "Réservation supprimée",
+  "failedToDeleteBooking": "Échec de la suppression",
+  "deleteConfirmTerminal": "Cette réservation sera définitivement supprimée. Cette action est irréversible.",
+  "deleteConfirmActive": "Cette réservation sera annulée et définitivement supprimée. Cette action est irréversible.",
+  "bookingsAppearHere": "Vos réservations apparaîtront ici",
+  "childrenCountLabel": "{count} enfant(s)"
 }

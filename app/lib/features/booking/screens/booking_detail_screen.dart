@@ -109,7 +109,7 @@ class _BookingDetailBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  booking.status.replaceAll('_', ' '),
+                  _localizedStatus(context, booking.status),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: statusColor),
                 ),
                 const SizedBox(height: 4),
@@ -580,6 +580,19 @@ class _BookingDetailBody extends ConsumerWidget {
     );
   }
 
+  String _localizedStatus(BuildContext context, String status) {
+    final l = AppLocalizations.of(context);
+    return switch (status) {
+      'REQUESTED' => l.pending,
+      'ACCEPTED' => l.accepted,
+      'IN_PROGRESS' => l.inProgress,
+      'COMPLETED' => l.completed,
+      'DECLINED' => l.declined,
+      'CANCELLED' => l.cancelled,
+      _ => status.replaceAll('_', ' '),
+    };
+  }
+
   String _statusDescription(BuildContext context, String status) {
     final l = AppLocalizations.of(context);
     return switch (status) {
@@ -624,25 +637,25 @@ class _BookingDetailBody extends ConsumerWidget {
   }
 
   Future<void> _showDeleteDialog(BuildContext context, WidgetRef ref, String bookingId, bool isActive) async {
+    final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isActive ? AppLocalizations.of(context).cancelAndDeleteQuestion : AppLocalizations.of(context).deleteBookingQuestion, style: const TextStyle(fontWeight: FontWeight.w700)),
-        content: Text(
-          isActive
-              ? 'This will cancel the booking and permanently delete it. This action cannot be undone.'
-              : 'This will permanently delete this booking. This action cannot be undone.',
+        title: Text(
+          isActive ? l.cancelAndDeleteQuestion : l.deleteBookingQuestion,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
+        content: Text(isActive ? l.deleteConfirmActive : l.deleteConfirmTerminal),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.keep)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(isActive ? AppLocalizations.of(context).cancelAndDelete : AppLocalizations.of(context).delete),
+            child: Text(isActive ? l.cancelAndDelete : l.delete),
           ),
         ],
       ),
@@ -653,13 +666,13 @@ class _BookingDetailBody extends ConsumerWidget {
       await BookingReminderService.instance.cancelReminders(bookingId);
       triggerDataRefresh(ref);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking deleted')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l.bookingDeleted)));
         context.pop();
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Failed to delete booking'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(l.failedToDeleteBooking), backgroundColor: AppColors.error),
         );
       }
     }
@@ -710,7 +723,7 @@ class _BookingDetailBody extends ConsumerWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(ctx).cancelBooking)),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(ctx).cancel)),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

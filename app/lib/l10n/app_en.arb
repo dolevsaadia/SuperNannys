@@ -1832,5 +1832,29 @@
   "@cancelled": { "description": "Cancelled status label" },
 
   "deletedDate": "Deleted: {date}",
-  "@deletedDate": { "description": "Deleted date label for admin", "placeholders": { "date": { "type": "String" } } }
+  "@deletedDate": { "description": "Deleted date label for admin", "placeholders": { "date": { "type": "String" } } },
+
+  "declined": "Declined",
+  "@declined": { "description": "Declined status label" },
+
+  "keep": "Keep",
+  "@keep": { "description": "Keep button in confirmation dialogs" },
+
+  "bookingDeleted": "Booking deleted",
+  "@bookingDeleted": { "description": "Snackbar message after booking deletion" },
+
+  "failedToDeleteBooking": "Failed to delete booking",
+  "@failedToDeleteBooking": { "description": "Error message when booking deletion fails" },
+
+  "deleteConfirmTerminal": "This will permanently delete this booking. This action cannot be undone.",
+  "@deleteConfirmTerminal": { "description": "Delete confirmation for completed/cancelled bookings" },
+
+  "deleteConfirmActive": "This will cancel the booking and permanently delete it. This action cannot be undone.",
+  "@deleteConfirmActive": { "description": "Delete confirmation for active/requested bookings" },
+
+  "bookingsAppearHere": "Your bookings will appear here",
+  "@bookingsAppearHere": { "description": "Empty bookings list subtitle" },
+
+  "childrenCountLabel": "{count} child(ren)",
+  "@childrenCountLabel": { "description": "Children count label on booking card", "placeholders": { "count": { "type": "int" } } }
 }

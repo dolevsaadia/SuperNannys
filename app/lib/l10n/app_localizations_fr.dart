@@ -1875,4 +1875,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String deletedDate(String date) {
     return 'Supprimé : $date';
   }
+
+  @override
+  String get declined => 'Refusé';
+
+  @override
+  String get keep => 'Garder';
+
+  @override
+  String get bookingDeleted => 'Réservation supprimée';
+
+  @override
+  String get failedToDeleteBooking => 'Échec de la suppression';
+
+  @override
+  String get deleteConfirmTerminal =>
+      'Cette réservation sera définitivement supprimée. Cette action est irréversible.';
+
+  @override
+  String get deleteConfirmActive =>
+      'Cette réservation sera annulée et définitivement supprimée. Cette action est irréversible.';
+
+  @override
+  String get bookingsAppearHere => 'Vos réservations apparaîtront ici';
+
+  @override
+  String childrenCountLabel(int count) {
+    return '$count enfant(s)';
+  }
 }
