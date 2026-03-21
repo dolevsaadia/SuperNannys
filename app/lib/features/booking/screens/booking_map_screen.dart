@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/geo_utils.dart';
+import '../../../l10n/app_localizations.dart';
 
 class BookingMapScreen extends StatefulWidget {
   final String nannyName;
@@ -80,6 +81,7 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final nannyLL = LatLng(widget.nannyLat, widget.nannyLng);
     final center = _userLocation != null
         ? LatLng(
@@ -90,13 +92,13 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Route to ${widget.nannyName}'),
+        title: Text(l.routeTo(widget.nannyName)),
         leading: BackButton(onPressed: () => context.pop()),
         actions: [
           IconButton(
             onPressed: _openGoogleMapsNavigation,
             icon: const Icon(Icons.navigation_rounded),
-            tooltip: 'Navigate with Google Maps',
+            tooltip: l.navigateWithGoogleMaps,
           ),
         ],
       ),
@@ -201,14 +203,14 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
                             ),
                             const SizedBox(height: 2),
                             if (_loading)
-                              const Text('Calculating distance...', style: TextStyle(fontSize: 13, color: AppColors.textSecondary))
+                              Text(l.calculatingDistance, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))
                             else if (_distanceKm != null)
                               Text(
-                                'Distance: ${GeoUtils.formatDistance(_distanceKm!)}',
+                                l.distanceValue(GeoUtils.formatDistance(_distanceKm!)),
                                 style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                               )
                             else
-                              const Text('Location not available', style: TextStyle(fontSize: 13, color: AppColors.textHint)),
+                              Text(l.locationNotAvailable, style: const TextStyle(fontSize: 13, color: AppColors.textHint)),
                           ],
                         ),
                       ),
@@ -234,7 +236,7 @@ class _BookingMapScreenState extends State<BookingMapScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _openGoogleMapsNavigation,
                     icon: const Icon(Icons.navigation_rounded, size: 20),
-                    label: const Text('Navigate with Google Maps', style: TextStyle(fontWeight: FontWeight.w700)),
+                    label: Text(l.navigateWithGoogleMaps, style: const TextStyle(fontWeight: FontWeight.w700)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,

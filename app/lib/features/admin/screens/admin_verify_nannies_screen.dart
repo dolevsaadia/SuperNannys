@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/async_value_ui.dart';
 import '../../../core/widgets/loading_indicator.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _pendingNanniesProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final resp = await apiClient.dio.get('/admin/nannies/pending-verification');
@@ -97,7 +98,7 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
         title: const Text('Deactivate Nanny?'),
         content: const Text('This will deactivate the nanny account. They can be re-activated later.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(ctx).cancel)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
@@ -128,11 +129,12 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_pendingNanniesProvider);
     final df = DateFormat('dd/MM/yyyy');
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Verify Nannies'),
+        title: Text(l10n.verifyNannies),
         leading: BackButton(onPressed: () => context.pop()),
         actions: [
           IconButton(
@@ -157,7 +159,7 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   const Text('All nannies are verified!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  const Text('No pending verifications', style: TextStyle(color: AppColors.textSecondary)),
+                  Text(l10n.noPendingVerifications, style: const TextStyle(color: AppColors.textSecondary)),
                 ],
               ),
             );
@@ -410,7 +412,7 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
                               child: OutlinedButton.icon(
                                 onPressed: () => _rejectNanny(context, ref, n['id'] as String),
                                 icon: const Icon(Icons.close_rounded, size: 18),
-                                label: const Text('Reject'),
+                                label: Text(l10n.reject),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.error,
                                   side: const BorderSide(color: AppColors.error),
@@ -423,7 +425,7 @@ class AdminVerifyNanniesScreen extends ConsumerWidget {
                               child: ElevatedButton.icon(
                                 onPressed: () => _verifyNanny(context, ref, n['id'] as String),
                                 icon: const Icon(Icons.verified_rounded, size: 18),
-                                label: const Text('Verify'),
+                                label: Text(l10n.approve),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.success,
                                   foregroundColor: Colors.white,

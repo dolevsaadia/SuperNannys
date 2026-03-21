@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/async_value_ui.dart';
+import '../../../l10n/app_localizations.dart';
 
 // ── Providers ──
 
@@ -57,8 +58,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
       await apiClient.dio.patch('/admin/users/$userId', data: {'isActive': !currentActive});
       ref.invalidate(_usersProvider);
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(currentActive ? 'User deactivated' : 'User activated')),
+          SnackBar(content: Text(currentActive ? l10n.deactivateAccount : l10n.activateAccount)),
         );
       }
     } catch (e) {
@@ -73,8 +75,9 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
       await apiClient.dio.patch('/admin/users/$userId', data: {'isVerified': !currentVerified});
       ref.invalidate(_usersProvider);
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(currentVerified ? 'Verification removed' : 'User verified')),
+          SnackBar(content: Text(currentVerified ? l10n.unverified : l10n.verified)),
         );
       }
     } catch (e) {
@@ -85,12 +88,13 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
   }
 
   Future<void> _deleteUser(String userId, String userName) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dc) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Delete User', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+        title: Text(l10n.deleteUser, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
         content: Text(
           'Are you sure you want to delete "$userName"?\n\n'
           'This will anonymize all personal data, cancel future bookings, and deactivate the account. This action cannot be undone.',
@@ -100,7 +104,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dc, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -109,7 +113,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.pop(dc, true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -134,19 +138,21 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Manage Users'),
+        title: Text(l10n.manageUsers),
         leading: BackButton(onPressed: () => context.pop()),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.textHint,
           indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Active Users'),
-            Tab(text: 'Deleted Users'),
+          tabs: [
+            Tab(text: l10n.activeUsersTab),
+            Tab(text: l10n.deletedUsersTab),
           ],
         ),
       ),
@@ -184,10 +190,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> with Single
                   ),
                   onSelected: (v) => setState(() => _roleFilter = v),
                   itemBuilder: (_) => [
-                    const PopupMenuItem(value: null, child: Text('All Roles')),
-                    const PopupMenuItem(value: 'PARENT', child: Text('Parents')),
-                    const PopupMenuItem(value: 'NANNY', child: Text('Nannies')),
-                    const PopupMenuItem(value: 'ADMIN', child: Text('Admins')),
+                    PopupMenuItem(value: null, child: Text('All Roles')),
+                    PopupMenuItem(value: 'PARENT', child: Text(l10n.parents)),
+                    PopupMenuItem(value: 'NANNY', child: Text(l10n.nannies)),
+                    PopupMenuItem(value: 'ADMIN', child: Text('Admins')),
                   ],
                 ),
               ],
@@ -238,6 +244,7 @@ class _ActiveUsersList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final params = (search: searchCtrl.text, role: roleFilter);
     final async = ref.watch(_usersProvider(params));
+    final l10n = AppLocalizations.of(context);
 
     return async.authAwareWhen(
       ref,
@@ -330,7 +337,7 @@ class _ActiveUsersList extends ConsumerWidget {
                           children: [
                             Icon(isActive ? Icons.block : Icons.check_circle, size: 18, color: isActive ? AppColors.error : AppColors.success),
                             const SizedBox(width: 8),
-                            Text(isActive ? 'Deactivate' : 'Activate'),
+                            Text(isActive ? l10n.deactivateAccount : l10n.activateAccount),
                           ],
                         ),
                       ),
@@ -340,18 +347,18 @@ class _ActiveUsersList extends ConsumerWidget {
                           children: [
                             Icon(isVerified ? Icons.remove_circle : Icons.verified, size: 18, color: isVerified ? AppColors.warning : AppColors.success),
                             const SizedBox(width: 8),
-                            Text(isVerified ? 'Remove Verification' : 'Verify'),
+                            Text(isVerified ? l10n.unverified : l10n.verified),
                           ],
                         ),
                       ),
                       const PopupMenuDivider(),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_forever_rounded, size: 18, color: AppColors.error),
-                            SizedBox(width: 8),
-                            Text('Delete User', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+                            const Icon(Icons.delete_forever_rounded, size: 18, color: AppColors.error),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).deleteUser, style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),

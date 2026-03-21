@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../l10n/app_localizations.dart';
 
 class NotificationsSettingsScreen extends StatefulWidget {
   const NotificationsSettingsScreen({super.key});
@@ -41,10 +42,11 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(l10n.notificationsSettings),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: _loaded
@@ -53,7 +55,7 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
               children: [
                 _buildToggle(
                   icon: Icons.calendar_today_rounded,
-                  title: 'Booking Reminders',
+                  title: l10n.bookingReminders,
                   subtitle: 'Get notified before upcoming bookings',
                   value: _booking,
                   onChanged: (v) {
@@ -63,7 +65,7 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
                 ),
                 _buildToggle(
                   icon: Icons.chat_bubble_outline_rounded,
-                  title: 'Chat Messages',
+                  title: l10n.messageNotifications,
                   subtitle: 'New messages from parents and nannies',
                   value: _chat,
                   onChanged: (v) {

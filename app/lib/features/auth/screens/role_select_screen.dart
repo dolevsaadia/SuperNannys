@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class RoleSelectScreen extends StatefulWidget {
   const RoleSelectScreen({super.key});
@@ -43,6 +44,8 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -53,20 +56,20 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
             children: [
               const SizedBox(height: 24),
               Text(
-                _isGoogleFlow ? 'One more step!' : 'I am a...',
+                _isGoogleFlow ? l.oneMoreStep : l.iAmA,
                 style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
               ),
               const SizedBox(height: 8),
               Text(
                 _isGoogleFlow
-                    ? 'Choose your role to complete sign-up'
-                    : 'Choose your role to get started',
+                    ? l.chooseRoleToCompleteSignUp
+                    : l.chooseRoleToGetStarted,
                 style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 48),
               _RoleCard(
-                title: 'Parent',
-                subtitle: 'I want to find and hire a babysitter for my children',
+                title: l.parentRoleTitle,
+                subtitle: l.parentRoleSubtitle,
                 emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67',
                 color: AppColors.primary,
                 selected: _selected == 'PARENT',
@@ -74,8 +77,8 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               ),
               const SizedBox(height: 16),
               _RoleCard(
-                title: 'Nanny / Babysitter',
-                subtitle: 'I want to offer childcare services and find families',
+                title: l.nannyRoleTitle,
+                subtitle: l.nannyRoleSubtitle,
                 emoji: '\uD83D\uDC76',
                 color: AppColors.accent,
                 selected: _selected == 'NANNY',
@@ -83,7 +86,7 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
               ),
               const Spacer(),
               AppButton(
-                label: _isGoogleFlow ? 'Complete Sign-Up' : 'Continue',
+                label: _isGoogleFlow ? l.completeSignUp : l.continueButton,
                 onTap: _selected == null ? null : _continue,
                 isLoading: _isLoading,
               ),
@@ -92,11 +95,11 @@ class _RoleSelectScreenState extends State<RoleSelectScreen> {
                 child: TextButton(
                   onPressed: () => context.go('/login'),
                   child: RichText(
-                    text: const TextSpan(
-                      text: 'Already have an account? ',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    text: TextSpan(
+                      text: '${l.alreadyHaveAccount} ',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       children: [
-                        TextSpan(text: 'Sign in', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                        TextSpan(text: l.signIn, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),

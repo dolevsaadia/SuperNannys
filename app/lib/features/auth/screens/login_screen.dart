@@ -15,6 +15,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/biometric_prompt_dialog.dart';
 import '../../../core/widgets/google_sign_in_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -71,21 +72,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String _labelForType(BiometricType type) {
+    final l = AppLocalizations.of(context);
     switch (type) {
       case BiometricType.face:
-        return Platform.isIOS ? 'Face ID' : 'Face Recognition';
+        return Platform.isIOS ? l.faceId : l.faceRecognition;
       case BiometricType.fingerprint:
       case BiometricType.strong:
-        return 'Fingerprint';
+        return l.fingerprint;
       case BiometricType.iris:
-        return 'Iris Scan';
+        return l.irisScan;
       default:
-        return 'Biometric';
+        return l.biometric;
     }
   }
 
   Future<void> _biometricLogin(BiometricType type) async {
     final label = _labelForType(type);
+    final l = AppLocalizations.of(context);
 
     // Check if user has a saved biometric session
     final isEnabled = await _biometric.isEnabled;
@@ -95,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Sign in first to enable $label for quick login.'),
+          content: Text(l.signInFirstBiometric(label)),
           backgroundColor: AppColors.textSecondary,
           duration: const Duration(seconds: 3),
         ),
@@ -106,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Authenticate with biometrics — result is never an exception
     appLog.debug('auth', 'biometric_prompt', 'Showing $label prompt');
     final result = await _biometric.authenticate(
-      reason: 'Use $label to sign in',
+      reason: l.useBiometricToSignIn(label),
     );
 
     if (!mounted) return;
@@ -127,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       case BiometricResult.unavailable:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$label is not set up. Please enable it in your device settings first.'),
+            content: Text(l.biometricNotSetUp(label)),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 4),
           ),
@@ -137,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       case BiometricResult.lockedOut:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('$label is locked. Try again later or use your passcode.'),
+            content: Text(l.biometricLocked(label)),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 4),
           ),
@@ -147,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       case BiometricResult.error:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_biometric.lastError ?? '$label error occurred.'),
+            content: Text(_biometric.lastError ?? l.biometricErrorOccurred(label)),
             backgroundColor: AppColors.error,
             duration: const Duration(seconds: 4),
           ),
@@ -167,20 +170,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context.go(_roleBasedRoute());
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Session expired. Please sign in again.'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(l.sessionExpired), backgroundColor: AppColors.error),
       );
       await _biometric.disable();
     }
   }
 
   Future<void> _googleSignIn() async {
+    final l = AppLocalizations.of(context);
+
     if (AppConstants.googleServerClientId.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Google Sign-In is not configured yet. Please use email login.'),
+          SnackBar(
+            content: Text(l.googleSignInNotConfigured),
             backgroundColor: AppColors.error,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -199,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (idToken == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google Sign-In failed: no ID token'), backgroundColor: AppColors.error),
+            SnackBar(content: Text(l.googleSignInFailedNoToken), backgroundColor: AppColors.error),
           );
         }
         return;
@@ -220,20 +225,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Google login failed'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(result.error ?? l.googleLoginFailed), backgroundColor: AppColors.error),
         );
       }
     } on PlatformException catch (e) {
       if (mounted) {
+        final l = AppLocalizations.of(context);
         final String message;
         if (e.code == 'sign_in_failed' && e.message != null && e.message!.contains('10')) {
-          message = 'Google Sign-In configuration error. Please check SHA-1 fingerprint in Firebase Console.';
+          message = l.googleSignInConfigError;
         } else if (e.code == 'sign_in_canceled') {
           return;
         } else if (e.code == 'network_error') {
-          message = 'Network error. Please check your internet connection.';
+          message = l.networkError;
         } else {
-          message = 'Google Sign-In error: ${e.message ?? e.code}';
+          message = l.googleLoginFailed;
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: AppColors.error, duration: const Duration(seconds: 4)),
@@ -242,7 +248,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google Sign-In error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppLocalizations.of(context).googleLoginFailed), backgroundColor: AppColors.error),
         );
       }
     }
@@ -271,8 +277,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await _promptBiometricAndNavigate();
     } else {
       final err = ref.read(authProvider).error;
+      final l = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err ?? 'Login failed'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(err ?? l.loginFailed), backgroundColor: AppColors.error),
       );
     }
   }
@@ -280,6 +287,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider).isLoading;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -308,14 +316,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 36),
 
                 // ── Welcome text ─────────────────────
-                const Text(
-                  'Welcome back!',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
+                Text(
+                  l.welcomeBack,
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Sign in to your SuperNanny account',
-                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                Text(
+                  l.signInToAccount,
+                  style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 36),
 
@@ -330,31 +338,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     children: [
                       AppTextField(
-                        label: 'Email',
+                        label: l.email,
                         hint: 'your@email.com',
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,
                         prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
-                        validator: (v) => v?.isEmpty == true || !v!.contains('@') ? 'Enter a valid email' : null,
+                        validator: (v) => v?.isEmpty == true || !v!.contains('@') ? l.enterValidEmail : null,
                       ),
                       const SizedBox(height: 16),
                       AppTextField(
-                        label: 'Password',
+                        label: l.password,
                         controller: _password,
                         obscureText: true,
                         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textHint),
-                        validator: (v) => (v?.length ?? 0) < 6 ? 'Password too short' : null,
+                        validator: (v) => (v?.length ?? 0) < 6 ? l.passwordTooShort : null,
                       ),
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {},
-                          child: const Text('Forgot password?', style: TextStyle(fontSize: 13)),
+                          child: Text(l.forgotPassword, style: const TextStyle(fontSize: 13)),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      AppButton(label: 'Sign In', onTap: _login, isLoading: isLoading),
+                      AppButton(label: l.signIn, onTap: _login, isLoading: isLoading),
                     ],
                   ),
                 ),
@@ -363,16 +371,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // ── OR divider ───────────────────────
                 Row(children: [
                   Expanded(child: Container(height: 1, color: AppColors.divider)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('OR', style: TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(l.or, style: const TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
                   Expanded(child: Container(height: 1, color: AppColors.divider)),
                 ]),
                 const SizedBox(height: 24),
 
                 // ── Google Sign-In ───────────────────
-                GoogleSignInButton(onTap: _googleSignIn),
+                GoogleSignInButton(onTap: _googleSignIn, label: l.continueWithGoogle),
 
                 // ── Biometric Login ──────────────────
                 for (final type in _availableBiometrics) ...[
@@ -389,11 +397,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextButton(
                   onPressed: () => context.go('/role-select'),
                   child: RichText(
-                    text: const TextSpan(
-                      text: "Don't have an account? ",
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    text: TextSpan(
+                      text: '${l.dontHaveAccount} ',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       children: [
-                        TextSpan(text: 'Sign up', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                        TextSpan(text: l.signUp, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -428,17 +436,18 @@ class _BiometricButton extends StatelessWidget {
     }
   }
 
-  String get _label {
+  String _labelFor(BuildContext context) {
+    final l = AppLocalizations.of(context);
     switch (biometricType) {
       case BiometricType.face:
-        return Platform.isIOS ? 'Sign in with Face ID' : 'Sign in with Face Recognition';
+        return Platform.isIOS ? l.signInWithFaceId : l.signInWithFaceRecognition;
       case BiometricType.fingerprint:
       case BiometricType.strong:
-        return 'Sign in with Fingerprint';
+        return l.signInWithFingerprint;
       case BiometricType.weak:
-        return 'Sign in with Biometric';
+        return l.signInWithBiometric;
       case BiometricType.iris:
-        return 'Sign in with Iris Scan';
+        return l.signInWithIrisScan;
     }
   }
 
@@ -461,7 +470,7 @@ class _BiometricButton extends StatelessWidget {
             Icon(_icon, size: 22, color: AppColors.primary),
             const SizedBox(width: 12),
             Text(
-              _label,
+              _labelFor(context),
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
           ],

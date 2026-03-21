@@ -10,6 +10,7 @@ import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/mini_map_preview.dart';
 import '../../../core/widgets/nanny_list_tile.dart';
 import '../../home/providers/nannies_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 class NearbyScreen extends ConsumerStatefulWidget {
   const NearbyScreen({super.key});
@@ -58,11 +59,12 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
     final allNannies = nanniesState.nannies;
     final mappableNannies = allNannies.where((n) => n.latitude != null && n.longitude != null).toList();
     final center = _userLocation ?? const LatLng(32.0853, 34.7818);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: Text('Nearby Nannies', style: AppTextStyles.heading2),
+        title: Text(l.nearbyNannies, style: AppTextStyles.heading2),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.my_location_rounded, size: 22),
@@ -120,7 +122,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                     child: Row(
                       children: [
                         Text(
-                          '${allNannies.length} nannies found',
+                          l.nanniesFound(allNannies.length),
                           style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const Spacer(),
@@ -136,7 +138,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                               children: [
                                 const Icon(Icons.location_on_rounded, size: 12, color: AppColors.primary),
                                 const SizedBox(width: AppSpacing.xs),
-                                Text('Near you', style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary)),
+                                Text(l.nearYou, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary)),
                               ],
                             ),
                           ),
@@ -155,7 +157,7 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen> {
                           children: [
                             const Icon(Icons.search_off_rounded, size: 48, color: AppColors.textHint),
                             const SizedBox(height: AppSpacing.xl),
-                            Text('No nannies found nearby', style: AppTextStyles.bodySmall),
+                            Text(l.noNanniesFoundNearby, style: AppTextStyles.bodySmall),
                           ],
                         ),
                       ),

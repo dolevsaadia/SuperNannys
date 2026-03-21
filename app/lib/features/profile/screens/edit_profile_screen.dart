@@ -10,6 +10,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/profile_image_picker.dart';
+import '../../../l10n/app_localizations.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -50,15 +51,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       await ref.read(authProvider.notifier).refreshMe();
       triggerDataRefresh(ref);
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated'), backgroundColor: AppColors.success),
+          SnackBar(content: Text(l10n.profileUpdated), backgroundColor: AppColors.success),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update failed: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('${l10n.updateFailed}: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -69,10 +72,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(l10n.editProfile),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SingleChildScrollView(
@@ -97,7 +101,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'Tap to change photo',
+                      l10n.tapToChangePhoto,
                       style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -107,20 +111,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
               // ── Form Fields ──
               AppTextField(
-                label: 'Full Name',
+                label: l10n.fullName,
                 controller: _name,
-                validator: (v) => (v?.trim().length ?? 0) < 2 ? 'Required' : null,
+                validator: (v) => (v?.trim().length ?? 0) < 2 ? l10n.required : null,
                 prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.textHint),
               ),
               const SizedBox(height: 16),
               AppTextField(
-                label: 'Phone',
+                label: l10n.phoneNumber,
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.textHint),
               ),
               const SizedBox(height: 24),
-              AppButton(label: 'Save Changes', onTap: _save, isLoading: _isLoading),
+              AppButton(label: l10n.saveChanges, onTap: _save, isLoading: _isLoading),
             ],
           ),
         ),

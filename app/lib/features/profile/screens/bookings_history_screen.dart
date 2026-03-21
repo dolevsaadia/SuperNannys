@@ -11,6 +11,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/avatar_widget.dart';
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/utils/async_value_ui.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _bookingsProvider = FutureProvider.autoDispose.family<List<BookingModel>, String?>((ref, status) async {
   ref.watch(dataRefreshProvider); // re-fetch when bookings change elsewhere
@@ -33,7 +34,8 @@ class _BookingsHistoryScreenState extends ConsumerState<BookingsHistoryScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   static const _statuses = [null, 'REQUESTED', 'ACCEPTED', 'COMPLETED', 'CANCELLED'];
-  static const _labels = ['All', 'Pending', 'Accepted', 'Completed', 'Cancelled'];
+
+  List<String> _labels(AppLocalizations l) => [l.all, l.pending, l.accepted, l.completed, l.cancelled];
 
   @override
   void initState() {
@@ -51,11 +53,12 @@ class _BookingsHistoryScreenState extends ConsumerState<BookingsHistoryScreen>
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final isNanny = user?.isNanny == true;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('My Bookings'),
+        title: Text(l10n.myBookings),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         bottom: TabBar(
@@ -68,7 +71,7 @@ class _BookingsHistoryScreenState extends ConsumerState<BookingsHistoryScreen>
           labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
           unselectedLabelColor: AppColors.textHint,
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-          tabs: _labels.map((l) => Tab(text: l)).toList(),
+          tabs: _labels(l10n).map((label) => Tab(text: label)).toList(),
         ),
       ),
       body: TabBarView(
@@ -123,7 +126,7 @@ class _BookingsList extends ConsumerWidget {
                   child: const Icon(Icons.calendar_today_outlined, size: 28, color: AppColors.primary),
                 ),
                 const SizedBox(height: 12),
-                const Text('No bookings yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(AppLocalizations.of(context).noBookingsFound, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 const Text('Your bookings will appear here', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               ],

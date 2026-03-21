@@ -6,6 +6,7 @@ import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class BookingSuccessScreen extends ConsumerStatefulWidget {
   final String bookingId;
@@ -47,6 +48,7 @@ class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> wit
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -88,9 +90,9 @@ class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> wit
                 opacity: _fadeAnim,
                 child: Column(
                   children: [
-                    const Text(
-                      'Booking Requested!',
-                      style: TextStyle(
+                    Text(
+                      l.bookingRequested,
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
@@ -99,9 +101,9 @@ class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> wit
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Your booking request has been sent to the nanny.\nYou\'ll receive a notification when they respond.',
-                      style: TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.6),
+                    Text(
+                      l.bookingRequestSentMessage,
+                      style: const TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.6),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
@@ -118,13 +120,13 @@ class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> wit
                         children: [
                           _InfoPill(
                             icon: Icons.notifications_active_rounded,
-                            label: 'Push notification',
+                            label: l.pushNotification,
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 12),
                           _InfoPill(
                             icon: Icons.chat_bubble_outline_rounded,
-                            label: 'Chat available',
+                            label: l.chatAvailable,
                             color: AppColors.accent,
                           ),
                         ],
@@ -142,7 +144,7 @@ class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> wit
                 child: Column(
                   children: [
                     AppButton(
-                      label: 'View Booking',
+                      label: l.viewBooking,
                       variant: AppButtonVariant.gradient,
                       onTap: () {
                         triggerDataRefresh(ref);
@@ -151,7 +153,7 @@ class _BookingSuccessScreenState extends ConsumerState<BookingSuccessScreen> wit
                     ),
                     const SizedBox(height: 12),
                     AppButton(
-                      label: 'Back to Home',
+                      label: l.backToHome,
                       variant: AppButtonVariant.outline,
                       onTap: () {
                         triggerDataRefresh(ref);

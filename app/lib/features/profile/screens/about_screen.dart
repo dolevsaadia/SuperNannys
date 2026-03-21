@@ -3,16 +3,18 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('About'),
+        title: Text(l10n.aboutSuperNanny),
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: ListView(
@@ -38,9 +40,9 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Text('SuperNanny', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
                 const SizedBox(height: 4),
-                const Text('Version 1.4.0', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                Text('${l10n.version} 1.4.0', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
-                const Text('Find trusted babysitters near you', style: TextStyle(fontSize: 14, color: AppColors.textHint)),
+                Text(l10n.findTrustedBabysitters, style: const TextStyle(fontSize: 14, color: AppColors.textHint)),
               ],
             ),
           ),
@@ -69,7 +71,7 @@ class AboutScreen extends StatelessWidget {
                     ),
                     child: const Icon(Icons.description_outlined, size: 18, color: AppColors.primary),
                   ),
-                  title: const Text('Terms of Service', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                  title: Text(l10n.termsOfService, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
                   onTap: () => launchUrl(Uri.parse('https://supernanny.net/terms'), mode: LaunchMode.externalApplication),
                 ),
@@ -85,7 +87,7 @@ class AboutScreen extends StatelessWidget {
                     ),
                     child: const Icon(Icons.privacy_tip_outlined, size: 18, color: AppColors.primary),
                   ),
-                  title: const Text('Privacy Policy', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                  title: Text(l10n.privacyPolicy, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
                   onTap: () => launchUrl(Uri.parse('https://supernanny.net/privacy'), mode: LaunchMode.externalApplication),
                 ),
@@ -101,7 +103,7 @@ class AboutScreen extends StatelessWidget {
                     ),
                     child: const Icon(Icons.source_outlined, size: 18, color: AppColors.primary),
                   ),
-                  title: const Text('Open Source Licenses', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                  title: Text(l10n.openSourceLicenses, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
                   trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
                   onTap: () => showLicensePage(
                     context: context,

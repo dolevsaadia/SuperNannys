@@ -12,6 +12,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/biometric_prompt_dialog.dart';
 import '../../../core/widgets/google_sign_in_button.dart';
+import '../../../l10n/app_localizations.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -77,13 +78,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _pickDateOfBirth() async {
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
       initialDate: _dateOfBirth ?? DateTime(now.year - 20, now.month, now.day),
       firstDate: DateTime(1940),
       lastDate: DateTime(now.year - 13, now.month, now.day), // Must be at least 13
-      helpText: 'Select your date of birth',
+      helpText: l.selectYourDateOfBirth,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -102,10 +104,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _register() async {
+    final l = AppLocalizations.of(context);
     if (!_formKey.currentState!.validate()) return;
     if (_dateOfBirth == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your date of birth'), backgroundColor: AppColors.error),
+        SnackBar(content: Text(l.dateOfBirthRequired), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -126,7 +129,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         context.go(route);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Registration failed'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(result.error ?? l.registrationFailed), backgroundColor: AppColors.error),
         );
       }
     } else {
@@ -146,18 +149,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       } else {
         final err = ref.read(authProvider).error;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err ?? 'Registration failed'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(err ?? l.registrationFailed), backgroundColor: AppColors.error),
         );
       }
     }
   }
 
   Future<void> _googleSignUp() async {
+    final l = AppLocalizations.of(context);
     if (AppConstants.googleServerClientId.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Google Sign-In is not configured yet. Please use email registration.'),
+          SnackBar(
+            content: Text(l.googleSignUpNotConfigured),
             backgroundColor: AppColors.error,
           ),
         );
@@ -177,7 +181,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (idToken == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Google Sign-In failed: no ID token'), backgroundColor: AppColors.error),
+            SnackBar(content: Text(l.googleSignInFailedNoToken), backgroundColor: AppColors.error),
           );
         }
         return;
@@ -191,23 +195,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _email.text = googleUser.email;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Google account linked! Please complete the remaining fields.'),
+          SnackBar(
+            content: Text(l.googleAccountLinked),
             backgroundColor: AppColors.success,
           ),
         );
       }
     } on PlatformException catch (e) {
       if (mounted) {
+        final l = AppLocalizations.of(context);
         final String message;
         if (e.code == 'sign_in_failed' && e.message != null && e.message!.contains('10')) {
-          message = 'Google Sign-In configuration error. Please check SHA-1 fingerprint in Firebase Console.';
+          message = l.googleSignInConfigError;
         } else if (e.code == 'sign_in_canceled') {
           return;
         } else if (e.code == 'network_error') {
-          message = 'Network error. Please check your internet connection.';
+          message = l.networkError;
         } else {
-          message = 'Google Sign-Up error: ${e.message ?? e.code}';
+          message = l.googleLoginFailed;
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: AppColors.error, duration: const Duration(seconds: 4)),
@@ -216,7 +221,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Google Sign-Up error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text(AppLocalizations.of(context).googleLoginFailed), backgroundColor: AppColors.error),
         );
       }
     }
@@ -226,11 +231,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider).isLoading;
     final isNanny = _role == 'NANNY';
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Create Account'),
+        title: Text(l.createAccount),
         leading: BackButton(onPressed: () => context.go('/role-select')),
       ),
       body: SafeArea(
@@ -258,7 +264,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       Icon(isNanny ? Icons.child_care_rounded : Icons.family_restroom_rounded, size: 16, color: Colors.white),
                       const SizedBox(width: 6),
                       Text(
-                        'Signing up as ${isNanny ? 'Nanny' : 'Parent'}',
+                        l.signingUpAsRole(isNanny ? l.nanny : l.parent),
                         style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -270,16 +276,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 if (!_isGoogleFlow) ...[
                   GoogleSignInButton(
                     onTap: _googleSignUp,
-                    label: 'Sign up with Google',
+                    label: l.signUpWithGoogle,
                   ),
                   const SizedBox(height: 20),
 
                   // ── OR divider ──────────────────────
                   Row(children: [
                     Expanded(child: Container(height: 1, color: AppColors.divider)),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('OR', style: TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(l.or, style: const TextStyle(color: AppColors.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
                     Expanded(child: Container(height: 1, color: AppColors.divider)),
                   ]),
@@ -297,14 +303,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
-                        SizedBox(width: 10),
+                        const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Google account linked. Complete the fields below to finish registration.',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.success),
+                            l.googleAccountLinkedInfo,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.success),
                           ),
                         ),
                       ],
@@ -323,38 +329,38 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: Column(
                     children: [
                       AppTextField(
-                        label: 'Full Name',
-                        hint: 'Your full name',
+                        label: l.fullName,
+                        hint: l.yourFullName,
                         controller: _name,
                         readOnly: _isGoogleFlow && _name.text.isNotEmpty,
                         prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.textHint),
-                        validator: (v) => (v?.trim().length ?? 0) < 2 ? 'Enter your full name' : null,
+                        validator: (v) => (v?.trim().length ?? 0) < 2 ? l.enterYourFullName : null,
                       ),
                       const SizedBox(height: 16),
                       AppTextField(
-                        label: 'Email',
+                        label: l.email,
                         hint: 'your@email.com',
                         controller: _email,
                         readOnly: _isGoogleFlow,
                         keyboardType: TextInputType.emailAddress,
                         prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textHint),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Email is required';
-                          if (!_isValidEmail(v.trim())) return 'Enter a valid email address';
+                          if (v == null || v.trim().isEmpty) return l.emailRequired;
+                          if (!_isValidEmail(v.trim())) return l.enterValidEmailAddress;
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       AppTextField(
-                        label: 'Phone',
+                        label: l.phone,
                         hint: '050-1234567',
                         controller: _phone,
                         keyboardType: TextInputType.phone,
                         prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.textHint),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Phone number is required';
+                          if (v == null || v.trim().isEmpty) return l.phoneNumberRequired;
                           final cleaned = v.replaceAll(RegExp(r'[\s\-()]'), '');
-                          if (!RegExp(r'^(\+?\d{9,13})$').hasMatch(cleaned)) return 'Enter a valid phone number';
+                          if (!RegExp(r'^(\+?\d{9,13})$').hasMatch(cleaned)) return l.enterValidPhoneNumber;
                           return null;
                         },
                       ),
@@ -365,15 +371,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         onTap: _pickDateOfBirth,
                         child: AbsorbPointer(
                           child: AppTextField(
-                            label: 'Date of Birth',
-                            hint: 'Select your date of birth',
+                            label: l.dateOfBirth,
+                            hint: l.selectYourDateOfBirth,
                             controller: TextEditingController(
                               text: _dateOfBirth != null ? DateFormat('dd/MM/yyyy').format(_dateOfBirth!) : '',
                             ),
                             prefixIcon: const Icon(Icons.cake_outlined, size: 20, color: AppColors.textHint),
                             suffixIcon: const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.textHint),
                             validator: (_) {
-                              if (_dateOfBirth == null) return 'Date of birth is required';
+                              if (_dateOfBirth == null) return l.dateOfBirthRequired;
                               return null;
                             },
                           ),
@@ -384,15 +390,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       if (!_isGoogleFlow) ...[
                         const SizedBox(height: 16),
                         AppTextField(
-                          label: 'Password',
+                          label: l.password,
                           controller: _password,
                           obscureText: true,
                           prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppColors.textHint),
                           validator: (v) {
                             if (_isGoogleFlow) return null; // no password needed for Google
-                            if (v == null || v.length < 8) return 'Password must be at least 8 characters';
+                            if (v == null || v.length < 8) return l.passwordMinLength;
                             if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'[0-9]').hasMatch(v)) {
-                              return 'Password must contain letters and numbers';
+                              return l.passwordLettersAndNumbers;
                             }
                             return null;
                           },
@@ -400,7 +406,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ],
                       const SizedBox(height: 20),
                       AppButton(
-                        label: _isGoogleFlow ? 'Complete Registration' : 'Create Account',
+                        label: _isGoogleFlow ? l.completeRegistration : l.createAccount,
                         onTap: _register,
                         isLoading: isLoading,
                       ),
@@ -408,9 +414,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'By creating an account, you agree to our Terms of Service and Privacy Policy.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textHint, height: 1.5),
+                Text(
+                  l.agreeToTerms,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textHint, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -418,11 +424,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: TextButton(
                     onPressed: () => context.go('/login'),
                     child: RichText(
-                      text: const TextSpan(
-                        text: 'Already have an account? ',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      text: TextSpan(
+                        text: '${l.alreadyHaveAccount} ',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                         children: [
-                          TextSpan(text: 'Sign in', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                          TextSpan(text: l.signIn, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),

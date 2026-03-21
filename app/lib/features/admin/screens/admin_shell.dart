@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AdminShell extends ConsumerWidget {
   final Widget child;
@@ -43,15 +44,15 @@ class _AdminBottomNav extends StatelessWidget {
 
   const _AdminBottomNav({required this.currentIndex, required this.onTap});
 
-  static const _items = [
-    _NavItem(Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard'),
-    _NavItem(Icons.verified_user_outlined, Icons.verified_user_rounded, 'Approvals'),
-    _NavItem(Icons.people_outline_rounded, Icons.people_rounded, 'Users'),
-    _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, 'Bookings'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final _items = [
+      _NavItem(Icons.dashboard_outlined, Icons.dashboard_rounded, l10n.dashboard),
+      _NavItem(Icons.verified_user_outlined, Icons.verified_user_rounded, l10n.approvals),
+      _NavItem(Icons.people_outline_rounded, Icons.people_rounded, l10n.users),
+      _NavItem(Icons.calendar_today_outlined, Icons.calendar_today_rounded, l10n.bookings),
+    ];
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
