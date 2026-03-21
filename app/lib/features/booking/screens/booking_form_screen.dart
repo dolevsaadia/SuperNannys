@@ -12,7 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
-import '../../../core/constants/israeli_cities.dart';
+import '../../../core/widgets/google_places_field.dart';
 import '../../../core/widgets/availability_calendar.dart';
 
 class BookingFormScreen extends ConsumerStatefulWidget {
@@ -53,8 +53,6 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
   final _postalCodeCtrl = TextEditingController();
   bool _isLoading = false;
   String? _error;
-  bool _showCitySuggestions = false;
-
   // Address source: 'registered' | 'current' | 'manual'
   String _addressSource = 'registered';
   bool _loadingLocation = false;
@@ -891,40 +889,17 @@ class _BookingFormScreenState extends ConsumerState<BookingFormScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          // City with autocomplete
-                          AppTextField(
+                          // City with Google Places autocomplete
+                          GooglePlacesField(
                             label: 'City',
                             hint: 'Start typing a city...',
                             controller: _cityCtrl,
+                            onPlaceSelected: (city) {
+                              _cityCtrl.text = city;
+                              setState(() => _currentStep = 1);
+                            },
                             prefixIcon: const Icon(Icons.location_city_rounded, size: 20, color: AppColors.textHint),
-                            onChanged: (_) => setState(() => _showCitySuggestions = true),
                           ),
-                          if (_showCitySuggestions && _cityCtrl.text.isNotEmpty && IsraeliCities.search(_cityCtrl.text).isNotEmpty)
-                            Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              constraints: const BoxConstraints(maxHeight: 120),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: AppShadows.sm,
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: ListView(
-                                shrinkWrap: true,
-                                padding: EdgeInsets.zero,
-                                children: IsraeliCities.search(_cityCtrl.text).take(5).map((city) => ListTile(
-                                  dense: true,
-                                  leading: const Icon(Icons.location_city_rounded, size: 18, color: AppColors.primary),
-                                  title: Text(city, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                  onTap: () {
-                                    _cityCtrl.text = city;
-                                    _showCitySuggestions = false;
-                                    setState(() => _currentStep = 1);
-                                    FocusScope.of(context).unfocus();
-                                  },
-                                )).toList(),
-                              ),
-                            ),
                           const SizedBox(height: 10),
 
                           // Street + House Number row
