@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class UserModel {
   final String id;
   final String email;
@@ -39,7 +41,7 @@ class UserModel {
       email: json['email'] as String,
       fullName: json['fullName'] as String,
       phone: json['phone'] as String?,
-      avatarUrl: json['avatarUrl'] as String?,
+      avatarUrl: ImageUtils.resolveAvatarUrl(json['avatarUrl'] as String?),
       role: json['role'] as String,
       isVerified: json['isVerified'] as bool? ?? false,
       nannyOnboardingCompleted: onboarded,

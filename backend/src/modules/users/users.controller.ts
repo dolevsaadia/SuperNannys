@@ -38,7 +38,10 @@ export const usersController = {
       res.status(400).json({ error: 'No file uploaded' })
       return
     }
-    const avatarUrl = `/uploads/${req.file.filename}`
+    // Build full URL so clients can use it directly without resolving
+    const protocol = req.get('x-forwarded-proto') || req.protocol
+    const host = req.get('host')
+    const avatarUrl = `${protocol}://${host}/uploads/${req.file.filename}`
     const user = await usersService.updateProfile(req.user!.userId, { avatarUrl })
     ok(res, user)
   },

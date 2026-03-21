@@ -48,6 +48,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>SuperNanny needs camera access to take a profile photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SuperNanny needs photo library access to choose a profile photo.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>SuperNanny uses Face ID for quick and secure sign-in.</string>
 	<key>NSLocationAlwaysUsageDescription</key>

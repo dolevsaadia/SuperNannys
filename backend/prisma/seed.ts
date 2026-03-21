@@ -4,9 +4,35 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 const DEMO_PASSWORD = 'Super1234!'
 
+// High-quality portrait URLs from randomuser.me (stable, no API key needed)
+// These URLs are deterministic and always return the same face
+const PORTRAITS = {
+  women: [
+    'https://randomuser.me/api/portraits/women/44.jpg',
+    'https://randomuser.me/api/portraits/women/68.jpg',
+    'https://randomuser.me/api/portraits/women/65.jpg',
+    'https://randomuser.me/api/portraits/women/89.jpg',
+    'https://randomuser.me/api/portraits/women/50.jpg',
+    'https://randomuser.me/api/portraits/women/33.jpg',
+    'https://randomuser.me/api/portraits/women/72.jpg',
+    'https://randomuser.me/api/portraits/women/17.jpg',
+  ],
+  men: [
+    'https://randomuser.me/api/portraits/men/32.jpg',
+    'https://randomuser.me/api/portraits/men/75.jpg',
+    'https://randomuser.me/api/portraits/men/44.jpg',
+  ],
+  parents: [
+    'https://randomuser.me/api/portraits/women/22.jpg',
+    'https://randomuser.me/api/portraits/men/86.jpg',
+    'https://randomuser.me/api/portraits/women/55.jpg',
+  ],
+}
+
 const nannyData = [
   {
     email: 'nanny1@supernanny.app', fullName: 'שירה מזרחי', phone: '052-4444441',
+    avatarUrl: PORTRAITS.women[0],
     city: 'תל אביב', lat: 32.0853, lng: 34.7818,
     headline: 'מטפלת מנוסה עם 5 שנות ניסיון',
     bio: 'שלום! שמי שירה, בת 26 מתל אביב. יש לי ניסיון עשיר בטיפול בילדים בכל הגילאים, כולל תינוקות. אני סבלנית, אחראית ואוהבת ילדים מאוד.',
@@ -17,6 +43,7 @@ const nannyData = [
   },
   {
     email: 'nanny2@supernanny.app', fullName: 'נועה גולדברג', phone: '052-4444442',
+    avatarUrl: PORTRAITS.women[1],
     city: 'רמת גן', lat: 32.0833, lng: 34.8103,
     headline: 'בוגרת חינוך לגיל הרך',
     bio: 'אני נועה, בת 24, בוגרת תואר ראשון בחינוך לגיל הרך. מתמחה בטיפול בילדים גיל 0-6. מאמינה בגישה חיובית ומשחקית.',
@@ -27,6 +54,7 @@ const nannyData = [
   },
   {
     email: 'nanny3@supernanny.app', fullName: 'אור בן דוד', phone: '052-4444443',
+    avatarUrl: PORTRAITS.men[0],
     city: 'פתח תקווה', lat: 32.0897, lng: 34.8872,
     headline: 'מטפל עם ניסיון בילדים מיוחדים',
     bio: 'שלום, אני אור בן 28. מתמחה בטיפול בילדים עם צרכים מיוחדים. בעל הכשרה בהנחיית ילדים עם אוטיזם ו-ADHD.',
@@ -37,6 +65,7 @@ const nannyData = [
   },
   {
     email: 'nanny4@supernanny.app', fullName: 'תמר אלוני', phone: '052-4444444',
+    avatarUrl: PORTRAITS.women[2],
     city: 'תל אביב', lat: 32.0662, lng: 34.7750,
     headline: 'מטפלת מוסמכת עם אישור עבודה עם ילדים',
     bio: 'שמי תמר, בת 30. יש לי 8 שנות ניסיון בטיפול בילדים. אני מוסמכת בעזרה ראשונה ויש לי אישור עבודה עם ילדים.',
@@ -47,6 +76,7 @@ const nannyData = [
   },
   {
     email: 'nanny5@supernanny.app', fullName: 'יעל כהן', phone: '052-4444445',
+    avatarUrl: PORTRAITS.women[3],
     city: 'הרצליה', lat: 32.1656, lng: 34.8441,
     headline: 'נאני פרטית עם ניסיון בבתי ערש',
     bio: 'אני יעל, בת 27. עבדתי 4 שנים כנאני פרטית אצל משפחות בהרצליה ורמת השרון. מיומנת בניהול לוחות זמנים.',
@@ -57,6 +87,7 @@ const nannyData = [
   },
   {
     email: 'nanny6@supernanny.app', fullName: 'ליאת שרון', phone: '052-4444446',
+    avatarUrl: PORTRAITS.women[4],
     city: 'חיפה', lat: 32.7940, lng: 34.9896,
     headline: 'מטפלת ותיקה מחיפה',
     bio: 'ליאת, בת 35, אמא לשני ילדים בעצמי ועם ניסיון של 10 שנים בטיפול בילדים. אני מבינה את הצרכים של ההורים.',
@@ -67,6 +98,7 @@ const nannyData = [
   },
   {
     email: 'nanny7@supernanny.app', fullName: 'ענת פרץ', phone: '052-4444447',
+    avatarUrl: PORTRAITS.women[5],
     city: 'ראשון לציון', lat: 31.9730, lng: 34.7896,
     headline: 'סטודנטית לחינוך מיוחד',
     bio: 'שמי ענת, בת 22, סטודנטית שנה ג\' לחינוך מיוחד. מחפשת עבודה גמישה בשעות אחה"צ ובסופי שבוע.',
@@ -77,6 +109,7 @@ const nannyData = [
   },
   {
     email: 'nanny8@supernanny.app', fullName: 'מורן אלחדד', phone: '052-4444448',
+    avatarUrl: PORTRAITS.women[6],
     city: 'נתניה', lat: 32.3215, lng: 34.8532,
     headline: 'מטפלת מקצועית עם ניסיון בחו"ל',
     bio: 'מורן, בת 29. עבדתי 3 שנים כנאני בלונדון ועוד 4 שנים בישראל. דוברת אנגלית ברמת שפת אם.',
@@ -87,6 +120,7 @@ const nannyData = [
   },
   {
     email: 'nanny9@supernanny.app', fullName: 'רוני אביב', phone: '052-4444449',
+    avatarUrl: PORTRAITS.men[1],
     city: 'גבעתיים', lat: 32.0693, lng: 34.8127,
     headline: 'מטפל גברי - נאמן ואחראי',
     bio: 'שלום, אני רוני בן 26. יש לי אחיינים קטנים ואני אוהב לעבוד עם ילדים. עוסק בחינוך גופני.',
@@ -97,6 +131,7 @@ const nannyData = [
   },
   {
     email: 'nanny10@supernanny.app', fullName: 'שושנה ביטון', phone: '052-4444450',
+    avatarUrl: PORTRAITS.women[7],
     city: 'אשדוד', lat: 31.8044, lng: 34.6553,
     headline: 'מטפלת ותיקה מאשדוד',
     bio: 'שושנה, בת 42. אמא ל-3 ילדים ועם ניסיון של 15 שנה. מכירה את כל מה שנדרש לטיפול ילדים מקצועי.',
@@ -118,17 +153,17 @@ async function main() {
     create: { email: 'admin@supernanny.app', passwordHash: hash, fullName: 'Super Admin', role: Role.ADMIN, isVerified: true },
   })
 
-  // Parents
+  // Parents (with avatars)
   const parentEmails = [
-    { email: 'parent1@supernanny.app', fullName: 'דנה כהן', phone: '052-1111111' },
-    { email: 'parent2@supernanny.app', fullName: 'יונתן לוי', phone: '053-2222222' },
-    { email: 'parent3@supernanny.app', fullName: 'מיכל אברהם', phone: '054-3333333' },
+    { email: 'parent1@supernanny.app', fullName: 'דנה כהן', phone: '052-1111111', avatarUrl: PORTRAITS.parents[0] },
+    { email: 'parent2@supernanny.app', fullName: 'יונתן לוי', phone: '053-2222222', avatarUrl: PORTRAITS.parents[1] },
+    { email: 'parent3@supernanny.app', fullName: 'מיכל אברהם', phone: '054-3333333', avatarUrl: PORTRAITS.parents[2] },
   ]
 
   for (const p of parentEmails) {
     await prisma.user.upsert({
       where: { email: p.email },
-      update: {},
+      update: { avatarUrl: p.avatarUrl },
       create: { ...p, passwordHash: hash, role: Role.PARENT, isVerified: true },
     })
   }
@@ -137,8 +172,12 @@ async function main() {
   for (const data of nannyData) {
     const user = await prisma.user.upsert({
       where: { email: data.email },
-      update: {},
-      create: { email: data.email, passwordHash: hash, fullName: data.fullName, phone: data.phone, role: Role.NANNY, isVerified: true },
+      update: { avatarUrl: data.avatarUrl },
+      create: {
+        email: data.email, passwordHash: hash, fullName: data.fullName,
+        phone: data.phone, role: Role.NANNY, isVerified: true,
+        avatarUrl: data.avatarUrl,
+      },
     })
 
     const profile = await prisma.nannyProfile.upsert({
@@ -177,6 +216,7 @@ async function main() {
   }
 
   console.log(`✅ Seed complete — ${nannyData.length} nannies, ${parentEmails.length} parents, 1 admin`)
+  console.log('   All users seeded with realistic profile images')
   console.log('\n🔑 Demo credentials (password: Super1234!):')
   console.log('   parent1@supernanny.app  → Parent')
   console.log('   nanny1@supernanny.app   → Nanny')
