@@ -372,3 +372,326 @@ class _ProfileImagePickerState extends State<ProfileImagePicker> {
     );
   }
 }
+
+/// Board/card-style profile image with upload support.
+/// Shows a rectangular image area (like the nanny card top image) with a
+/// camera edit button overlay. Used on the Profile screen for a premium look.
+class ProfileImageBoard extends StatefulWidget {
+  final String? currentImageUrl;
+  final String? name;
+  final double height;
+  final ValueChanged<String>? onUploaded;
+
+  const ProfileImageBoard({
+    super.key,
+    this.currentImageUrl,
+    this.name,
+    this.height = 200,
+    this.onUploaded,
+  });
+
+  @override
+  State<ProfileImageBoard> createState() => _ProfileImageBoardState();
+}
+
+class _ProfileImageBoardState extends State<ProfileImageBoard> {
+  File? _localFile;
+  bool _isUploading = false;
+  String? _lastUploadedUrl;
+
+  String? get _effectiveImageUrl => _lastUploadedUrl ?? widget.currentImageUrl;
+
+  Future<void> _pickAndUpload() async {
+    final source = await _showSourcePicker();
+    if (source == null) return;
+
+    final hasPermission = await _checkPermission(source);
+    if (!hasPermission) return;
+
+    try {
+      final picker = ImagePicker();
+      final XFile? picked;
+      try {
+        picked = await picker.pickImage(
+          source: source,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 85,
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open ${source == ImageSource.camera ? 'camera' : 'gallery'}. Please check app permissions.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (picked == null) return;
+
+      final file = File(picked.path);
+      if (!file.existsSync()) return;
+
+      final oldUrl = _effectiveImageUrl;
+      setState(() {
+        _localFile = file;
+        _isUploading = true;
+      });
+
+      try {
+        final formData = FormData.fromMap({
+          'avatar': await MultipartFile.fromFile(
+            file.path,
+            filename: 'avatar_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ),
+        });
+
+        final resp = await apiClient.dio.post('/users/me/avatar', data: formData);
+        final rawAvatarUrl = resp.data['data']?['avatarUrl'] as String?;
+
+        if (rawAvatarUrl != null) {
+          final resolvedUrl = ImageUtils.resolveAvatarUrl(rawAvatarUrl);
+          await ImageUtils.evictAvatarFromCache(oldUrl);
+          await ImageUtils.evictAvatarFromCache(resolvedUrl);
+          setState(() => _lastUploadedUrl = resolvedUrl);
+          widget.onUploaded?.call(resolvedUrl ?? rawAvatarUrl);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile photo updated'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _localFile = null);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Upload failed. Please try again.'), backgroundColor: AppColors.error),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _localFile = null;
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  Future<bool> _checkPermission(ImageSource source) async {
+    if (source == ImageSource.camera) {
+      var status = await Permission.camera.status;
+      if (status.isDenied) status = await Permission.camera.request();
+      if (status.isPermanentlyDenied) {
+        if (mounted) _showPermissionDeniedDialog('camera');
+        return false;
+      }
+      return status.isGranted;
+    } else {
+      if (Platform.isAndroid) {
+        var status = await Permission.photos.status;
+        if (status.isDenied) {
+          status = await Permission.photos.request();
+          if (status.isDenied) status = await Permission.storage.request();
+        }
+        if (status.isPermanentlyDenied) {
+          if (mounted) _showPermissionDeniedDialog('photo library');
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  void _showPermissionDeniedDialog(String feature) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.borderCardLg),
+        title: Text('$feature Access Required', style: AppTextStyles.heading3),
+        content: Text(
+          'Please enable $feature access in your device Settings to use this feature.',
+          style: AppTextStyles.body,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: AppTextStyles.label.copyWith(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              openAppSettings();
+            },
+            child: Text('Open Settings', style: AppTextStyles.label.copyWith(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<ImageSource?> _showSourcePicker() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        padding: AppSpacing.sheetPadding,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppRadius.sheetTop,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: AppColors.divider, borderRadius: AppRadius.borderXs),
+            ),
+            const SizedBox(height: AppSpacing.s20),
+            Text('Choose Photo', style: AppTextStyles.heading3),
+            const SizedBox(height: AppSpacing.s20),
+            ListTile(
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: AppRadius.borderXl),
+                child: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+              ),
+              title: Text('Choose from Gallery', style: AppTextStyles.label),
+              subtitle: Text('Select an existing photo', style: AppTextStyles.caption),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ListTile(
+              leading: Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: AppRadius.borderXl),
+                child: const Icon(Icons.camera_alt_rounded, color: AppColors.accent),
+              ),
+              title: Text('Take a Photo', style: AppTextStyles.label),
+              subtitle: Text('Use your camera', style: AppTextStyles.caption),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            const SizedBox(height: AppSpacing.s20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _isUploading ? null : _pickAndUpload,
+      child: SizedBox(
+        width: double.infinity,
+        height: widget.height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Image
+            _buildImage(),
+            // Gradient overlay at bottom for text readability
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 60,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.3)],
+                  ),
+                ),
+              ),
+            ),
+            // Camera edit button
+            Positioned(
+              bottom: 12,
+              right: 12,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.white, width: 2),
+                  boxShadow: AppShadows.sm,
+                ),
+                child: _isUploading
+                    ? const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        ),
+                      )
+                    : const Icon(Icons.camera_alt_rounded, size: 18, color: AppColors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    if (_localFile != null) {
+      return Image.file(_localFile!, fit: BoxFit.cover);
+    }
+
+    final url = _effectiveImageUrl;
+    if (url != null && url.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: url,
+        fit: BoxFit.cover,
+        cacheKey: _lastUploadedUrl != null ? '${url}_${DateTime.now().millisecondsSinceEpoch}' : url,
+        placeholder: (_, __) => _boardPlaceholder(),
+        errorWidget: (_, __, ___) => _boardPlaceholder(),
+      );
+    }
+
+    return _boardPlaceholder();
+  }
+
+  Widget _boardPlaceholder() {
+    final initial = (widget.name?.isNotEmpty == true) ? widget.name![0].toUpperCase() : '?';
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: AppColors.gradientPrimary,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              initial,
+              style: AppTextStyles.heading1.copyWith(color: AppColors.white, fontSize: 48),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tap to add photo',
+              style: AppTextStyles.caption.copyWith(color: Colors.white.withValues(alpha: 0.7)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

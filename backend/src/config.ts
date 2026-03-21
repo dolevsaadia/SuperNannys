@@ -5,6 +5,9 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '8080', 10),
   clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
+  // Public base URL for constructing asset URLs (uploads, avatars).
+  // Falls back to request-based URL construction if not set.
+  publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
 
   jwt: {
     secret: process.env.JWT_SECRET || 'fallback-secret-CHANGE-in-production-32chars+',

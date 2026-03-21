@@ -109,11 +109,9 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                               const Icon(Icons.star_rounded, size: 12, color: AppColors.white),
                               const SizedBox(width: AppSpacing.xxs),
                               Text(
-                                nanny.hourlyRateNis.toString(),
+                                nanny.rating.toStringAsFixed(1),
                                 style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.white),
                               ),
-                              const SizedBox(width: AppSpacing.xxs),
-                              const Icon(Icons.star_rounded, size: 12, color: AppColors.white),
                             ],
                           ),
                         ),
@@ -151,16 +149,22 @@ class _NannyCardHorizontalState extends State<NannyCardHorizontal>
                     const SizedBox(height: 3),
                     Row(
                       children: [
+                        const Icon(Icons.star_rounded, size: 13, color: AppColors.star),
+                        const SizedBox(width: 2),
                         Text(
-                          'jobs ${nanny.completedJobs}',
-                          style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          nanny.rating.toStringAsFixed(1),
+                          style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.textPrimary),
+                        ),
+                        Text(
+                          ' (${nanny.reviewsCount})',
+                          style: AppTextStyles.caption.copyWith(fontSize: 10, color: AppColors.textSecondary),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Container(width: 3, height: 3, decoration: const BoxDecoration(color: AppColors.textHint, shape: BoxShape.circle)),
                         const SizedBox(width: AppSpacing.sm),
                         Text(
-                          '${nanny.yearsExperience}y exp',
-                          style: AppTextStyles.caption.copyWith(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                          '₪${nanny.hourlyRateNis}/hr',
+                          style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.primary),
                         ),
                       ],
                     ),

@@ -1,3 +1,5 @@
+import '../utils/image_utils.dart';
+
 class RecurringBookingModel {
   final String id;
   final String parentUserId;
@@ -140,7 +142,7 @@ class RecurringBookingUser {
   factory RecurringBookingUser.fromJson(Map<String, dynamic> json) => RecurringBookingUser(
         id: json['id'] as String,
         fullName: json['fullName'] as String,
-        avatarUrl: json['avatarUrl'] as String?,
+        avatarUrl: ImageUtils.resolveAvatarUrl(json['avatarUrl'] as String?),
         phone: json['phone'] as String?,
       );
 }
