@@ -582,5 +582,8 @@
   "deleteConfirmTerminal": "سيتم حذف هذا الحجز نهائياً. لا يمكن التراجع عن هذا الإجراء.",
   "deleteConfirmActive": "سيتم إلغاء الحجز وحذفه نهائياً. لا يمكن التراجع عن هذا الإجراء.",
   "bookingsAppearHere": "ستظهر حجوزاتك هنا",
-  "childrenCountLabel": "{count} طفل/أطفال"
+  "childrenCountLabel": "{count} طفل/أطفال",
+  "pendingPayment": "في انتظار الدفع",
+  "paymentCancelled": "ملغى",
+  "paymentStatus": "حالة الدفع"
 }

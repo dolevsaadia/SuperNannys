@@ -1856,5 +1856,14 @@
   "@bookingsAppearHere": { "description": "Empty bookings list subtitle" },
 
   "childrenCountLabel": "{count} child(ren)",
-  "@childrenCountLabel": { "description": "Children count label on booking card", "placeholders": { "count": { "type": "int" } } }
+  "@childrenCountLabel": { "description": "Children count label on booking card", "placeholders": { "count": { "type": "int" } } },
+
+  "pendingPayment": "Pending payment",
+  "@pendingPayment": { "description": "Payment status when booking is active but not paid" },
+
+  "paymentCancelled": "Cancelled",
+  "@paymentCancelled": { "description": "Payment status when booking is cancelled/declined" },
+
+  "paymentStatus": "Payment status",
+  "@paymentStatus": { "description": "Payment status section label" }
 }

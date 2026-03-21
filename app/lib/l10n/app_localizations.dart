@@ -3577,6 +3577,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} child(ren)'**
   String childrenCountLabel(int count);
+
+  /// Payment status when booking is active but not paid
+  ///
+  /// In en, this message translates to:
+  /// **'Pending payment'**
+  String get pendingPayment;
+
+  /// Payment status when booking is cancelled/declined
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get paymentCancelled;
+
+  /// Payment status section label
+  ///
+  /// In en, this message translates to:
+  /// **'Payment status'**
+  String get paymentStatus;
 }
 
 class _AppLocalizationsDelegate

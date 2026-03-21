@@ -1881,4 +1881,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String childrenCountLabel(int count) {
     return '$count child(ren)';
   }
+
+  @override
+  String get pendingPayment => 'Pending payment';
+
+  @override
+  String get paymentCancelled => 'Cancelled';
+
+  @override
+  String get paymentStatus => 'Payment status';
 }

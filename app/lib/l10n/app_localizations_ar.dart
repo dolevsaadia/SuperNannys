@@ -1877,4 +1877,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String childrenCountLabel(int count) {
     return '$count طفل/أطفال';
   }
+
+  @override
+  String get pendingPayment => 'في انتظار الدفع';
+
+  @override
+  String get paymentCancelled => 'ملغى';
+
+  @override
+  String get paymentStatus => 'حالة الدفع';
 }

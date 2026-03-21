@@ -463,12 +463,7 @@ class _BookingDetailBody extends ConsumerWidget {
                   ),
                 ],
                 _premiumDivider(),
-                _PremiumRow(
-                  icon: booking.isPaid ? Icons.check_circle_rounded : Icons.pending_rounded,
-                  label: l.statusLabel,
-                  value: booking.isPaid ? l.paid : (booking.isCompleted ? l.processing : l.pendingSessionStatus),
-                  valueColor: booking.isPaid ? AppColors.success : AppColors.warning,
-                ),
+                _PaymentStatusRow(booking: booking),
               ],
             ),
           ),
@@ -891,4 +886,30 @@ class _PremiumRow extends StatelessWidget {
           ),
         ],
       );
+}
+
+// ── Payment Status Row — uses BookingModel.paymentStatus ──────────────────
+class _PaymentStatusRow extends StatelessWidget {
+  final BookingModel booking;
+  const _PaymentStatusRow({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final ps = booking.paymentStatus;
+
+    final (String label, Color color, IconData icon) = switch (ps) {
+      'PAID' => (l.paid, AppColors.success, Icons.check_circle_rounded),
+      'PROCESSING' => (l.processing, AppColors.warning, Icons.hourglass_top_rounded),
+      'CANCELLED' => (l.paymentCancelled, AppColors.error, Icons.cancel_rounded),
+      _ => (l.pendingPayment, AppColors.warning, Icons.pending_rounded), // PENDING_PAYMENT
+    };
+
+    return _PremiumRow(
+      icon: icon,
+      label: l.paymentStatus,
+      value: label,
+      valueColor: color,
+    );
+  }
 }

@@ -582,5 +582,8 @@
   "deleteConfirmTerminal": "פעולה זו תמחק את ההזמנה לצמיתות. לא ניתן לבטל פעולה זו.",
   "deleteConfirmActive": "פעולה זו תבטל את ההזמנה ותמחק אותה לצמיתות. לא ניתן לבטל פעולה זו.",
   "bookingsAppearHere": "ההזמנות שלך יופיעו כאן",
-  "childrenCountLabel": "{count} ילד(ים)"
+  "childrenCountLabel": "{count} ילד(ים)",
+  "pendingPayment": "ממתין לתשלום",
+  "paymentCancelled": "בוטל",
+  "paymentStatus": "סטטוס תשלום"
 }
