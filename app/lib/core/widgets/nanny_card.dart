@@ -9,7 +9,8 @@ import '../theme/app_text_styles.dart';
 
 import 'badge_chip.dart';
 
-/// Premium Wolt-style full-width nanny card
+/// Premium full-width nanny card — matches the reference design:
+/// Large profile image left · Name + subtitle · Rating with reviews · "View" CTA · Badge chips below
 class NannyCard extends StatefulWidget {
   final NannyModel nanny;
   final VoidCallback onTap;
@@ -61,191 +62,128 @@ class _NannyCardState extends State<NannyCard> with SingleTickerProviderStateMix
           ),
           child: Column(
             children: [
-              // ── Top section: avatar + info ──────────────
+              // ── Main content: large avatar + info ──
               Padding(
-                padding: AppSpacing.cardPadding,
+                padding: const EdgeInsets.all(AppSpacing.xxxl),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar with gradient border
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.xxs),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: nanny.isVerified
-                            ? const LinearGradient(colors: AppColors.gradientPrimary)
-                            : null,
-                        color: nanny.isVerified ? null : AppColors.divider,
-                      ),
-                      child: ClipOval(
-                        child: Container(
-                          width: 68,
-                          height: 68,
-                          color: AppColors.white,
-                          padding: const EdgeInsets.all(1.5),
-                          child: ClipOval(
-                            child: (nanny.user?.avatarUrl ?? '').isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: nanny.user!.avatarUrl!,
-                                    width: 64,
-                                    height: 64,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => _AvatarPlaceholder(name: nanny.user?.fullName),
-                                    errorWidget: (_, __, ___) => _AvatarPlaceholder(name: nanny.user?.fullName),
-                                  )
-                                : _AvatarPlaceholder(name: nanny.user?.fullName),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xxl),
+                    // Large profile image
+                    _ProfileImage(nanny: nanny),
+                    const SizedBox(width: AppSpacing.xxxl),
+                    // Info column
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Name
+                          Text(
+                            nanny.user?.fullName ?? '',
+                            style: AppTextStyles.heading2.copyWith(fontSize: 19),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          // Headline
+                          if (nanny.headline.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xxs),
+                            Text(
+                              nanny.headline,
+                              style: AppTextStyles.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          const SizedBox(height: AppSpacing.lg),
+                          // Rating row
                           Row(
                             children: [
-                              Expanded(
-                                child: Text(
-                                  nanny.user?.fullName ?? '',
-                                  style: AppTextStyles.heading3.copyWith(letterSpacing: -0.2),
-                                ),
+                              Text(
+                                '(${nanny.reviewsCount})',
+                                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
                               ),
-                              if (nanny.isVerified)
-                                Container(
-                                  padding: const EdgeInsets.all(AppSpacing.xxs),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.badgeVerified.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.verified_rounded, color: AppColors.badgeVerified, size: 18),
-                                ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(
+                                nanny.rating.toStringAsFixed(1),
+                                style: AppTextStyles.heading3.copyWith(fontSize: 16),
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              const Icon(Icons.star_rounded, size: 18, color: AppColors.star),
                             ],
                           ),
-                          if (nanny.headline.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 3),
-                              child: Text(
-                                nanny.headline,
-                                style: AppTextStyles.bodySmall,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: AppSpacing.xxl),
+                          // View button
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20, vertical: AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: AppRadius.borderPill,
+                                boxShadow: AppShadows.primaryGlow(0.15),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.location_on_rounded, size: 16, color: AppColors.white),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text('View', style: AppTextStyles.buttonSmall.copyWith(color: AppColors.white)),
+                                ],
                               ),
                             ),
-                          const SizedBox(height: AppSpacing.md),
-                          Row(
-                            children: [
-                              // Rating
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
-                                decoration: BoxDecoration(
-                                  color: AppColors.star.withValues(alpha: 0.1),
-                                  borderRadius: AppRadius.borderSm,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.star_rounded, size: 14, color: AppColors.star),
-                                    const SizedBox(width: AppSpacing.xxs),
-                                    Text(
-                                      nanny.rating.toStringAsFixed(1),
-                                      style: AppTextStyles.captionBold.copyWith(color: AppColors.textPrimary),
-                                    ),
-                                    Text(
-                                      ' (${nanny.reviewsCount})',
-                                      style: AppTextStyles.caption.copyWith(fontSize: 11),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.lg),
-                              // Location
-                              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textHint),
-                              const SizedBox(width: AppSpacing.xxs),
-                              Flexible(
-                                child: Text(
-                                  nanny.city,
-                                  style: AppTextStyles.caption,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (nanny.distanceKm != null) ...[
-                                const SizedBox(width: AppSpacing.xs),
-                                Text(
-                                  '· ${nanny.distanceKm!.toStringAsFixed(1)} km',
-                                  style: AppTextStyles.caption,
-                                ),
-                              ],
-                            ],
                           ),
                         ],
                       ),
                     ),
-                    // ── Navigate button ──────────────────
-                    Padding(
-                      padding: const EdgeInsets.only(left: AppSpacing.sm),
-                      child: _NavigateButton(nanny: nanny),
-                    ),
                   ],
                 ),
               ),
 
-              // ── Badges row ───────────────────────────
+              // ── Badges row ──
               _BadgesRow(nanny: nanny),
 
               const SizedBox(height: AppSpacing.xl),
-
-              // ── Bottom: stats + price ───
-              Container(
-                padding: AppSpacing.cardBottomPadding,
-                decoration: const BoxDecoration(
-                  color: AppColors.cardFooterBg,
-                  borderRadius: AppRadius.cardBottom,
-                ),
-                child: Row(
-                  children: [
-                    _Stat(icon: Icons.work_outline_rounded, label: '${nanny.yearsExperience}y exp'),
-                    const SizedBox(width: AppSpacing.xxl),
-                    _Stat(icon: Icons.check_circle_outline, label: '${nanny.completedJobs} jobs'),
-                    const Spacer(),
-                    // Price tags
-                    if (nanny.recurringHourlyRateNis != null)
-                      Container(
-                        margin: const EdgeInsets.only(right: AppSpacing.sm),
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withValues(alpha: 0.1),
-                          borderRadius: AppRadius.borderMd,
-                          border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.repeat_rounded, size: 12, color: AppColors.accent),
-                            const SizedBox(width: 3),
-                            Text(
-                              '₪${nanny.recurringHourlyRateNis}',
-                              style: AppTextStyles.captionBold.copyWith(fontSize: 11, color: AppColors.accent),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: AppColors.gradientPrimary),
-                        borderRadius: AppRadius.borderLg,
-                      ),
-                      child: Text(
-                        '₪${nanny.hourlyRateNis}/hr',
-                        style: AppTextStyles.buttonSmall.copyWith(color: AppColors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Large circular profile image with gradient border
+class _ProfileImage extends StatelessWidget {
+  final NannyModel nanny;
+  const _ProfileImage({required this.nanny});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = (nanny.user?.avatarUrl ?? '').isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: nanny.isVerified
+            ? const LinearGradient(colors: AppColors.gradientPrimary)
+            : null,
+        color: nanny.isVerified ? null : AppColors.divider,
+      ),
+      child: ClipOval(
+        child: Container(
+          width: 100,
+          height: 100,
+          color: AppColors.white,
+          padding: const EdgeInsets.all(2),
+          child: ClipOval(
+            child: hasImage
+                ? CachedNetworkImage(
+                    imageUrl: nanny.user!.avatarUrl!,
+                    width: 94,
+                    height: 94,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _AvatarPlaceholder(name: nanny.user?.fullName),
+                    errorWidget: (_, __, ___) => _AvatarPlaceholder(name: nanny.user?.fullName),
+                  )
+                : _AvatarPlaceholder(name: nanny.user?.fullName),
           ),
         ),
       ),
@@ -315,19 +253,6 @@ class NavigateButton extends StatelessWidget {
   }
 }
 
-class _NavigateButton extends StatelessWidget {
-  final NannyModel nanny;
-  const _NavigateButton({required this.nanny});
-
-  @override
-  Widget build(BuildContext context) => NavigateButton(
-        latitude: nanny.latitude,
-        longitude: nanny.longitude,
-        address: nanny.address,
-        city: nanny.city,
-      );
-}
-
 class _BadgesRow extends StatelessWidget {
   final NannyModel nanny;
   const _BadgesRow({required this.nanny});
@@ -374,8 +299,8 @@ class _AvatarPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = (name?.isNotEmpty == true) ? name![0].toUpperCase() : '?';
     return Container(
-      width: 64,
-      height: 64,
+      width: 94,
+      height: 94,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: AppColors.gradientPrimary,
@@ -386,25 +311,9 @@ class _AvatarPlaceholder extends StatelessWidget {
       child: Center(
         child: Text(
           initial,
-          style: AppTextStyles.heading1.copyWith(color: AppColors.white),
+          style: AppTextStyles.heading1.copyWith(color: AppColors.white, fontSize: 36),
         ),
       ),
     );
   }
-}
-
-class _Stat extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _Stat({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Icon(icon, size: 14, color: AppColors.textHint),
-          const SizedBox(width: AppSpacing.xs),
-          Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-        ],
-      );
 }

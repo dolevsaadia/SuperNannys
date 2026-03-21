@@ -5,8 +5,11 @@ import '../../../core/network/api_client.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/data_refresh_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/profile_image_picker.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -65,6 +68,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
@@ -76,6 +81,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           key: _formKey,
           child: Column(
             children: [
+              // ── Profile Image ──
+              const SizedBox(height: AppSpacing.md),
+              Center(
+                child: Column(
+                  children: [
+                    ProfileImagePicker(
+                      currentImageUrl: user?.avatarUrl,
+                      name: user?.fullName,
+                      size: 110,
+                      onUploaded: (_) async {
+                        await ref.read(authProvider.notifier).refreshMe();
+                        triggerDataRefresh(ref);
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Tap to change photo',
+                      style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s24),
+
+              // ── Form Fields ──
               AppTextField(
                 label: 'Full Name',
                 controller: _name,

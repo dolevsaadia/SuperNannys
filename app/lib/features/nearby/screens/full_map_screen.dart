@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/models/nanny_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -64,17 +65,8 @@ class _FullMapScreenState extends ConsumerState<FullMapScreen> {
             const SizedBox(height: AppSpacing.xxxl),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: nanny.user?.avatarUrl != null ? NetworkImage(nanny.user!.avatarUrl!) : null,
-                  child: nanny.user?.avatarUrl == null
-                      ? Text(
-                          (nanny.user?.fullName ?? '?')[0].toUpperCase(),
-                          style: AppTextStyles.heading3.copyWith(color: AppColors.primary),
-                        )
-                      : null,
-                ),
+                // Profile image avatar
+                _SheetAvatar(nanny: nanny),
                 const SizedBox(width: AppSpacing.xxl),
                 Expanded(
                   child: Column(
@@ -215,23 +207,14 @@ class _FullMapScreenState extends ConsumerState<FullMapScreen> {
                         ),
                       ),
                     ),
+                  // Profile image markers
                   ...nannies.map((nanny) => Marker(
                         point: LatLng(nanny.latitude!, nanny.longitude!),
-                        width: 44,
-                        height: 44,
+                        width: 50,
+                        height: 50,
                         child: GestureDetector(
                           onTap: () => _showNannySheet(nanny),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: nanny.isVerified ? AppColors.primary : AppColors.textSecondary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.white, width: 2.5),
-                              boxShadow: AppShadows.sm,
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.child_care_rounded, color: AppColors.white, size: 22),
-                            ),
-                          ),
+                          child: _MapProfileMarker(nanny: nanny, size: 46),
                         ),
                       )),
                 ],
@@ -256,6 +239,129 @@ class _FullMapScreenState extends ConsumerState<FullMapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Profile image marker for the full map — circular photo with purple border.
+class _MapProfileMarker extends StatelessWidget {
+  final NannyModel nanny;
+  final double size;
+
+  const _MapProfileMarker({required this.nanny, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = (nanny.user?.avatarUrl ?? '').isNotEmpty;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: nanny.isVerified ? AppColors.primary : AppColors.white,
+          width: 2.5,
+        ),
+        boxShadow: AppShadows.md,
+      ),
+      child: ClipOval(
+        child: hasImage
+            ? CachedNetworkImage(
+                imageUrl: nanny.user!.avatarUrl!,
+                width: size - 5,
+                height: size - 5,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => _MarkerFallback(name: nanny.user?.fullName, size: size - 5),
+                errorWidget: (_, __, ___) => _MarkerFallback(name: nanny.user?.fullName, size: size - 5),
+              )
+            : _MarkerFallback(name: nanny.user?.fullName, size: size - 5),
+      ),
+    );
+  }
+}
+
+class _MarkerFallback extends StatelessWidget {
+  final String? name;
+  final double size;
+  const _MarkerFallback({this.name, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = (name?.isNotEmpty == true) ? name![0].toUpperCase() : '?';
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: AppColors.gradientPrimary),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: TextStyle(
+            fontSize: size * 0.4,
+            fontWeight: FontWeight.w700,
+            color: AppColors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Avatar for the bottom sheet
+class _SheetAvatar extends StatelessWidget {
+  final NannyModel nanny;
+  const _SheetAvatar({required this.nanny});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = (nanny.user?.avatarUrl ?? '').isNotEmpty;
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: nanny.isVerified
+            ? const LinearGradient(colors: AppColors.gradientPrimary)
+            : null,
+        color: nanny.isVerified ? null : AppColors.primaryLight,
+      ),
+      padding: const EdgeInsets.all(2),
+      child: ClipOval(
+        child: Container(
+          color: AppColors.white,
+          padding: const EdgeInsets.all(1),
+          child: ClipOval(
+            child: hasImage
+                ? CachedNetworkImage(
+                    imageUrl: nanny.user!.avatarUrl!,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _AvatarInitials(name: nanny.user?.fullName),
+                    errorWidget: (_, __, ___) => _AvatarInitials(name: nanny.user?.fullName),
+                  )
+                : _AvatarInitials(name: nanny.user?.fullName),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarInitials extends StatelessWidget {
+  final String? name;
+  const _AvatarInitials({this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = (name?.isNotEmpty == true) ? name![0].toUpperCase() : '?';
+    return Container(
+      width: 50, height: 50,
+      color: AppColors.primaryLight,
+      child: Center(
+        child: Text(initial, style: AppTextStyles.heading3.copyWith(color: AppColors.primary)),
       ),
     );
   }
